@@ -172,8 +172,8 @@ export function matchAssignee(
 
   // Try exact first name / last name match
   for (const u of users) {
-    const uNameLower = u.name.toLowerCase();
-    const uEmailLower = u.email.toLowerCase();
+    const uNameLower = (u.name || "").toLowerCase();
+    const uEmailLower = (u.email || "").toLowerCase();
 
     // Check individual name parts (e.g. "Desmond" in "Desmond Ohene-Asante")
     const parts = uNameLower.split(/\s+/);
@@ -181,10 +181,12 @@ export function matchAssignee(
       return { matchedUser: u, isExternal: false };
     }
 
-    // Check email prefix
-    const emailPrefix = uEmailLower.split("@")[0].replace(/[._-]/g, " ");
-    if (clean.includes(emailPrefix) || emailPrefix.includes(clean)) {
-      return { matchedUser: u, isExternal: false };
+    // Check email prefix if email exists
+    if (uEmailLower) {
+      const emailPrefix = uEmailLower.split("@")[0].replace(/[._-]/g, " ");
+      if (clean.includes(emailPrefix) || emailPrefix.includes(clean)) {
+        return { matchedUser: u, isExternal: false };
+      }
     }
   }
 
@@ -458,8 +460,8 @@ function parseTextContent(
   const warnings: string[] = [];
 
   let documentTitle = "";
-  // Search for meeting title in first 5 lines
-  for (let i = 0; i < Math.min(lines.length, 5); i++) {
+  // Search for meeting title in first 8 lines
+  for (let i = 0; i < Math.min(lines.length, 8); i++) {
     const l = lines[i];
     if (
       l.toLowerCase().includes("minutes") ||
@@ -467,6 +469,7 @@ function parseTextContent(
       l.toLowerCase().includes("session") ||
       l.toLowerCase().includes("working") ||
       l.toLowerCase().includes("register") ||
+      l.toLowerCase().includes("review") ||
       l.toLowerCase().includes("board")
     ) {
       documentTitle = l;
@@ -474,86 +477,182 @@ function parseTextContent(
     }
   }
 
-  // Regex to match numbered table rows like:
-  // 1 | Contact Standard Bank... | Desmond | After the meeting
-  // or: 1 \t Contact Standard Bank... \t Desmond \t TBA
-  // or: 1. Contact Standard Bank... - Desmond (Deadline: After the meeting)
-  const numberedRowRegex = /^(\d+)[\.\s\|\t]+(.+)/;
+  // 1. Locate explicitly captioned Action Items / Action Register table
+  const tableCaptions = [
+    /\baction\s*items?\b/i,
+    /\baction\s*register\b/i,
+    /\baction\s*points?\b/i,
+    /\baction\s*log\b/i,
+    /\baction\s*tracker\b/i,
+    /\bsummary\s*of\s*(?:key\s*)?actions?\b/i,
+    /\bmatters\s*arising\b/i,
+    /\bkey\s*actions?\b/i,
+    /\bdeliverables?\s*(?:register|table|tracker)?\b/i,
+    /\bnext\s*steps?\b/i,
+    /\btable\s*of\s*actions?\b/i,
+  ];
 
+  let tableStartIndex = -1;
   for (let i = 0; i < lines.length; i++) {
+    for (const c of tableCaptions) {
+      if (c.test(lines[i])) {
+        tableStartIndex = i;
+        break;
+      }
+    }
+    if (tableStartIndex !== -1) break;
+  }
+
+  if (tableStartIndex === -1) {
+    return {
+      documentTitle: documentTitle || cleanFileName(fileName),
+      items: [],
+      warnings: [
+        "No Action Items or Action Register table found. The document must contain a table explicitly captioned 'Action Items' or 'Action Register'.",
+      ],
+    };
+  }
+
+  // 2. Identify the boundary of the Action Items table
+  const endCaptions = [
+    /\b(any other business|a\.?o\.?b\.?|adjournment|next meeting|signatures?|prepared by|approved by|distribution list|appendix [a-z0-9])\b/i,
+    /^\d+(\.\d+)*\s+(any other|adjournment|conclusion|next meeting|aob)/i,
+  ];
+
+  const tableLines: string[] = [];
+  for (let i = tableStartIndex + 1; i < lines.length; i++) {
     const line = lines[i];
+    if (endCaptions.some((ec) => ec.test(line))) {
+      break;
+    }
+    tableLines.push(line);
+  }
 
-    // Check if table row with pipe or tab
-    if (line.includes("|") || line.includes("\t")) {
-      const delimiter = line.includes("\t") ? "\t" : "|";
-      const parts = line.split(delimiter).map((p) => p.trim()).filter(Boolean);
+  const headerKeywords = [
+    "action item",
+    "action",
+    "deliverable",
+    "responsible",
+    "responsible party",
+    "assignee",
+    "action by",
+    "deadline",
+    "target date",
+    "timeline",
+    "due date",
+    "status",
+  ];
 
-      // Skip table header row
-      const lower0 = (parts[0] || "").toLowerCase();
-      if (lower0 === "no." || lower0 === "no" || lower0 === "action item" || lower0 === "item") {
-        continue;
+  const sectionHeaderBlacklist = [
+    "purpose of meeting",
+    "attendance",
+    "agenda",
+    "background",
+    "market analysis",
+    "pricing strategy",
+    "discussion",
+    "presentation",
+    "opening remarks",
+  ];
+
+  // Strategy 1: Parse rows delimited by |, \t, or 2+ consecutive spaces
+  let foundDelimited = false;
+  for (const line of tableLines) {
+    const lower = line.toLowerCase();
+
+    // Skip table header row
+    if (headerKeywords.filter((k) => lower.includes(k)).length >= 2) {
+      continue;
+    }
+
+    let parts: string[] = [];
+    if (line.includes("|")) {
+      parts = line.split("|").map((p) => p.trim()).filter(Boolean);
+    } else if (line.includes("\t")) {
+      parts = line.split("\t").map((p) => p.trim()).filter(Boolean);
+    } else if (/\s{2,}/.test(line)) {
+      parts = line.split(/\s{2,}/).map((p) => p.trim()).filter(Boolean);
+    }
+
+    if (parts.length >= 2) {
+      foundDelimited = true;
+      let itemNumber: string | undefined;
+      let title = "";
+      let responsible = "";
+      let deadline = "";
+
+      if (/^\d+$/.test(parts[0])) {
+        itemNumber = parts[0];
+        title = parts[1];
+        responsible = parts[2] || "";
+        deadline = parts[3] || "";
+      } else {
+        title = parts[0];
+        responsible = parts[1] || "";
+        deadline = parts[2] || "";
       }
 
-      if (parts.length >= 3) {
-        // [No, Action Item, Responsible, Deadline] OR [Action Item, Responsible, Deadline]
-        let itemNumber: string | undefined;
-        let title = "";
-        let responsible = "";
-        let deadline = "";
+      // Validate title is an actionable item, not a section header
+      const titleLower = title.toLowerCase();
+      const isBlacklisted = sectionHeaderBlacklist.some((b) => titleLower.includes(b));
+      const isHeaderWord = titleLower === "action item" || titleLower === "deliverable" || titleLower === "description";
 
-        if (/^\d+$/.test(parts[0])) {
-          itemNumber = parts[0];
-          title = parts[1];
-          responsible = parts[2] || "";
-          deadline = parts[3] || "";
-        } else {
-          title = parts[0];
-          responsible = parts[1] || "";
-          deadline = parts[2] || "";
-        }
+      if (title && title.length > 3 && !isBlacklisted && !isHeaderWord) {
+        const { matchedUser, isExternal } = matchAssignee(responsible, users);
+        const { parsedDate, rawText, isTBA } = resolveDeadline(deadline, baseDate);
 
-        if (title && title.length > 3) {
-          const { matchedUser, isExternal } = matchAssignee(responsible, users);
-          const { parsedDate, rawText, isTBA } = resolveDeadline(deadline, baseDate);
-
-          items.push({
-            id: `item-${Date.now()}-${items.length}`,
-            itemNumber: itemNumber || items.length + 1,
-            title,
-            rawResponsible: responsible,
-            matchedUserId: matchedUser?.id || null,
-            matchedUserName: matchedUser?.name || null,
-            isExternal,
-            rawDeadline: rawText,
-            parsedDeadline: parsedDate,
-            isDeadlineTBA: isTBA,
-            priority: "medium",
-            status: "not_started",
-            notes: isExternal ? `Counterparty: ${responsible}` : undefined,
-          });
-        }
+        items.push({
+          id: `item-${Date.now()}-${items.length}`,
+          itemNumber: itemNumber || items.length + 1,
+          title,
+          rawResponsible: responsible,
+          matchedUserId: matchedUser?.id || null,
+          matchedUserName: matchedUser?.name || null,
+          isExternal,
+          rawDeadline: rawText,
+          parsedDeadline: parsedDate,
+          isDeadlineTBA: isTBA,
+          priority: "medium",
+          status: "not_started",
+          notes: isExternal ? `Outsider: ${responsible}` : undefined,
+        });
       }
-    } else if (numberedRowRegex.test(line)) {
-      // Line like: "1. Contact Standard Bank to progress final execution..."
-      const match = line.match(numberedRowRegex);
-      if (match) {
-        const num = match[1];
-        const rest = match[2];
+    }
+  }
 
-        // Check if line contains responsible in parens or after dash
-        // e.g. "Review bitumen opportunity [Desmond] [TBA]"
-        let title = rest;
-        let responsible = "";
-        let deadline = "";
+  // Strategy 2: If no delimited rows found, parse sequential table cells
+  if (!foundDelimited || items.length === 0) {
+    const cleanCells = tableLines.filter((l) => {
+      const lower = l.toLowerCase();
+      return !(
+        lower === "no." ||
+        lower === "no" ||
+        lower === "#" ||
+        lower === "item" ||
+        lower === "action item" ||
+        lower === "responsible" ||
+        lower === "responsible party" ||
+        lower === "deadline" ||
+        lower === "target date" ||
+        lower === "status"
+      );
+    });
 
-        const bracketMatch = rest.match(/(.+?)\s*\[(.*?)\]\s*\[(.*?)\]$/);
-        if (bracketMatch) {
-          title = bracketMatch[1];
-          responsible = bracketMatch[2];
-          deadline = bracketMatch[3];
-        }
+    let i = 0;
+    while (i < cleanCells.length) {
+      const line = cleanCells[i];
+      const numMatch = line.match(/^(\d+)[\.:]?$/);
 
-        if (title && title.length > 5) {
+      if (numMatch) {
+        const num = numMatch[1];
+        const title = cleanCells[i + 1] || "";
+        const responsible = cleanCells[i + 2] || "";
+        const deadline = cleanCells[i + 3] || "";
+
+        const titleLower = title.toLowerCase();
+        const isBlacklisted = sectionHeaderBlacklist.some((b) => titleLower.includes(b));
+
+        if (title && title.length > 3 && !/^\d+$/.test(title) && !isBlacklisted) {
           const { matchedUser, isExternal } = matchAssignee(responsible, users);
           const { parsedDate, rawText, isTBA } = resolveDeadline(deadline, baseDate);
 
@@ -570,9 +669,53 @@ function parseTextContent(
             isDeadlineTBA: isTBA,
             priority: "medium",
             status: "not_started",
+            notes: isExternal ? `Outsider: ${responsible}` : undefined,
           });
+
+          // Advance past cell block: check if next cell is a status word
+          const possibleStatus = cleanCells[i + 4] || "";
+          if (/^(not started|in progress|open|ongoing|done|completed|pending|tba)$/i.test(possibleStatus)) {
+            i += 5;
+          } else {
+            i += 4;
+          }
+          continue;
+        }
+      } else {
+        // Check for inline row: "1. [Title] - [Responsible] ([Deadline])"
+        const inlineMatch = line.match(/^(\d+)[\.\s]+(.+?)(?:\s*[-–]\s*(.+?))?(?:\s*\[(.+?)\]|\s*\((.+?)\))?$/);
+        if (inlineMatch && inlineMatch[2]) {
+          const num = inlineMatch[1];
+          const title = inlineMatch[2].trim();
+          const responsible = (inlineMatch[3] || "").trim();
+          const deadline = (inlineMatch[4] || inlineMatch[5] || "").trim();
+
+          const titleLower = title.toLowerCase();
+          const isBlacklisted = sectionHeaderBlacklist.some((b) => titleLower.includes(b));
+
+          if (title.length > 5 && !isBlacklisted) {
+            const { matchedUser, isExternal } = matchAssignee(responsible, users);
+            const { parsedDate, rawText, isTBA } = resolveDeadline(deadline, baseDate);
+
+            items.push({
+              id: `item-${Date.now()}-${items.length}`,
+              itemNumber: num,
+              title,
+              rawResponsible: responsible,
+              matchedUserId: matchedUser?.id || null,
+              matchedUserName: matchedUser?.name || null,
+              isExternal,
+              rawDeadline: rawText,
+              parsedDeadline: parsedDate,
+              isDeadlineTBA: isTBA,
+              priority: "medium",
+              status: "not_started",
+              notes: isExternal ? `Outsider: ${responsible}` : undefined,
+            });
+          }
         }
       }
+      i++;
     }
   }
 
