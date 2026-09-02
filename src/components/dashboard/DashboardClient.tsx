@@ -76,7 +76,7 @@ export function DashboardClient({
   upcomingMeetings = [],
   recentActivities,
   defaultView = "todo",
-  kanbanColumns = ["Backlog", "This Week", "In Progress", "Blocked", "Done"],
+  kanbanColumns = ["Todo", "In Progress", "Done"],
   projects = [],
   entities = [],
   users = [],
@@ -921,7 +921,7 @@ export function DashboardClient({
                   dotColor: "bg-[#1BCECE]",
                   filterFn: (i: ActionItemSummary) =>
                     i.status !== "done" &&
-                    (i.status === "in_progress" || i.status === "blocked" || isDeadlineOverdue(i.deadline, i.status)),
+                    (i.status === "in_progress" || isDeadlineOverdue(i.deadline, i.status)),
                 },
                 {
                   key: "done" as const,

@@ -88,8 +88,6 @@ export function ProjectsClient({
         return <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#39B54A]/10 text-[#39B54A]">Done</span>;
       case "in_progress":
         return <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#1BCECE]/15 text-[#023542]">In progress</span>;
-      case "blocked":
-        return <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#F15A24]/10 text-[#F15A24]">Blocked</span>;
       case "on_hold":
         return <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#FBB03B]/10 text-[#FBB03B]">On hold</span>;
       default:
@@ -175,7 +173,6 @@ export function ProjectsClient({
               <option value="all">All statuses</option>
               <option value="not_started">Not started</option>
               <option value="in_progress">In progress</option>
-              <option value="blocked">Blocked</option>
               <option value="on_hold">On hold</option>
               <option value="done">Done</option>
             </select>

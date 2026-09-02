@@ -117,7 +117,7 @@ export default async function CeoViewPage() {
 
   const keyMovements = [
     "EBID USD 50M Trade Finance term sheet sign-off moved to In Progress",
-    "Balungu Terminal civil engineering milestone sign-off marked Blocked",
+    "Balungu Terminal civil engineering milestone sign-off under final review",
     "GBS bunker barge safety certifications verified and Closed",
   ];
 

@@ -95,7 +95,7 @@ export default async function EaViewPage() {
       brandPrimaryColor: ent.brandPrimaryColor,
       openCount: entItems.filter((i) => i.status !== "done").length,
       inProgressCount: entItems.filter((i) => i.status === "in_progress").length,
-      blockedCount: entItems.filter((i) => i.status === "blocked").length,
+      completedCount: entItems.filter((i) => i.status === "done").length,
       overdueCount: entItems.filter((i) => isDeadlineOverdue(i.deadline, i.status)).length,
     };
   });

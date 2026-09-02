@@ -45,7 +45,7 @@ export interface EntitySummaryCard {
   brandPrimaryColor: string;
   openCount: number;
   inProgressCount: number;
-  blockedCount: number;
+  completedCount: number;
   overdueCount: number;
 }
 
@@ -118,11 +118,11 @@ export function EaViewClient({
 **Current Operational Health:**
 - **Open Deliverables:** ${ent.openCount} items active across operations.
 - **In Progress:** ${ent.inProgressCount} workstreams currently advancing.
-- **Blocked Workstreams:** ${ent.blockedCount} critical bottleneck(s) requiring executive intervention.
+- **Completed:** ${ent.completedCount} deliverables successfully delivered.
 - **Overdue Items:** ${ent.overdueCount} item(s) past target SLA.
 
 **Key Focus Areas & Directives:**
-1. Prioritize resolution of the ${ent.blockedCount > 0 ? ent.blockedCount : "zero"} blocked items affecting critical paths.
+1. Prioritize resolution of the ${ent.overdueCount > 0 ? ent.overdueCount : "zero"} overdue items past target deadline.
 2. Ensure syndication, regulatory compliance, and partner clearances meet quarterly targets.
 3. Review attendee prep packs before scheduled committee reviews this fortnight.`;
 
@@ -354,8 +354,8 @@ export function EaViewClient({
                   <strong className="font-medium text-duston-dark">{ent.inProgressCount}</strong>
                 </div>
                 <div>
-                  <span className="text-duston-muted block">Blocked:</span>
-                  <strong className="font-medium text-duston-orange">{ent.blockedCount}</strong>
+                  <span className="text-duston-muted block">Completed:</span>
+                  <strong className="font-medium text-[#39B54A]">{ent.completedCount}</strong>
                 </div>
                 <div>
                   <span className="text-duston-muted block">Overdue:</span>

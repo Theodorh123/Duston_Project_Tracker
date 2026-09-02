@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ShieldAlert, BarChart3, ArrowRight, Flame, CheckCircle2 } from "lucide-react";
+import { ShieldAlert, BarChart3, ArrowRight, Flame, CheckCircle2, AlertTriangle } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { useAppShell } from "../layout/AppShell";
 
@@ -200,19 +200,19 @@ export function CeoViewClient({
       <div className="bg-white border border-duston-border rounded-xl p-6 shadow-subtle space-y-4">
         <div className="flex items-center justify-between border-b border-duston-border pb-3">
           <div className="flex items-center gap-2">
-            <Flame size={18} strokeWidth={1.5} className="text-duston-orange" />
-            <h2 className="text-sm font-medium text-duston-dark">
-              Top 10 critical risks &amp; blockers
+            <AlertTriangle size={18} className="text-duston-orange" />
+            <h2 className="text-sm font-semibold text-duston-dark">
+              Critical & high-priority deliverables
             </h2>
           </div>
           <span className="text-xs text-duston-orange font-medium">
-            Executive intervention required
+            Executive attention required
           </span>
         </div>
 
         {topRisks.length === 0 ? (
           <p className="text-xs text-[#39B54A] font-medium py-3 text-center">
-            No critical or CEO-sponsored blocked workstreams currently active.
+            No critical or CEO-sponsored delayed workstreams currently active.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -222,8 +222,8 @@ export function CeoViewClient({
                   <th className="py-2.5 px-3">Item</th>
                   <th className="py-2.5 px-3">Project</th>
                   <th className="py-2.5 px-3">Entity</th>
-                  <th className="py-2.5 px-3">Blocker rationale</th>
-                  <th className="py-2.5 px-3 text-right">Days blocked</th>
+                  <th className="py-2.5 px-3">Attention notes</th>
+                  <th className="py-2.5 px-3 text-right">Days open / Age</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-duston-border">

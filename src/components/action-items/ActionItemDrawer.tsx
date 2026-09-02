@@ -287,7 +287,6 @@ export function ActionItemDrawer({
                 >
                   <option value="not_started">Not started</option>
                   <option value="in_progress">In progress</option>
-                  <option value="blocked">Blocked</option>
                   <option value="done">Done</option>
                   <option value="postponed">Postponed</option>
                 </select>

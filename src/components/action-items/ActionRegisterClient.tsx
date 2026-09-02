@@ -175,10 +175,9 @@ export function ActionRegisterClient({
     const total = scopedAll.length;
     const open = scopedAll.filter((i) => i.status !== "done").length;
     const inProgress = scopedAll.filter((i) => i.status === "in_progress").length;
-    const blocked = scopedAll.filter((i) => i.status === "blocked").length;
     const done = scopedAll.filter((i) => i.status === "done").length;
     const overdue = scopedAll.filter((i) => isDeadlineOverdue(i.deadline, i.status)).length;
-    return { total, open, inProgress, blocked, done, overdue };
+    return { total, open, inProgress, done, overdue };
   }, [scopedAll]);
 
   // Quick toggle item status (Done <-> In Progress)
@@ -362,7 +361,7 @@ export function ActionRegisterClient({
         </div>
 
         {/* Executive KPI Micro-Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 pt-0.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-0.5">
           <div
             onClick={() => setSelectedStatus("all")}
             className={cn(
@@ -400,19 +399,6 @@ export function ActionRegisterClient({
           >
             <span className="text-[10px] text-duston-muted font-medium block">In progress</span>
             <span className="text-lg font-semibold text-[#023542]">{stats.inProgress}</span>
-          </div>
-
-          <div
-            onClick={() => setSelectedStatus("blocked")}
-            className={cn(
-              "p-2.5 rounded-xl border transition-all cursor-pointer",
-              selectedStatus === "blocked"
-                ? "bg-duston-orange/10 border-duston-orange ring-1 ring-duston-orange"
-                : "bg-duston-bg/40 border-duston-border/70 hover:border-duston-border"
-            )}
-          >
-            <span className="text-[10px] text-duston-orange font-medium block">Blocked</span>
-            <span className="text-lg font-semibold text-duston-orange">{stats.blocked}</span>
           </div>
 
           <div
@@ -503,7 +489,6 @@ export function ActionRegisterClient({
               <option value="all">All statuses</option>
               <option value="open">Pending / Open</option>
               <option value="in_progress">In progress</option>
-              <option value="blocked">Blocked</option>
               <option value="done">Completed</option>
               <option value="overdue">Overdue only</option>
             </select>
@@ -682,8 +667,6 @@ export function ActionRegisterClient({
                               ? "bg-[#39B54A]/15 text-[#39B54A] hover:bg-[#39B54A]/25"
                               : item.status === "in_progress"
                               ? "bg-[#1BCECE]/15 text-[#023542] hover:bg-[#1BCECE]/25"
-                              : item.status === "blocked"
-                              ? "bg-duston-orange/15 text-duston-orange hover:bg-duston-orange/25"
                               : "bg-duston-bg text-duston-muted border border-duston-border hover:bg-duston-border/50"
                           )}
                           title="Click to toggle status (Done / In Progress)"
@@ -695,8 +678,6 @@ export function ActionRegisterClient({
                                 ? "bg-[#39B54A]"
                                 : item.status === "in_progress"
                                 ? "bg-[#1BCECE]"
-                                : item.status === "blocked"
-                                ? "bg-duston-orange"
                                 : "bg-duston-muted"
                             )}
                           />
@@ -705,8 +686,6 @@ export function ActionRegisterClient({
                               ? "Done"
                               : item.status === "in_progress"
                               ? "In progress"
-                              : item.status === "blocked"
-                              ? "Blocked"
                               : "Not started"}
                           </span>
                         </button>

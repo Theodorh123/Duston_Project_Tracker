@@ -422,7 +422,7 @@ export function ProjectDetailClient({
                   dotColor: "bg-[#1BCECE]",
                   filterFn: (i: any) =>
                     i.status !== "done" &&
-                    (i.status === "in_progress" || i.status === "blocked" || isDeadlineOverdue(i.deadline, i.status)),
+                    (i.status === "in_progress" || isDeadlineOverdue(i.deadline, i.status)),
                 },
                 {
                   label: "Done",
