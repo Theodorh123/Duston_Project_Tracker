@@ -60,9 +60,6 @@ export default function LoginPage() {
           <h1 className="text-sm font-medium text-duston-dark mt-2">
             Duston Project Tracker
           </h1>
-          <p className="text-xs text-duston-muted mt-0.5">
-            Internal Executive Command Center
-          </p>
         </div>
 
         {error && (
@@ -114,12 +111,6 @@ export default function LoginPage() {
             <ArrowRight size={14} strokeWidth={1.5} />
           </button>
         </form>
-
-        <div className="mt-8 pt-4 border-t border-duston-border/60 text-center">
-          <p className="text-[11px] text-duston-muted">
-            Authorized personnel only. Duston Group Internal Infrastructure.
-          </p>
-        </div>
       </div>
     </div>
   );

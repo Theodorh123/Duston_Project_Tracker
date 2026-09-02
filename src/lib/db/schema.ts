@@ -123,6 +123,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   phoneE164: text("phone_e164"),
   role: userRoleEnum("role").notNull().default("contributor"),
+  jobTitle: text("job_title"),
   hasGlobalAccess: boolean("has_global_access").notNull().default(true),
   isActive: boolean("is_active").notNull().default(true),
   avatarUrl: text("avatar_url"),

@@ -29,6 +29,7 @@ interface SettingsClientProps {
     name: string;
     email: string;
     role?: string | null;
+    jobTitle?: string | null;
     phoneE164?: string | null;
     avatarUrl?: string | null;
   };
@@ -408,11 +409,21 @@ export function SettingsClient({ user, preferences, entities = [] }: SettingsCli
           </div>
 
           <div>
-            <label className="block text-duston-muted mb-1 font-medium">Work email</label>
+            <label className="block text-duston-muted mb-1 font-medium">Email</label>
             <input
               type="email"
               disabled
               value={user.email}
+              className="w-full bg-duston-bg border border-duston-border rounded-lg px-3 py-2 text-duston-muted cursor-not-allowed"
+            />
+          </div>
+
+          <div>
+            <label className="block text-duston-muted mb-1 font-medium">Executive title</label>
+            <input
+              type="text"
+              disabled
+              value={user.jobTitle || (user.role === "ceo" ? "CEO" : user.role === "ea" ? "EA, Office of the CEO" : "Executive")}
               className="w-full bg-duston-bg border border-duston-border rounded-lg px-3 py-2 text-duston-muted cursor-not-allowed"
             />
           </div>

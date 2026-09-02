@@ -21,6 +21,7 @@ interface TopBarProps {
     name?: string | null;
     email?: string | null;
     role?: string | null;
+    jobTitle?: string | null;
     avatarUrl?: string | null;
   };
   onOpenMobileNav: () => void;
@@ -39,6 +40,55 @@ export function TopBar({
 }: TopBarProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // Keep only first name at the Account icon area
+  const getFirstName = (fullName?: string | null) => {
+    if (!fullName) return "User";
+    const clean = fullName.trim();
+    const parts = clean.split(" ");
+    return parts[0] || clean;
+  };
+
+  const shorthandTitle = (title: string) => {
+    let t = title.trim();
+    t = t.replace(/Chief Executive Officer/i, "CEO");
+    t = t.replace(/Chief Financial Officer/i, "CFO");
+    t = t.replace(/Chief Operating Officer/i, "COO");
+    t = t.replace(/Executive Director/i, "Exec. Director");
+    t = t.replace(/Business Development/i, "Bus. Dev.");
+    t = t.replace(/Executive Assistant/i, "EA");
+    return t;
+  };
+
+  // State executive role without DB enum tags (no HOD or MD), shorthanded if long
+  const formatRole = (u: TopBarProps["user"]) => {
+    if (u.jobTitle) {
+      return shorthandTitle(u.jobTitle);
+    }
+
+    const email = (u.email || "").toLowerCase().trim();
+    if (email.includes("elton.dusi")) return "CEO";
+    if (email.includes("william.adjabeng")) return "Exec. Director, Projects";
+    if (email.includes("desmond.oheneasante")) return "CFO";
+    if (email.includes("teye-ali")) return "Head, Strategy & Bus. Dev.";
+    if (email.includes("michael.duku")) return "COO";
+    if (email.includes("benjamin.arthur")) return "Financial Controller";
+    if (email.includes("wsafrega")) return "Financial Consultant";
+    if (email.includes("t.dorh")) return "EA, Office of the CEO";
+    if (email.includes("admin")) return "System Admin";
+
+    const role = (u.role || "").toLowerCase().trim();
+    if (role === "ceo") return "CEO";
+    if (role === "ea") return "Executive Assistant";
+    if (role === "admin") return "System Admin";
+    if (role === "hod") return "Department Head";
+    if (role === "md") return "Managing Director";
+
+    return shorthandTitle(u.role || "Executive");
+  };
+
+  const firstName = getFirstName(user.name);
+  const roleDisplay = formatRole(user);
 
   const getInitials = (name?: string | null) => {
     if (!name) return "DU";
@@ -181,11 +231,14 @@ export function TopBar({
               className="flex items-center gap-2 p-1 pl-1.5 sm:pl-2 rounded-full hover:bg-white border border-transparent hover:border-duston-border transition-colors"
             >
               <div className="text-right hidden sm:block">
-                <div className="text-xs font-medium text-duston-dark truncate max-w-[120px]">
-                  {user.name || "User"}
+                <div className="text-xs font-medium text-duston-dark truncate max-w-[140px]">
+                  {firstName}
                 </div>
-                <div className="text-[10px] text-duston-muted uppercase tracking-wider">
-                  {user.role || "contributor"}
+                <div
+                  className="text-[10px] text-duston-muted truncate max-w-[140px] font-medium"
+                  title={roleDisplay}
+                >
+                  {roleDisplay}
                 </div>
               </div>
               <div className="w-8 h-8 rounded-full bg-[#023542] text-white flex items-center justify-center text-xs font-medium shrink-0">
@@ -197,10 +250,10 @@ export function TopBar({
               <div className="absolute right-0 mt-2 w-48 bg-white border border-duston-border rounded-2xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <div className="px-4 py-2 border-b border-duston-border sm:hidden">
                   <div className="text-xs font-medium text-duston-dark">
-                    {user.name}
+                    {firstName}
                   </div>
-                  <div className="text-[10px] text-duston-muted uppercase">
-                    {user.role}
+                  <div className="text-[10px] text-duston-muted font-medium">
+                    {roleDisplay}
                   </div>
                 </div>
                 <Link

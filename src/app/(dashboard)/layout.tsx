@@ -69,6 +69,7 @@ export default async function DashboardLayout({
         name: userRecord.name,
         email: userRecord.email,
         role: userRecord.role,
+        jobTitle: userRecord.jobTitle,
         avatarUrl: userRecord.avatarUrl,
       }}
       entities={accessibleEntities}

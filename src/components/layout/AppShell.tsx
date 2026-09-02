@@ -29,6 +29,7 @@ interface AppShellProps {
     name?: string | null;
     email?: string | null;
     role?: string | null;
+    jobTitle?: string | null;
     avatarUrl?: string | null;
   };
   entities: EntityFilter[];
