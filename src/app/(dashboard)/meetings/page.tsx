@@ -8,6 +8,7 @@ import {
   actionItems,
   userEntityAccess,
   userPreferences,
+  projects,
 } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { MeetingsClient, MeetingListItem } from "@/components/meetings/MeetingsClient";
@@ -17,7 +18,7 @@ export default async function MeetingsPage() {
   const userId = session?.user?.id!;
 
   // Fetch data in parallel
-  const [currentUser, preferences, allEnt, grants, allMeetings, allUsers] = await Promise.all([
+  const [currentUser, preferences, allEnt, grants, allMeetings, allUsers, allProjects] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, userId) }),
     db.query.userPreferences.findFirst({ where: eq(userPreferences.userId, userId) }),
     db.query.entities.findMany({ where: eq(entities.isActive, true) }),
@@ -37,12 +38,26 @@ export default async function MeetingsPage() {
     db.query.users.findMany({
       where: eq(users.isActive, true),
     }),
+    db.query.projects.findMany({
+      with: {
+        entity: true,
+      },
+    }),
   ]);
 
   // Entity scoping
   const allowedEntityIds = currentUser?.hasGlobalAccess
     ? allEnt.map((e) => e.id)
     : grants.map((g) => g.entityId);
+
+  const scopedProjects = allProjects
+    .filter((p) => allowedEntityIds.includes(p.entityId))
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      entityId: p.entityId,
+      entityName: p.entity.name,
+    }));
 
   const scopedMeetings: MeetingListItem[] = allMeetings
     .filter((m) => allowedEntityIds.includes(m.entityId))
@@ -71,6 +86,7 @@ export default async function MeetingsPage() {
     <MeetingsClient
       meetings={scopedMeetings}
       entities={scopedEntities}
+      projects={scopedProjects}
       users={allUsers.map((u) => ({ id: u.id, name: u.name }))}
       currentUserId={userId}
     />

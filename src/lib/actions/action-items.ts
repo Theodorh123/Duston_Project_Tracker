@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "../db";
-import { actionItems, activityLog, comments, users, projects, entities } from "../db/schema";
+import { actionItems, activityLog, comments, users, projects, entities, meetings } from "../db/schema";
 import { eq, sql, desc, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { sendWhatsApp } from "../services/whatsapp";
@@ -196,3 +196,112 @@ export async function createActionItem(data: {
     return { success: false, error: err.message };
   }
 }
+
+export interface BulkActionItemInput {
+  title: string;
+  assigneeId: string;
+  deadline: string;
+  priority?: "low" | "medium" | "high" | "critical";
+  status?: "not_started" | "in_progress" | "blocked" | "done";
+  notes?: string;
+  tag?: string;
+}
+
+export async function bulkCreateActionItems(data: {
+  projectId: string;
+  createdBy: string;
+  meetingSubject?: string;
+  createMeetingRecord?: boolean;
+  meetingDate?: string;
+  venue?: string;
+  entityId?: string;
+  items: BulkActionItemInput[];
+}) {
+  try {
+    if (!data.items || data.items.length === 0) {
+      return { success: false, error: "No action items provided to import." };
+    }
+
+    let sourceMeetingId: string | undefined = undefined;
+
+    // Optional: create a meeting record if meetingSubject provided and createMeetingRecord is true
+    if (data.createMeetingRecord && data.meetingSubject?.trim()) {
+      let targetEntityId = data.entityId;
+      if (!targetEntityId) {
+        const proj = await db.query.projects.findFirst({
+          where: eq(projects.id, data.projectId),
+        });
+        targetEntityId = proj?.entityId;
+      }
+
+      if (targetEntityId) {
+        const [newMeeting] = await db
+          .insert(meetings)
+          .values({
+            entityId: targetEntityId,
+            subject: data.meetingSubject.trim(),
+            meetingDate: data.meetingDate || new Date().toISOString().split("T")[0],
+            venue: data.venue || "Virtual",
+            isVirtual: true,
+            createdBy: data.createdBy,
+          })
+          .returning();
+        sourceMeetingId = newMeeting.id;
+      }
+    }
+
+    const insertedItems = [];
+
+    for (const item of data.items) {
+      const [created] = await db
+        .insert(actionItems)
+        .values({
+          projectId: data.projectId,
+          title: item.title.trim(),
+          description: item.notes || null,
+          assigneeId: item.assigneeId,
+          deadline: item.deadline,
+          status: item.status || "not_started",
+          priority: item.priority || "medium",
+          tag: item.tag || (item.notes?.includes("Counterparty") ? "Counterparty" : undefined),
+          sourceMeetingId,
+          createdBy: data.createdBy,
+        })
+        .returning();
+
+      insertedItems.push(created);
+
+      await db.insert(activityLog).values({
+        actionItemId: created.id,
+        actorId: data.createdBy,
+        eventType: "created",
+        note: data.meetingSubject
+          ? `Imported from "${data.meetingSubject}"`
+          : "Imported from action register",
+      });
+
+      // Optional WhatsApp notification
+      await sendWhatsApp(
+        item.assigneeId,
+        `New action item assigned from register: "${item.title}" due on ${item.deadline}.`,
+        created.id
+      );
+    }
+
+    revalidatePath("/");
+    revalidatePath("/projects");
+    revalidatePath(`/projects/${data.projectId}`);
+    revalidatePath("/meetings");
+
+    return {
+      success: true,
+      count: insertedItems.length,
+      items: insertedItems,
+      meetingId: sourceMeetingId,
+    };
+  } catch (err: any) {
+    console.error("bulkCreateActionItems error:", err);
+    return { success: false, error: err.message || "Failed to import action items." };
+  }
+}
+

@@ -108,6 +108,7 @@ export default async function DashboardPage({
     .map((p) => ({
       id: p.id,
       name: p.name,
+      entityId: p.entityId,
       entityName: p.entity.name,
       entityBrandColor: p.entity.brandPrimaryColor,
     }));
@@ -123,6 +124,7 @@ export default async function DashboardPage({
       kanbanColumns={preferences?.kanbanColumns || ["Backlog", "This Week", "In Progress", "Blocked", "Done"]}
       projects={scopedProjects}
       users={mappedUsers}
+      entities={allEnt.map((e) => ({ id: e.id, name: e.name, brandPrimaryColor: e.brandPrimaryColor }))}
       currentUserId={userId}
       initialFilter={initialFilter}
     />

@@ -2,9 +2,10 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Calendar, Users, MapPin, Video, CalendarDays } from "lucide-react";
+import { Plus, Calendar, Users, MapPin, Video, CalendarDays, FileSpreadsheet } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { NewMeetingModal } from "./NewMeetingModal";
+import { ImportRegisterModal } from "../action-items/ImportRegisterModal";
 import { useAppShell } from "../layout/AppShell";
 
 export interface MeetingListItem {
@@ -24,6 +25,7 @@ export interface MeetingListItem {
 interface MeetingsClientProps {
   meetings: MeetingListItem[];
   entities: Array<{ id: string; name: string }>;
+  projects?: Array<{ id: string; name: string; entityId: string; entityName?: string }>;
   users: Array<{ id: string; name: string }>;
   currentUserId: string;
 }
@@ -31,6 +33,7 @@ interface MeetingsClientProps {
 export function MeetingsClient({
   meetings,
   entities,
+  projects = [],
   users,
   currentUserId,
 }: MeetingsClientProps) {
@@ -38,6 +41,7 @@ export function MeetingsClient({
   const { selectedEntityId } = useAppShell();
   const [selectedAttendee, setSelectedAttendee] = useState<string>("all");
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const filteredMeetings = useMemo(() => {
     return meetings.filter((m) => {
@@ -61,6 +65,15 @@ export function MeetingsClient({
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2 bg-white border border-duston-border hover:border-[#023542] text-duston-dark rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+            title="Import action register from Excel or PDF"
+          >
+            <FileSpreadsheet size={15} className="text-[#1BCECE]" />
+            <span>Import register</span>
+          </button>
+
           <button
             onClick={() => setIsNewMeetingOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors shadow-subtle cursor-pointer"
@@ -189,6 +202,17 @@ export function MeetingsClient({
         entities={entities}
         users={users}
         currentUserId={currentUserId}
+      />
+
+      {/* Import Action Register Modal */}
+      <ImportRegisterModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        entities={entities}
+        projects={projects}
+        users={users}
+        currentUserId={currentUserId}
+        defaultEntityId={selectedEntityId === "all" ? null : selectedEntityId}
       />
     </div>
   );

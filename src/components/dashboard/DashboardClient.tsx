@@ -14,11 +14,13 @@ import {
   ExternalLink,
   Plus,
   X,
+  FileSpreadsheet,
 } from "lucide-react";
 import { cn, formatDate, formatShortDate, isDeadlineOverdue } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createActionItem } from "@/lib/actions/action-items";
+import { ImportRegisterModal } from "@/components/action-items/ImportRegisterModal";
 
 export interface ActionItemSummary {
   id: string;
@@ -60,7 +62,8 @@ interface DashboardClientProps {
   recentActivities: ActivitySummary[];
   defaultView?: "todo" | "kanban" | "planner";
   kanbanColumns?: string[];
-  projects?: Array<{ id: string; name: string; entityName: string; entityBrandColor?: string }>;
+  projects?: Array<{ id: string; name: string; entityName: string; entityBrandColor?: string; entityId?: string }>;
+  entities?: Array<{ id: string; name: string; brandPrimaryColor?: string }>;
   users?: Array<{ id: string; name: string }>;
   currentUserId?: string;
   initialFilter?: "all" | "open" | "overdue" | "due_this_week" | "completed";
@@ -74,6 +77,7 @@ export function DashboardClient({
   defaultView = "todo",
   kanbanColumns = ["Backlog", "This Week", "In Progress", "Blocked", "Done"],
   projects = [],
+  entities = [],
   users = [],
   currentUserId,
   initialFilter = "all",
@@ -81,6 +85,7 @@ export function DashboardClient({
   const { selectedEntityId, openActionItem } = useAppShell();
   const [currentView, setCurrentView] = useState<"todo" | "kanban" | "planner">(defaultView);
   const [items, setItems] = useState<ActionItemSummary[]>(initialItems);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const router = useRouter();
 
   // Active metric filter state (open, overdue, due_this_week, completed, all)
@@ -576,6 +581,14 @@ export function DashboardClient({
                   ? "Drag cards between dates to reschedule"
                   : "Click any item to view details"}
               </span>
+              <button
+                onClick={() => setIsImportModalOpen(true)}
+                className="px-3 py-1.5 bg-white border border-duston-border hover:border-[#023542] text-duston-dark rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors shadow-2xs shrink-0 cursor-pointer"
+                title="Import action register from Excel (.xlsx, .csv) or PDF"
+              >
+                <FileSpreadsheet size={14} className="text-[#1BCECE]" />
+                <span className="hidden sm:inline">Import register</span>
+              </button>
               <button
                 onClick={() => handleOpenQuickAdd("todo")}
                 className="px-3 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors shadow-subtle shrink-0 cursor-pointer"
@@ -1306,6 +1319,22 @@ export function DashboardClient({
           </div>
         </div>
       )}
+
+      {/* Import Action Register Modal */}
+      <ImportRegisterModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        entities={entities}
+        projects={projects.map((p) => ({
+          id: p.id,
+          name: p.name,
+          entityId: p.entityId || "",
+          entityName: p.entityName,
+        }))}
+        users={users}
+        currentUserId={currentUserId || ""}
+        defaultEntityId={selectedEntityId === "all" ? null : selectedEntityId}
+      />
     </div>
   );
 }

@@ -15,11 +15,13 @@ import {
   AlertCircle,
   ExternalLink,
   ChevronRight,
+  FileSpreadsheet,
 } from "lucide-react";
 import { cn, formatDate, formatShortDate, isDeadlineOverdue } from "@/lib/utils";
 import { useAppShell } from "../layout/AppShell";
 import { updateProject } from "@/lib/actions/projects";
 import { createActionItem } from "@/lib/actions/action-items";
+import { ImportRegisterModal } from "../action-items/ImportRegisterModal";
 
 interface ProjectDetailProps {
   project: {
@@ -81,6 +83,7 @@ export function ProjectDetailClient({
   const [activeTab, setActiveTab] = useState<"items" | "meetings" | "activity" | "details">("items");
   const [actionItemsView, setActionItemsView] = useState<"list" | "kanban">("list");
   const [isNewItemModalOpen, setIsNewItemModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [itemsList, setItemsList] = useState(actionItems);
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
@@ -219,6 +222,14 @@ export function ProjectDetailClient({
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 border border-duston-border bg-white text-duston-dark hover:border-[#023542] rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+              title="Import action register from Excel (.xlsx, .csv) or PDF"
+            >
+              <FileSpreadsheet size={15} className="text-[#1BCECE]" />
+              <span>Import register</span>
+            </button>
+            <button
               onClick={() => setActiveTab("details")}
               className="px-3.5 py-2 border border-duston-border bg-white text-duston-dark hover:bg-duston-bg rounded-xl text-xs font-medium transition-colors"
             >
@@ -226,7 +237,7 @@ export function ProjectDetailClient({
             </button>
             <button
               onClick={() => setIsNewItemModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors shadow-subtle"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors shadow-subtle cursor-pointer"
             >
               <Plus size={15} strokeWidth={1.5} />
               <span>New action item</span>
@@ -758,6 +769,18 @@ export function ProjectDetailClient({
           </div>
         </div>
       )}
+
+      {/* Import Action Register Modal */}
+      <ImportRegisterModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        entities={[{ id: project.entityId, name: project.entityName, brandPrimaryColor: project.entityBrandColor }]}
+        projects={[{ id: project.id, name: project.name, entityId: project.entityId, entityName: project.entityName }]}
+        users={users}
+        currentUserId={currentUserId}
+        defaultEntityId={project.entityId}
+        defaultProjectId={project.id}
+      />
     </div>
   );
 }
