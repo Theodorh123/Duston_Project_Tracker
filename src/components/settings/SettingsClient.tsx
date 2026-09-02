@@ -225,16 +225,16 @@ export function SettingsClient({ user, preferences }: SettingsClientProps) {
                     onChange={() => setDefaultView(view)}
                     className="sr-only"
                   />
-                  <span>{view}</span>
+                  <span>{view === "kanban" ? "Board" : view === "todo" ? "To-do" : "Planner"}</span>
                 </label>
               ))}
             </div>
           </div>
 
-          {/* Kanban columns manager */}
+          {/* Board columns manager */}
           <div>
             <label className="block text-duston-dark font-medium mb-1.5">
-              Custom Kanban columns
+              Custom Board columns
             </label>
             <p className="text-duston-muted mb-3">
               Configure the pipeline columns for your boards.

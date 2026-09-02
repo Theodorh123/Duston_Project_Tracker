@@ -77,10 +77,37 @@ export function ProjectDetailClient({
   currentUserId,
 }: ProjectDetailProps) {
   const { openActionItem } = useAppShell();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"items" | "meetings" | "activity" | "details">("items");
   const [actionItemsView, setActionItemsView] = useState<"list" | "kanban">("list");
   const [isNewItemModalOpen, setIsNewItemModalOpen] = useState(false);
   const [itemsList, setItemsList] = useState(actionItems);
+  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+
+  const handleDropItem = async (itemId: string, newColStatus: "not_started" | "in_progress" | "done") => {
+    setDragOverCol(null);
+    setDraggingItemId(null);
+
+    const targetItem = itemsList.find((it) => it.id === itemId);
+    if (!targetItem) return;
+    if (targetItem.status === newColStatus) return;
+
+    setItemsList((prev) =>
+      prev.map((it) => (it.id === itemId ? { ...it, status: newColStatus } : it))
+    );
+
+    try {
+      await fetch(`/api/action-items/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newColStatus }),
+      });
+      router.refresh();
+    } catch (err) {
+      console.error("Failed to update status on drop:", err);
+    }
+  };
 
   // New action item state
   const [newItemTitle, setNewItemTitle] = useState("");
@@ -280,7 +307,7 @@ export function ProjectDetailClient({
                   ? "bg-[#023542] text-white"
                   : "text-duston-muted hover:text-duston-dark hover:bg-duston-bg"
               )}
-              title="Kanban view"
+              title="Board view"
             >
               <Columns3 size={15} strokeWidth={1.5} />
             </button>
@@ -369,49 +396,103 @@ export function ProjectDetailClient({
               </table>
             </div>
           ) : (
-            /* Kanban view */
+            /* Board view with interactive Drag & Drop */
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {["Backlog", "In Progress", "Done"].map((col) => {
-                const colStatus =
-                  col === "Backlog" ? "not_started" : col === "In Progress" ? "in_progress" : "done";
+              {[
+                { label: "To do", status: "not_started" as const, dotColor: "bg-slate-400" },
+                { label: "In progress", status: "in_progress" as const, dotColor: "bg-[#1BCECE]" },
+                { label: "Done", status: "done" as const, dotColor: "bg-[#39B54A]" },
+              ].map((col) => {
                 const colItems = itemsList.filter((i) =>
-                  colStatus === "in_progress"
+                  col.status === "in_progress"
                     ? i.status === "in_progress" || i.status === "blocked"
-                    : i.status === colStatus
+                    : i.status === col.status
                 );
+                const isOver = dragOverCol === col.status;
 
                 return (
-                  <div key={col} className="bg-duston-bg/60 border border-duston-border rounded-xl p-3 space-y-3">
+                  <div
+                    key={col.status}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (dragOverCol !== col.status) setDragOverCol(col.status);
+                    }}
+                    onDragLeave={(e) => {
+                      if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                      setDragOverCol(null);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const droppedId = e.dataTransfer.getData("text/plain");
+                      if (droppedId) {
+                        handleDropItem(droppedId, col.status);
+                      }
+                    }}
+                    className={cn(
+                      "rounded-xl p-3.5 flex flex-col space-y-3 min-h-[340px] transition-all duration-150",
+                      isOver
+                        ? "bg-[#1BCECE]/10 border-2 border-dashed border-[#1BCECE] shadow-sm scale-[1.01]"
+                        : "bg-duston-bg/60 border border-duston-border"
+                    )}
+                  >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-duston-dark">{col}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={cn("w-2 h-2 rounded-full", col.dotColor)} />
+                        <span className="text-xs font-medium text-duston-dark">{col.label}</span>
+                      </div>
                       <span className="text-[10px] text-duston-muted bg-white px-2 py-0.5 rounded-full border border-duston-border font-medium">
                         {colItems.length}
                       </span>
                     </div>
 
-                    <div className="space-y-2">
-                      {colItems.map((item) => (
-                        <div
-                          key={item.id}
-                          onClick={() => openActionItem(item.id)}
-                          className="p-3 bg-white border border-duston-border rounded-lg shadow-subtle hover:border-[#1BCECE] cursor-pointer transition-colors space-y-2"
-                        >
-                          <div className="text-xs font-medium text-duston-dark">{item.title}</div>
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-duston-muted">{item.assigneeName}</span>
-                            <span
+                    <div className="space-y-2 flex-1">
+                      {colItems.length === 0 ? (
+                        <div className="h-28 border border-dashed border-duston-border rounded-lg flex items-center justify-center text-duston-muted text-[11px] select-none">
+                          Drop items here
+                        </div>
+                      ) : (
+                        colItems.map((item) => {
+                          const isBeingDragged = draggingItemId === item.id;
+                          return (
+                            <div
+                              key={item.id}
+                              draggable={true}
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData("text/plain", item.id);
+                                e.dataTransfer.effectAllowed = "move";
+                                setDraggingItemId(item.id);
+                              }}
+                              onDragEnd={() => {
+                                setDraggingItemId(null);
+                                setDragOverCol(null);
+                              }}
+                              onClick={() => openActionItem(item.id)}
                               className={cn(
-                                "text-[10px] font-medium px-1.5 py-0.5 rounded",
-                                isDeadlineOverdue(item.deadline, item.status)
-                                  ? "bg-duston-orange/10 text-duston-orange"
-                                  : "bg-duston-bg text-duston-muted border border-duston-border"
+                                "p-3 bg-white border rounded-lg shadow-subtle hover:border-[#1BCECE] cursor-grab active:cursor-grabbing transition-all space-y-2 select-none",
+                                isBeingDragged
+                                  ? "opacity-40 border-dashed border-[#1BCECE] scale-[0.98]"
+                                  : "border-duston-border hover:shadow"
                               )}
                             >
-                              {formatShortDate(item.deadline)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                              <div className="text-xs font-medium text-duston-dark line-clamp-2">{item.title}</div>
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-duston-muted">{item.assigneeName}</span>
+                                <span
+                                  className={cn(
+                                    "text-[10px] font-medium px-1.5 py-0.5 rounded",
+                                    isDeadlineOverdue(item.deadline, item.status)
+                                      ? "bg-duston-orange/10 text-duston-orange"
+                                      : "bg-duston-bg text-duston-muted border border-duston-border"
+                                  )}
+                                >
+                                  {formatShortDate(item.deadline)}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
                 );

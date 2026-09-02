@@ -94,6 +94,9 @@ export function DashboardClient({
 
   const completedCount = filteredItems.filter((i) => i.status === "done").length;
 
+  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+
   const handleToggleDone = async (e: React.SyntheticEvent, itemId: string, currentStatus: string) => {
     e.stopPropagation();
     const newStatus = currentStatus === "done" ? "in_progress" : "done";
@@ -106,6 +109,30 @@ export function DashboardClient({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
     });
+  };
+
+  const handleDropItem = async (itemId: string, newColStatus: "not_started" | "in_progress" | "done") => {
+    setDragOverCol(null);
+    setDraggingItemId(null);
+
+    const targetItem = items.find((it) => it.id === itemId);
+    if (!targetItem) return;
+    if (targetItem.status === newColStatus) return;
+
+    setItems((prev) =>
+      prev.map((it) => (it.id === itemId ? { ...it, status: newColStatus } : it))
+    );
+
+    try {
+      await fetch(`/api/action-items/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newColStatus }),
+      });
+      router.refresh();
+    } catch (err) {
+      console.error("Failed to update status on drop:", err);
+    }
   };
 
   // Group items for Todo view: Overdue, Today, This Week, Later
@@ -215,7 +242,7 @@ export function DashboardClient({
                 )}
               >
                 <Columns3 size={15} strokeWidth={1.5} />
-                <span>Kanban</span>
+                <span>Board</span>
               </button>
               <button
                 onClick={() => setCurrentView("planner")}
@@ -231,7 +258,9 @@ export function DashboardClient({
               </button>
             </div>
             <span className="text-[11px] text-duston-muted pr-2 hidden sm:inline">
-              Click any item to view details
+              {currentView === "kanban"
+                ? "Drag cards between columns to change status, or click to edit"
+                : "Click any item to view details"}
             </span>
           </div>
 
@@ -426,69 +455,116 @@ export function DashboardClient({
             </div>
           )}
 
-          {/* Kanban View */}
+          {/* Board View with Interactive Drag & Drop */}
           {currentView === "kanban" && (
             <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto pb-4 no-scrollbar snap-x">
-              {["To do", "In progress", "Done"].map((column) => {
-                const colStatus =
-                  column === "To do"
-                    ? "not_started"
-                    : column === "In progress"
-                    ? "in_progress"
-                    : "done";
+              {[
+                { label: "To do", status: "not_started" as const, dotColor: "bg-slate-400" },
+                { label: "In progress", status: "in_progress" as const, dotColor: "bg-[#1BCECE]" },
+                { label: "Done", status: "done" as const, dotColor: "bg-[#39B54A]" },
+              ].map((col) => {
                 const colItems = filteredItems.filter((i) =>
-                  colStatus === "in_progress"
+                  col.status === "in_progress"
                     ? i.status === "in_progress" || i.status === "blocked"
-                    : i.status === colStatus
+                    : i.status === col.status
                 );
+                const isOver = dragOverCol === col.status;
 
                 return (
                   <div
-                    key={column}
-                    className="w-[82vw] sm:w-[320px] md:w-auto shrink-0 snap-center md:shrink bg-duston-bg/60 border border-duston-border rounded-xl p-3.5 flex flex-col space-y-3 min-h-[320px]"
+                    key={col.status}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (dragOverCol !== col.status) setDragOverCol(col.status);
+                    }}
+                    onDragLeave={(e) => {
+                      if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                      setDragOverCol(null);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const droppedId = e.dataTransfer.getData("text/plain");
+                      if (droppedId) {
+                        handleDropItem(droppedId, col.status);
+                      }
+                    }}
+                    className={cn(
+                      "w-[82vw] sm:w-[320px] md:w-auto shrink-0 snap-center md:shrink rounded-xl p-3.5 flex flex-col space-y-3 min-h-[360px] transition-all duration-150",
+                      isOver
+                        ? "bg-[#1BCECE]/10 border-2 border-dashed border-[#1BCECE] shadow-sm scale-[1.01]"
+                        : "bg-duston-bg/60 border border-duston-border"
+                    )}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-duston-dark">
-                        {column}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={cn("w-2 h-2 rounded-full", col.dotColor)} />
+                        <span className="text-xs font-medium text-duston-dark">
+                          {col.label}
+                        </span>
+                      </div>
                       <span className="text-[10px] text-duston-muted font-medium bg-white px-2 py-0.5 rounded-full border border-duston-border">
                         {colItems.length}
                       </span>
                     </div>
 
-                    <div className="space-y-2">
-                      {colItems.map((item) => (
-                        <div
-                          key={item.id}
-                          onClick={() => openActionItem(item.id)}
-                          className="p-3 bg-white border border-duston-border rounded-lg shadow-subtle hover:border-[#1BCECE] cursor-pointer transition-colors space-y-2"
-                        >
-                          <div className="text-xs font-medium text-duston-dark line-clamp-2">
-                            {item.title}
-                          </div>
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span
-                              className="px-1.5 py-0.5 rounded text-[10px] font-medium"
-                              style={{
-                                backgroundColor: `${item.entityBrandColor}15`,
-                                color: item.entityBrandColor,
+                    <div className="space-y-2 flex-1">
+                      {colItems.length === 0 ? (
+                        <div className="h-28 border border-dashed border-duston-border rounded-lg flex items-center justify-center text-duston-muted text-[11px] select-none">
+                          Drop items here
+                        </div>
+                      ) : (
+                        colItems.map((item) => {
+                          const isBeingDragged = draggingItemId === item.id;
+                          return (
+                            <div
+                              key={item.id}
+                              draggable={true}
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData("text/plain", item.id);
+                                e.dataTransfer.effectAllowed = "move";
+                                setDraggingItemId(item.id);
                               }}
-                            >
-                              {item.entityName}
-                            </span>
-                            <span
+                              onDragEnd={() => {
+                                setDraggingItemId(null);
+                                setDragOverCol(null);
+                              }}
+                              onClick={() => openActionItem(item.id)}
                               className={cn(
-                                "text-[10px]",
-                                isDeadlineOverdue(item.deadline, item.status)
-                                  ? "text-duston-orange font-medium"
-                                  : "text-duston-muted"
+                                "p-3 bg-white border rounded-lg shadow-subtle hover:border-[#1BCECE] cursor-grab active:cursor-grabbing transition-all space-y-2 select-none",
+                                isBeingDragged
+                                  ? "opacity-40 border-dashed border-[#1BCECE] scale-[0.98]"
+                                  : "border-duston-border hover:shadow"
                               )}
                             >
-                              {formatShortDate(item.deadline)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                              <div className="text-xs font-medium text-duston-dark line-clamp-2">
+                                {item.title}
+                              </div>
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+                                  style={{
+                                    backgroundColor: `${item.entityBrandColor}15`,
+                                    color: item.entityBrandColor,
+                                  }}
+                                >
+                                  {item.entityName}
+                                </span>
+                                <span
+                                  className={cn(
+                                    "text-[10px]",
+                                    isDeadlineOverdue(item.deadline, item.status)
+                                      ? "text-duston-orange font-medium"
+                                      : "text-duston-muted"
+                                  )}
+                                >
+                                  {formatShortDate(item.deadline)}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
                 );
