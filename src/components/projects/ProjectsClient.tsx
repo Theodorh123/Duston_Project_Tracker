@@ -3,10 +3,11 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Filter, FolderKanban, Calendar, ArrowRight } from "lucide-react";
+import { Plus, Search, Filter, FolderKanban, Calendar, ArrowRight, MessageSquare, X } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { NewProjectDrawer } from "./NewProjectDrawer";
 import { useAppShell } from "../layout/AppShell";
+import { updateProject } from "@/lib/actions/projects";
 
 export interface ProjectListItem {
   id: string;
@@ -20,6 +21,7 @@ export interface ProjectListItem {
   status: string;
   priority: string;
   targetDate: string;
+  comments?: string | null;
   openItemsCount?: number;
 }
 
@@ -43,6 +45,41 @@ export function ProjectsClient({
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedOwner, setSelectedOwner] = useState<string>("all");
   const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
+  const [projectsList, setProjectsList] = useState<ProjectListItem[]>(projects);
+  const [commentModalProject, setCommentModalProject] = useState<ProjectListItem | null>(null);
+  const [commentText, setCommentText] = useState("");
+  const [isSavingComment, setIsSavingComment] = useState(false);
+
+  // Sync projectsList when projects prop changes
+  useMemo(() => {
+    setProjectsList(projects);
+  }, [projects]);
+
+  const handleOpenCommentModal = (p: ProjectListItem) => {
+    setCommentModalProject(p);
+    setCommentText(p.comments || "");
+  };
+
+  const handleSaveComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentModalProject) return;
+    setIsSavingComment(true);
+    try {
+      const updatedVal = commentText.trim() || undefined;
+      await updateProject(commentModalProject.id, { description: updatedVal });
+      setProjectsList((prev) =>
+        prev.map((pr) =>
+          pr.id === commentModalProject.id ? { ...pr, comments: updatedVal || null } : pr
+        )
+      );
+      setCommentModalProject(null);
+      router.refresh();
+    } catch (err) {
+      console.error("Failed to update project comment:", err);
+    } finally {
+      setIsSavingComment(false);
+    }
+  };
 
   // Status badge styling using exact Duston palette
   const getStatusBadge = (status: string) => {
@@ -61,7 +98,7 @@ export function ProjectsClient({
   };
 
   const filteredProjects = useMemo(() => {
-    return projects.filter((p) => {
+    return projectsList.filter((p) => {
       if (selectedEntityId && p.entityId !== selectedEntityId) return false;
       if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
       if (selectedStatus !== "all" && p.status !== selectedStatus) return false;
@@ -76,7 +113,7 @@ export function ProjectsClient({
       }
       return true;
     });
-  }, [projects, selectedEntityId, selectedCategory, selectedStatus, selectedOwner, searchQuery]);
+  }, [projectsList, selectedEntityId, selectedCategory, selectedStatus, selectedOwner, searchQuery]);
 
   const clearFilters = () => {
     setSearchQuery("");
@@ -203,7 +240,7 @@ export function ProjectsClient({
         <>
           {/* Desktop & Tablet Table View */}
           <div className="hidden md:block bg-white border border-duston-border rounded-xl shadow-subtle overflow-x-auto">
-            <table className="w-full min-w-[680px] text-left border-collapse text-xs">
+            <table className="w-full min-w-[760px] text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
                   <th className="py-3 px-4">Project name</th>
@@ -212,6 +249,7 @@ export function ProjectsClient({
                   <th className="py-3 px-4">Responsible Party</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Target date</th>
+                  <th className="py-3 px-4">Comments</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-duston-border">
@@ -251,6 +289,28 @@ export function ProjectsClient({
                     <td className="py-3 px-4 text-duston-muted">
                       {formatDate(project.targetDate)}
                     </td>
+                    <td className="py-3 px-4 max-w-[220px]" onClick={(e) => e.stopPropagation()}>
+                      {project.comments ? (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenCommentModal(project)}
+                          className="flex items-center gap-1.5 text-left hover:bg-duston-bg/80 p-1.5 -m-1.5 rounded-lg cursor-pointer group transition-colors w-full"
+                          title="Click to view or edit comments"
+                        >
+                          <MessageSquare size={13} className="text-[#1BCECE] shrink-0 group-hover:scale-110 transition-transform" />
+                          <span className="truncate text-xs text-duston-dark group-hover:text-[#023542]">{project.comments}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenCommentModal(project)}
+                          className="text-[11px] text-duston-muted hover:text-[#023542] flex items-center gap-1 hover:underline cursor-pointer"
+                        >
+                          <MessageSquare size={12} />
+                          <span>+ Add comment</span>
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -287,7 +347,31 @@ export function ProjectsClient({
 
                 <div className="flex items-center justify-between text-[11px] border-t border-duston-border pt-2 text-duston-muted">
                   <span>Target: {formatDate(project.targetDate)}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenCommentModal(project);
+                    }}
+                    className="flex items-center gap-1 text-[#023542] hover:text-[#1BCECE] font-medium cursor-pointer"
+                  >
+                    <MessageSquare size={12} className="text-[#1BCECE]" />
+                    <span>{project.comments ? "Edit comment" : "+ Comment"}</span>
+                  </button>
                 </div>
+
+                {project.comments && (
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenCommentModal(project);
+                    }}
+                    className="text-[11px] text-duston-text bg-duston-bg/60 p-2.5 rounded-xl border border-duston-border/60 line-clamp-2 cursor-pointer hover:border-[#1BCECE] transition-colors"
+                    title="Click to edit comment"
+                  >
+                    {project.comments}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -302,6 +386,69 @@ export function ProjectsClient({
         users={users}
         currentUserId={currentUserId}
       />
+
+      {/* Project Comment / Remarks Modal */}
+      {commentModalProject && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-duston-border overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="p-4 border-b border-duston-border bg-duston-bg/60 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#023542] text-white flex items-center justify-center">
+                  <MessageSquare size={14} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-duston-dark">Project Remarks & Comments</h3>
+                  <p className="text-[11px] text-duston-muted truncate max-w-xs sm:max-w-sm">
+                    {commentModalProject.name} • {commentModalProject.entityName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCommentModalProject(null)}
+                className="p-1 rounded-lg text-duston-muted hover:text-duston-dark hover:bg-duston-bg transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSaveComment} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block text-duston-muted font-medium mb-1.5">
+                  Comment / Executive Note
+                </label>
+                <textarea
+                  rows={4}
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Add project status updates, operational remarks, or executive notes..."
+                  className="w-full bg-white border border-duston-border rounded-xl p-3 text-xs text-duston-dark outline-none focus:border-[#1BCECE] leading-relaxed resize-none font-sans"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-duston-border">
+                <button
+                  type="button"
+                  onClick={() => setCommentModalProject(null)}
+                  className="px-3.5 py-2 text-xs font-medium text-duston-muted hover:text-duston-dark hover:bg-duston-bg rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingComment}
+                  className="px-4 py-2 text-xs font-medium bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl transition-colors shadow-subtle disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isSavingComment ? "Saving..." : "Save comment"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

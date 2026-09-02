@@ -48,6 +48,7 @@ export default async function ProjectsPage() {
       status: p.status,
       priority: p.priority,
       targetDate: p.targetDate,
+      comments: p.description || null,
       openItemsCount: p.actionItems.filter((it) => it.status !== "done").length,
     }));
 
