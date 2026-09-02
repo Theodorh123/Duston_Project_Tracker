@@ -96,7 +96,7 @@ export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile 
             <img
               src="/logo-duston.png"
               alt="Duston"
-              className="h-8 w-auto object-contain"
+              className="h-10 w-auto object-contain"
             />
           </Link>
           <button
