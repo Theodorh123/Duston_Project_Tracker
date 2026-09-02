@@ -156,43 +156,43 @@ export function DashboardClient({
       </div>
 
       {/* 4 Rounded Metric Cards Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Open items */}
-        <div className="bg-white border border-duston-border rounded-xl p-6 shadow-subtle">
+        <div className="bg-white border border-duston-border rounded-xl p-4 sm:p-5 lg:p-6 shadow-subtle">
           <div className="text-xs font-medium text-duston-muted">Open items</div>
-          <div className="text-3xl font-medium text-[#023542] mt-2">
+          <div className="text-2xl sm:text-3xl font-medium text-[#023542] mt-1.5 sm:mt-2">
             {openCount}
           </div>
-          <div className="text-[11px] text-duston-muted mt-1">Assigned to you</div>
+          <div className="text-[10px] sm:text-[11px] text-duston-muted mt-1 truncate">Assigned to you</div>
         </div>
 
         {/* Overdue */}
-        <div className="bg-white border border-duston-border rounded-xl p-6 shadow-subtle">
+        <div className="bg-white border border-duston-border rounded-xl p-4 sm:p-5 lg:p-6 shadow-subtle">
           <div className="text-xs font-medium text-duston-muted">Overdue</div>
-          <div className="text-3xl font-medium text-[#F15A24] mt-2">
+          <div className="text-2xl sm:text-3xl font-medium text-[#F15A24] mt-1.5 sm:mt-2">
             {overdueCount}
           </div>
-          <div className="text-[11px] text-duston-orange font-medium mt-1">
+          <div className="text-[10px] sm:text-[11px] text-duston-orange font-medium mt-1 truncate">
             Immediate action required
           </div>
         </div>
 
         {/* Due this week */}
-        <div className="bg-white border border-duston-border rounded-xl p-6 shadow-subtle">
+        <div className="bg-white border border-duston-border rounded-xl p-4 sm:p-5 lg:p-6 shadow-subtle">
           <div className="text-xs font-medium text-duston-muted">Due this week</div>
-          <div className="text-3xl font-medium text-[#FBB03B] mt-2">
+          <div className="text-2xl sm:text-3xl font-medium text-[#FBB03B] mt-1.5 sm:mt-2">
             {dueThisWeekCount}
           </div>
-          <div className="text-[11px] text-duston-muted mt-1">Next 7 calendar days</div>
+          <div className="text-[10px] sm:text-[11px] text-duston-muted mt-1 truncate">Next 7 calendar days</div>
         </div>
 
         {/* Completed this month */}
-        <div className="bg-white border border-duston-border rounded-xl p-6 shadow-subtle">
+        <div className="bg-white border border-duston-border rounded-xl p-4 sm:p-5 lg:p-6 shadow-subtle">
           <div className="text-xs font-medium text-duston-muted">Completed this month</div>
-          <div className="text-3xl font-medium text-[#39B54A] mt-2">
+          <div className="text-2xl sm:text-3xl font-medium text-[#39B54A] mt-1.5 sm:mt-2">
             {completedCount}
           </div>
-          <div className="text-[11px] text-[#39B54A] font-medium mt-1">On schedule</div>
+          <div className="text-[10px] sm:text-[11px] text-[#39B54A] font-medium mt-1 truncate">On schedule</div>
         </div>
       </div>
 
@@ -438,7 +438,7 @@ export function DashboardClient({
 
           {/* Kanban View */}
           {currentView === "kanban" && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 overflow-x-auto pb-2">
+            <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto pb-4 no-scrollbar snap-x">
               {["To do", "In progress", "Done"].map((column) => {
                 const colStatus =
                   column === "To do"
@@ -455,7 +455,7 @@ export function DashboardClient({
                 return (
                   <div
                     key={column}
-                    className="bg-duston-bg/60 border border-duston-border rounded-xl p-3 flex flex-col space-y-3"
+                    className="w-[82vw] sm:w-[320px] md:w-auto shrink-0 snap-center md:shrink bg-duston-bg/60 border border-duston-border rounded-xl p-3.5 flex flex-col space-y-3 min-h-[320px]"
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-duston-dark">
@@ -512,45 +512,47 @@ export function DashboardClient({
               <div className="text-xs font-medium text-duston-dark">
                 Upcoming 7 Days Planner
               </div>
-              <div className="grid grid-cols-7 gap-2 text-center text-xs">
-                {Array.from({ length: 7 }).map((_, idx) => {
-                  const d = new Date();
-                  d.setDate(d.getDate() + idx);
-                  const dStr = d.toISOString().split("T")[0];
-                  const dayItems = filteredItems.filter((i) => i.deadline === dStr);
-                  const isCurToday = idx === 0;
+              <div className="overflow-x-auto pb-2 no-scrollbar">
+                <div className="min-w-[580px] md:min-w-0 grid grid-cols-7 gap-2 text-center text-xs">
+                  {Array.from({ length: 7 }).map((_, idx) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + idx);
+                    const dStr = d.toISOString().split("T")[0];
+                    const dayItems = filteredItems.filter((i) => i.deadline === dStr);
+                    const isCurToday = idx === 0;
 
-                  return (
-                    <div
-                      key={idx}
-                      className={cn(
-                        "p-2 rounded-xl border min-h-[140px] flex flex-col",
-                        isCurToday
-                          ? "border-[#1BCECE] bg-[#1BCECE]/5"
-                          : "border-duston-border bg-duston-bg/40"
-                      )}
-                    >
-                      <div className="text-[10px] text-duston-muted uppercase">
-                        {d.toLocaleDateString("en-US", { weekday: "narrow" })}
+                    return (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "p-2 rounded-xl border min-h-[140px] flex flex-col",
+                          isCurToday
+                            ? "border-[#1BCECE] bg-[#1BCECE]/5"
+                            : "border-duston-border bg-duston-bg/40"
+                        )}
+                      >
+                        <div className="text-[10px] text-duston-muted uppercase">
+                          {d.toLocaleDateString("en-US", { weekday: "narrow" })}
+                        </div>
+                        <div className="text-xs font-medium text-duston-dark mb-2">
+                          {d.getDate()}
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          {dayItems.map((it) => (
+                            <div
+                              key={it.id}
+                              onClick={() => openActionItem(it.id)}
+                              className="p-1 rounded bg-white border border-duston-border text-[10px] text-left truncate cursor-pointer hover:border-[#1BCECE]"
+                              title={it.title}
+                            >
+                              {it.title}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="text-xs font-medium text-duston-dark mb-2">
-                        {d.getDate()}
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        {dayItems.map((it) => (
-                          <div
-                            key={it.id}
-                            onClick={() => openActionItem(it.id)}
-                            className="p-1 rounded bg-white border border-duston-border text-[10px] text-left truncate cursor-pointer hover:border-[#1BCECE]"
-                            title={it.title}
-                          >
-                            {it.title}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}

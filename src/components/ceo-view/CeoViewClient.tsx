@@ -151,11 +151,11 @@ export function CeoViewClient({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-center border-collapse text-xs">
+        <div className="overflow-x-auto pb-2 no-scrollbar">
+          <table className="w-full min-w-[640px] text-center border-collapse text-xs">
             <thead>
               <tr className="border-b border-duston-border text-duston-muted font-medium">
-                <th className="py-2.5 px-3 text-left font-medium">Subsidiary entity</th>
+                <th className="sticky left-0 bg-white z-10 py-2.5 px-3 text-left font-medium shadow-[2px_0_4px_rgba(0,0,0,0.03)]">Subsidiary entity</th>
                 {categories.map((cat) => (
                   <th key={cat} className="py-2.5 px-3 uppercase tracking-wider text-[10px]">
                     {cat}
@@ -166,7 +166,7 @@ export function CeoViewClient({
             <tbody className="divide-y divide-duston-border">
               {entities.map((entity) => (
                 <tr key={entity.id} className="hover:bg-duston-bg/40 transition-colors">
-                  <td className="py-3 px-3 text-left font-medium text-duston-dark whitespace-nowrap">
+                  <td className="sticky left-0 bg-white z-10 py-3 px-3 text-left font-medium text-duston-dark whitespace-nowrap shadow-[2px_0_4px_rgba(0,0,0,0.03)]">
                     {entity.name}
                   </td>
                   {categories.map((cat) => {

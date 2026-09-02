@@ -94,8 +94,8 @@ export function MeetingsClient({
           </p>
         </div>
       ) : (
-        <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">
-          <table className="w-full text-left border-collapse text-xs">
+        <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
                 <th className="py-3 px-4">Subject</th>

@@ -201,9 +201,9 @@ export function ProjectsClient({
         </div>
       ) : (
         <>
-          {/* Desktop Table View */}
-          <div className="hidden md:block bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">
-            <table className="w-full text-left border-collapse text-xs">
+          {/* Desktop & Tablet Table View */}
+          <div className="hidden md:block bg-white border border-duston-border rounded-xl shadow-subtle overflow-x-auto">
+            <table className="w-full min-w-[680px] text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
                   <th className="py-3 px-4">Project name</th>
