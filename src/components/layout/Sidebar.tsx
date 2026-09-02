@@ -55,6 +55,7 @@ export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile 
           <li key={item.name}>
             <Link
               href={item.href}
+              prefetch={true}
               onClick={onCloseMobile}
               className={cn(
                 "flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors border-l-[3px]",

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Maven_Pro } from "next/font/google";
+import { Suspense } from "react";
+import { NavigationProgress } from "@/components/layout/NavigationProgress";
 import "./globals.css";
 
 const mavenPro = Maven_Pro({
@@ -25,6 +27,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={mavenPro.variable} suppressHydrationWarning>
       <body className="bg-duston-bg text-duston-text font-sans antialiased min-h-screen" suppressHydrationWarning>
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         {children}
       </body>
     </html>
