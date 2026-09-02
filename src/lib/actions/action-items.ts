@@ -208,13 +208,13 @@ export interface BulkActionItemInput {
 }
 
 export async function bulkCreateActionItems(data: {
-  projectId: string;
+  entityId?: string;
+  projectId?: string;
   createdBy: string;
   meetingSubject?: string;
   createMeetingRecord?: boolean;
   meetingDate?: string;
   venue?: string;
-  entityId?: string;
   items: BulkActionItemInput[];
 }) {
   try {
@@ -222,32 +222,63 @@ export async function bulkCreateActionItems(data: {
       return { success: false, error: "No action items provided to import." };
     }
 
+    let targetProjectId = data.projectId;
+    let targetEntityId = data.entityId;
+
+    // If no specific project provided, resolve from entity or auto-create entity general deliverables
+    if (!targetProjectId && targetEntityId) {
+      const existingProj = await db.query.projects.findFirst({
+        where: eq(projects.entityId, targetEntityId),
+      });
+
+      if (existingProj) {
+        targetProjectId = existingProj.id;
+      } else {
+        const ent = await db.query.entities.findFirst({
+          where: eq(entities.id, targetEntityId),
+        });
+        const targetDateStr = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+        const [newProj] = await db
+          .insert(projects)
+          .values({
+            entityId: targetEntityId,
+            name: `${ent?.name || "Subsidiary"} Operations & Deliverables`,
+            category: "operations",
+            ownerId: data.createdBy,
+            startDate: new Date().toISOString().split("T")[0],
+            targetDate: targetDateStr,
+            status: "in_progress",
+          })
+          .returning();
+        targetProjectId = newProj.id;
+      }
+    } else if (targetProjectId && !targetEntityId) {
+      const proj = await db.query.projects.findFirst({
+        where: eq(projects.id, targetProjectId),
+      });
+      targetEntityId = proj?.entityId;
+    }
+
+    if (!targetProjectId) {
+      return { success: false, error: "Please select a target Subsidiary for these action items." };
+    }
+
     let sourceMeetingId: string | undefined = undefined;
 
     // Optional: create a meeting record if meetingSubject provided and createMeetingRecord is true
-    if (data.createMeetingRecord && data.meetingSubject?.trim()) {
-      let targetEntityId = data.entityId;
-      if (!targetEntityId) {
-        const proj = await db.query.projects.findFirst({
-          where: eq(projects.id, data.projectId),
-        });
-        targetEntityId = proj?.entityId;
-      }
-
-      if (targetEntityId) {
-        const [newMeeting] = await db
-          .insert(meetings)
-          .values({
-            entityId: targetEntityId,
-            subject: data.meetingSubject.trim(),
-            meetingDate: data.meetingDate || new Date().toISOString().split("T")[0],
-            venue: data.venue || "Virtual",
-            isVirtual: true,
-            createdBy: data.createdBy,
-          })
-          .returning();
-        sourceMeetingId = newMeeting.id;
-      }
+    if (data.createMeetingRecord && data.meetingSubject?.trim() && targetEntityId) {
+      const [newMeeting] = await db
+        .insert(meetings)
+        .values({
+          entityId: targetEntityId,
+          subject: data.meetingSubject.trim(),
+          meetingDate: data.meetingDate || new Date().toISOString().split("T")[0],
+          venue: data.venue || "Virtual",
+          isVirtual: true,
+          createdBy: data.createdBy,
+        })
+        .returning();
+      sourceMeetingId = newMeeting.id;
     }
 
     const insertedItems = [];
@@ -256,7 +287,7 @@ export async function bulkCreateActionItems(data: {
       const [created] = await db
         .insert(actionItems)
         .values({
-          projectId: data.projectId,
+          projectId: targetProjectId,
           title: item.title.trim(),
           description: item.notes || null,
           assigneeId: item.assigneeId,

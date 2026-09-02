@@ -219,8 +219,8 @@ export function ImportRegisterModal({
       setExtractError("Please select at least one action item to import.");
       return;
     }
-    if (!selectedProjectId) {
-      setExtractError("Please select a target Project for these action items.");
+    if (!selectedEntityId) {
+      setExtractError("Please select a target Subsidiary for these action items.");
       return;
     }
 
@@ -229,11 +229,11 @@ export function ImportRegisterModal({
 
     try {
       const res = await bulkCreateActionItems({
-        projectId: selectedProjectId,
+        entityId: selectedEntityId,
+        projectId: selectedProjectId || undefined,
         createdBy: currentUserId,
         meetingSubject: meetingSubject.trim() || undefined,
         createMeetingRecord: recordMeeting,
-        entityId: selectedEntityId,
         items: selectedItems.map((it) => ({
           title: it.title.trim(),
           assigneeId: it.assigneeId,
@@ -317,47 +317,26 @@ export function ImportRegisterModal({
           {/* STEP 1: UPLOAD / PASTE */}
           {step === "upload" && (
             <div className="space-y-5">
-              {/* Target Entity & Project Pickers */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-xl bg-duston-bg/40 border border-duston-border">
-                <div>
-                  <label className="block text-duston-dark font-medium mb-1 flex items-center gap-1">
-                    <Building size={12} className="text-[#023542]" />
-                    <span>Target Subsidiary *</span>
-                  </label>
-                  <select
-                    value={selectedEntityId}
-                    onChange={(e) => setSelectedEntityId(e.target.value)}
-                    className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-xs text-duston-text outline-none focus:border-[#1BCECE]"
-                  >
-                    {entities.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-duston-dark font-medium mb-1 flex items-center gap-1">
-                    <Briefcase size={12} className="text-[#023542]" />
-                    <span>Target Project *</span>
-                  </label>
-                  <select
-                    value={selectedProjectId}
-                    onChange={(e) => setSelectedProjectId(e.target.value)}
-                    className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-xs text-duston-text outline-none focus:border-[#1BCECE]"
-                  >
-                    {availableProjects.length === 0 ? (
-                      <option value="">No projects available in this subsidiary</option>
-                    ) : (
-                      availableProjects.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
+              {/* Target Subsidiary Picker */}
+              <div className="p-4 rounded-xl bg-duston-bg/40 border border-duston-border">
+                <label className="block text-duston-dark font-medium mb-1.5 flex items-center gap-1.5 text-xs">
+                  <Building size={14} className="text-[#023542]" />
+                  <span>Target Subsidiary *</span>
+                </label>
+                <select
+                  value={selectedEntityId}
+                  onChange={(e) => setSelectedEntityId(e.target.value)}
+                  className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-xs text-duston-text outline-none focus:border-[#1BCECE] font-medium"
+                >
+                  {entities.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-duston-muted mt-1.5">
+                  All extracted deliverables from the minutes will be registered directly under this subsidiary.
+                </p>
               </div>
 
               {/* Mode Switcher Tabs */}
@@ -492,16 +471,16 @@ export function ImportRegisterModal({
 
                   <div>
                     <label className="block text-duston-muted font-medium mb-1">
-                      Target Project
+                      Target Subsidiary
                     </label>
                     <select
-                      value={selectedProjectId}
-                      onChange={(e) => setSelectedProjectId(e.target.value)}
-                      className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-xs text-duston-text outline-none focus:border-[#1BCECE]"
+                      value={selectedEntityId}
+                      onChange={(e) => setSelectedEntityId(e.target.value)}
+                      className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-xs text-duston-text outline-none focus:border-[#1BCECE] font-medium"
                     >
-                      {availableProjects.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
+                      {entities.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.name}
                         </option>
                       ))}
                     </select>
