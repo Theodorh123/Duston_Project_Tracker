@@ -73,8 +73,6 @@ export default async function MeetingsPage() {
       entities={scopedEntities}
       users={allUsers.map((u) => ({ id: u.id, name: u.name }))}
       currentUserId={userId}
-      initialFeedUrl={preferences?.calendarFeedUrl}
-      lastSyncedAt={preferences?.calendarLastSyncedAt?.toISOString()}
     />
   );
 }

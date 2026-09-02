@@ -1,9 +1,8 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { actionItems, meetings, activityLog, userPreferences, users, projects, entities, userEntityAccess } from "@/lib/db/schema";
-import { eq, desc, gte, lte, and, inArray } from "drizzle-orm";
-import { DashboardClient, ActionItemSummary, MeetingSummary, ActivitySummary } from "@/components/dashboard/DashboardClient";
-import { addDays, format } from "date-fns";
+import { actionItems, activityLog, userPreferences, users, projects, entities, userEntityAccess } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
+import { DashboardClient, ActionItemSummary, ActivitySummary } from "@/components/dashboard/DashboardClient";
 
 export default async function DashboardPage({
   searchParams,
@@ -15,9 +14,6 @@ export default async function DashboardPage({
   const session = await auth();
   const userId = session?.user?.id!;
 
-  const today = new Date();
-  const future = addDays(today, 14);
-
   // Fetch all dashboard data concurrently in parallel
   const [
     user,
@@ -25,7 +21,6 @@ export default async function DashboardPage({
     grants,
     allEnt,
     items,
-    upcomingMeetingsData,
     recentLogs,
     allProjects,
     allUsers,
@@ -54,25 +49,13 @@ export default async function DashboardPage({
       },
       orderBy: [actionItems.deadline],
     }),
-    db.query.meetings.findMany({
-      where: and(
-        gte(meetings.meetingDate, format(today, "yyyy-MM-dd")),
-        lte(meetings.meetingDate, format(future, "yyyy-MM-dd"))
-      ),
-      with: {
-        entity: true,
-        attendees: true,
-      },
-      orderBy: [meetings.meetingDate],
-      limit: 5,
-    }),
     db.query.activityLog.findMany({
       with: {
         actor: true,
         actionItem: true,
       },
       orderBy: [desc(activityLog.createdAt)],
-      limit: 5,
+      limit: 8,
     }),
     db.query.projects.findMany({
       with: {
@@ -112,18 +95,6 @@ export default async function DashboardPage({
     ? mappedItems
     : mappedItems.filter((i) => allowedEntityIds.includes(i.entityId));
 
-  const scopedMeetings: MeetingSummary[] = upcomingMeetingsData
-    .filter((m) => allowedEntityIds.includes(m.entityId))
-    .map((m) => ({
-      id: m.id,
-      subject: m.subject,
-      meetingDate: m.meetingDate,
-      entityName: m.entity.name,
-      venue: m.venue,
-      isVirtual: m.isVirtual,
-      attendeeCount: m.attendees.length,
-    }));
-
   const mappedActivities: ActivitySummary[] = recentLogs.map((l) => ({
     id: l.id,
     actorName: l.actor?.name || "System",
@@ -147,7 +118,6 @@ export default async function DashboardPage({
     <DashboardClient
       userName={user?.name || "User"}
       initialItems={scopedItems}
-      upcomingMeetings={scopedMeetings}
       recentActivities={mappedActivities}
       defaultView={preferences?.defaultView || "todo"}
       kanbanColumns={preferences?.kanbanColumns || ["Backlog", "This Week", "In Progress", "Blocked", "Done"]}

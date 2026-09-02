@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useAppShell } from "../layout/AppShell";
 import {
-  CalendarDays,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -13,8 +12,6 @@ import {
   Calendar,
   ChevronRight,
   ExternalLink,
-  MapPin,
-  Video,
   Plus,
   X,
 } from "lucide-react";
@@ -59,7 +56,7 @@ export interface ActivitySummary {
 interface DashboardClientProps {
   userName: string;
   initialItems: ActionItemSummary[];
-  upcomingMeetings: MeetingSummary[];
+  upcomingMeetings?: MeetingSummary[];
   recentActivities: ActivitySummary[];
   defaultView?: "todo" | "kanban" | "planner";
   kanbanColumns?: string[];
@@ -72,7 +69,7 @@ interface DashboardClientProps {
 export function DashboardClient({
   userName,
   initialItems,
-  upcomingMeetings,
+  upcomingMeetings = [],
   recentActivities,
   defaultView = "todo",
   kanbanColumns = ["Backlog", "This Week", "In Progress", "Blocked", "Done"],
@@ -1114,64 +1111,8 @@ export function DashboardClient({
           )}
         </div>
 
-        {/* Right Column (1/3 width): Upcoming Meetings & Recent Activity */}
+        {/* Right Column (1/3 width): Recent Activity */}
         <div className="space-y-6">
-          {/* Upcoming Meetings Card */}
-          <div className="bg-white border border-duston-border rounded-xl p-5 shadow-subtle">
-            <div className="flex items-center justify-between mb-4 border-b border-duston-border pb-3">
-              <div className="flex items-center gap-2">
-                <CalendarDays size={16} strokeWidth={1.5} className="text-[#023542]" />
-                <h2 className="text-xs font-medium text-duston-dark">
-                  Upcoming meetings (7 days)
-                </h2>
-              </div>
-              <Link
-                href="/meetings"
-                className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-medium"
-              >
-                View all
-              </Link>
-            </div>
-
-            {upcomingMeetings.length === 0 ? (
-              <p className="text-xs text-duston-muted italic py-3 text-center">
-                No meetings scheduled this week.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {upcomingMeetings.map((m) => (
-                  <Link
-                    key={m.id}
-                    href={`/meetings/${m.id}`}
-                    className="block p-3 rounded-xl border border-duston-border hover:border-[#1BCECE] hover:bg-duston-bg transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="text-xs font-medium text-duston-dark line-clamp-1 flex-1">
-                        {m.subject}
-                      </div>
-                      <span className={cn(
-                        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0",
-                        m.isVirtual ? "bg-purple-50 text-purple-700 border border-purple-200" : "bg-blue-50 text-blue-700 border border-blue-200"
-                      )}>
-                        {m.isVirtual ? <Video size={10} /> : <MapPin size={10} />}
-                        <span>{m.isVirtual ? "Virtual" : "In-person"}</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-duston-muted mt-1.5">
-                      <span>{m.entityName}</span>
-                      <span>{formatShortDate(m.meetingDate)}</span>
-                    </div>
-                    {m.venue && (
-                      <div className="text-[10px] text-duston-muted mt-1 flex items-center gap-1 truncate" title={m.venue}>
-                        <MapPin size={10} className="shrink-0 text-duston-muted" />
-                        <span className="truncate">{m.venue}</span>
-                      </div>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
 
           {/* Recent Activity Card */}
           <div className="bg-white border border-duston-border rounded-xl p-5 shadow-subtle">

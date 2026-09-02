@@ -65,7 +65,7 @@ interface EaViewClientProps {
   overdueQueue: QueueItem[];
   chaseUpQueue: QueueItem[];
   entitySummaries: EntitySummaryCard[];
-  upcomingMeetings: UpcomingMeetingWithPrep[];
+  upcomingMeetings?: UpcomingMeetingWithPrep[];
   entities: Array<{ id: string; name: string }>;
 }
 
@@ -73,12 +73,10 @@ export function EaViewClient({
   overdueQueue,
   chaseUpQueue,
   entitySummaries,
-  upcomingMeetings,
   entities,
 }: EaViewClientProps) {
   const router = useRouter();
   const { openActionItem, setSelectedEntityId } = useAppShell();
-  const [selectedMeetingForPrep, setSelectedMeetingForPrep] = useState<UpcomingMeetingWithPrep | null>(null);
   const [selectedEntityForBrief, setSelectedEntityForBrief] = useState(entities[0]?.id || "");
   const [generatedBrief, setGeneratedBrief] = useState<string | null>(null);
   const [nudgeStatus, setNudgeStatus] = useState<Record<string, string>>({});
@@ -369,51 +367,7 @@ export function EaViewClient({
         </div>
       </div>
 
-      {/* 4. Upcoming Meetings & Prep Panel */}
-      <div className="bg-white border border-duston-border rounded-xl shadow-subtle p-5 space-y-4">
-        <div className="flex items-center justify-between border-b border-duston-border pb-3">
-          <div className="flex items-center gap-2">
-            <Calendar size={18} strokeWidth={1.5} className="text-[#023542]" />
-            <h2 className="text-sm font-medium text-duston-dark">
-              Upcoming meetings (14 days) & Prep Pack
-            </h2>
-          </div>
-          <span className="text-xs text-duston-muted">
-            {upcomingMeetings.length} meetings scheduled
-          </span>
-        </div>
-
-        {upcomingMeetings.length === 0 ? (
-          <p className="text-xs text-duston-muted italic py-3 text-center">
-            No upcoming meetings in the next 14 days.
-          </p>
-        ) : (
-          <div className="divide-y divide-duston-border">
-            {upcomingMeetings.map((meeting) => (
-              <div
-                key={meeting.id}
-                className="py-3 flex items-center justify-between hover:bg-duston-bg px-2 rounded-lg transition-colors text-xs"
-              >
-                <div>
-                  <div className="font-medium text-duston-dark">{meeting.subject}</div>
-                  <div className="text-[11px] text-duston-muted mt-0.5">
-                    {meeting.entityName} • {formatDate(meeting.meetingDate)} • {meeting.attendees.length} attendees
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setSelectedMeetingForPrep(meeting)}
-                  className="px-3 py-1.5 rounded-lg border border-duston-border bg-white hover:bg-duston-bg text-duston-dark font-medium transition-colors"
-                >
-                  Prep panel
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 5. Generate Executive Brief */}
+      {/* 4. Generate Executive Brief */}
       <div className="bg-white border border-duston-border rounded-xl shadow-subtle p-5 space-y-4">
         <div className="flex items-center gap-2 border-b border-duston-border pb-3">
           <Sparkles size={18} strokeWidth={1.5} className="text-[#1BCECE]" />
@@ -448,71 +402,6 @@ export function EaViewClient({
           </div>
         )}
       </div>
-
-      {/* Prep Panel Slide-in Sheet */}
-      {selectedMeetingForPrep && (
-        <>
-          <div
-            onClick={() => setSelectedMeetingForPrep(null)}
-            className="fixed inset-0 bg-black/30 z-50"
-          />
-          <div className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-white border-l border-duston-border z-50 flex flex-col shadow-2xl">
-            <div className="p-4 border-b border-duston-border flex items-center justify-between bg-duston-bg/60">
-              <div>
-                <h3 className="text-xs font-medium text-duston-muted">Meeting Prep Pack</h3>
-                <div className="text-sm font-medium text-duston-dark truncate max-w-xs">
-                  {selectedMeetingForPrep.subject}
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedMeetingForPrep(null)}
-                className="p-1.5 rounded text-duston-muted hover:text-duston-dark"
-              >
-                <X size={18} strokeWidth={1.5} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-5 text-xs">
-              <p className="text-duston-muted">
-                Review outstanding action items for each attendee to prepare the chair for accountability checks:
-              </p>
-
-              {selectedMeetingForPrep.attendees.map((att) => (
-                <div key={att.id} className="border border-duston-border rounded-xl p-4 bg-duston-bg/30 space-y-2">
-                  <div className="flex items-center justify-between font-medium text-duston-dark">
-                    <span>{att.name}</span>
-                    <span className="text-[11px] text-duston-muted font-normal">
-                      {att.openActionItems.length} open items
-                    </span>
-                  </div>
-
-                  {att.openActionItems.length === 0 ? (
-                    <div className="text-[11px] text-[#39B54A]">No open items pending.</div>
-                  ) : (
-                    <div className="space-y-1.5 pt-1">
-                      {att.openActionItems.map((ai) => (
-                        <div
-                          key={ai.id}
-                          onClick={() => {
-                            setSelectedMeetingForPrep(null);
-                            openActionItem(ai.id);
-                          }}
-                          className="p-2 rounded bg-white border border-duston-border flex items-center justify-between hover:border-[#1BCECE] cursor-pointer"
-                        >
-                          <span className="truncate pr-2">{ai.title}</span>
-                          <span className="text-[10px] text-duston-orange shrink-0">
-                            Due {formatShortDate(ai.deadline)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }

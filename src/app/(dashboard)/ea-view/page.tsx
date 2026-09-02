@@ -1,10 +1,10 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { actionItems, meetings, entities, users, projects, userEntityAccess } from "@/lib/db/schema";
-import { eq, desc, and, gte, lte } from "drizzle-orm";
+import { actionItems, entities, users, projects, userEntityAccess } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { EaViewClient, QueueItem, EntitySummaryCard, UpcomingMeetingWithPrep } from "@/components/ea-view/EaViewClient";
-import { addDays, format, subHours, parseISO } from "date-fns";
+import { EaViewClient, QueueItem, EntitySummaryCard } from "@/components/ea-view/EaViewClient";
+import { subHours, parseISO } from "date-fns";
 import { getDaysOverdue, getPriorityWeight, isDeadlineOverdue } from "@/lib/utils";
 
 export default async function EaViewPage() {
@@ -100,54 +100,11 @@ export default async function EaViewPage() {
     };
   });
 
-  // 4. Upcoming meetings next 14 days
-  const todayStr = format(new Date(), "yyyy-MM-dd");
-  const next14DaysStr = format(addDays(new Date(), 14), "yyyy-MM-dd");
-
-  const meetingsNext14 = await db.query.meetings.findMany({
-    where: and(
-      gte(meetings.meetingDate, todayStr),
-      lte(meetings.meetingDate, next14DaysStr)
-    ),
-    with: {
-      entity: true,
-      attendees: {
-        with: {
-          user: true,
-        },
-      },
-    },
-    orderBy: [meetings.meetingDate],
-  });
-
-  const upcomingMeetingsWithPrep: UpcomingMeetingWithPrep[] = meetingsNext14.map((m) => ({
-    id: m.id,
-    subject: m.subject,
-    meetingDate: m.meetingDate,
-    entityName: m.entity.name,
-    attendees: m.attendees.map((att) => {
-      const attendeeOpenItems = allItems
-        .filter((it) => it.assigneeId === att.user.id && it.status !== "done")
-        .map((it) => ({
-          id: it.id,
-          title: it.title,
-          deadline: it.deadline,
-        }));
-
-      return {
-        id: att.user.id,
-        name: att.user.name,
-        openActionItems: attendeeOpenItems,
-      };
-    }),
-  }));
-
   return (
     <EaViewClient
       overdueQueue={overdueList}
       chaseUpQueue={chaseUpList}
       entitySummaries={entitySummaries}
-      upcomingMeetings={upcomingMeetingsWithPrep}
       entities={allActiveEntities.map((e) => ({ id: e.id, name: e.name }))}
     />
   );

@@ -37,8 +37,6 @@ export default async function SettingsPage() {
         whatsappEnabled: preferences?.whatsappEnabled ?? true,
         digestFrequency: preferences?.digestFrequency || "daily",
         timezone: preferences?.timezone || "Africa/Accra",
-        calendarFeedUrl: preferences?.calendarFeedUrl,
-        calendarLastSyncedAt: preferences?.calendarLastSyncedAt?.toISOString(),
       }}
       entities={allEntities.map((e) => ({ id: e.id, name: e.name }))}
     />

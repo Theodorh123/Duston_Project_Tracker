@@ -213,10 +213,10 @@ export function TopBar({
                   </div>
                   <div className="p-2.5 rounded-xl hover:bg-duston-bg transition-colors">
                     <div className="font-medium text-duston-text">
-                      Upcoming meeting: MOSL Committee Review
+                      New project milestone reached
                     </div>
                     <div className="text-[11px] text-duston-muted mt-0.5">
-                      Tomorrow at 10:00 AM
+                      Updated today at 10:00 AM
                     </div>
                   </div>
                 </div>
