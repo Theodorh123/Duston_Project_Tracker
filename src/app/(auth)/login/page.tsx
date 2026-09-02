@@ -38,10 +38,6 @@ export default function LoginPage() {
     }
   };
 
-  const setTestUser = (testEmail: string) => {
-    setEmail(testEmail);
-    setPassword("Duston123!");
-  };
 
   return (
     <div className="min-h-screen bg-duston-bg flanelines-bg flex flex-col items-center justify-center p-4 relative">
@@ -108,54 +104,18 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 px-4 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
+            className="w-full py-2.5 px-4 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer shadow-subtle"
           >
             {loading ? "Signing in..." : "Sign in"}
             <ArrowRight size={14} strokeWidth={1.5} />
           </button>
         </form>
 
-        {/* Quick Test Logins Strip */}
-        <div className="mt-8 pt-6 border-t border-duston-border">
-          <div className="text-[11px] font-medium text-duston-muted mb-2.5 text-center">
-            Quick demo credentials (password: <span className="font-mono text-duston-dark">Duston123!</span>)
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <button
-              type="button"
-              onClick={() => setTestUser("theophilus@duston.com")}
-              className="p-2 text-left rounded-lg bg-duston-bg hover:bg-duston-border/60 text-duston-text border border-duston-border transition-colors"
-            >
-              <span className="font-medium block text-duston-dark">Theophilus Dorh</span>
-              <span className="text-duston-muted text-[10px]">EA (Global)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setTestUser("elton@duston.com")}
-              className="p-2 text-left rounded-lg bg-duston-bg hover:bg-duston-border/60 text-duston-text border border-duston-border transition-colors"
-            >
-              <span className="font-medium block text-duston-dark">Elton K. Dusi</span>
-              <span className="text-duston-muted text-[10px]">CEO (Global)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setTestUser("md@duston.com")}
-              className="p-2 text-left rounded-lg bg-duston-bg hover:bg-duston-border/60 text-duston-text border border-duston-border transition-colors"
-            >
-              <span className="font-medium block text-duston-dark">Test MD</span>
-              <span className="text-duston-muted text-[10px]">MOSL only</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setTestUser("hod@duston.com")}
-              className="p-2 text-left rounded-lg bg-duston-bg hover:bg-duston-border/60 text-duston-text border border-duston-border transition-colors"
-            >
-              <span className="font-medium block text-duston-dark">Test HOD</span>
-              <span className="text-duston-muted text-[10px]">Dept Head</span>
-            </button>
-          </div>
+        <div className="mt-8 pt-4 border-t border-duston-border/60 text-center">
+          <p className="text-[11px] text-duston-muted">
+            Authorized personnel only. Duston Group Internal Infrastructure.
+          </p>
         </div>
-
       </div>
     </div>
   );

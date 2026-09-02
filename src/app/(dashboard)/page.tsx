@@ -5,7 +5,13 @@ import { eq, desc, gte, lte, and, inArray } from "drizzle-orm";
 import { DashboardClient, ActionItemSummary, MeetingSummary, ActivitySummary } from "@/components/dashboard/DashboardClient";
 import { addDays, format } from "date-fns";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ filter?: string }>;
+}) {
+  const resolvedParams = searchParams ? await searchParams : undefined;
+  const initialFilter = (resolvedParams?.filter as any) || "all";
   const session = await auth();
   const userId = session?.user?.id!;
 
@@ -40,71 +46,75 @@ export default async function DashboardPage() {
       },
       assignee: true,
     },
-    orderBy: [desc(actionItems.deadline)],
+    orderBy: [actionItems.deadline],
   });
 
-  // Filter items to allowed entities
-  const scopedItems: ActionItemSummary[] = items
-    .filter((it) => allowedEntityIds.includes(it.project.entityId))
-    .map((it) => ({
-      id: it.id,
-      projectId: it.projectId,
-      projectName: it.project.name,
-      entityId: it.project.entityId,
-      entityName: it.project.entity.name,
-      entityBrandColor: it.project.entity.brandPrimaryColor,
-      title: it.title,
-      deadline: it.deadline,
-      status: it.status,
-      priority: it.priority,
-      assigneeId: it.assigneeId,
-      assigneeName: it.assignee.name,
-    }));
+  // Map action items for client
+  const mappedItems: ActionItemSummary[] = items.map((item) => ({
+    id: item.id,
+    projectId: item.projectId,
+    projectName: item.project.name,
+    entityId: item.project.entityId,
+    entityName: item.project.entity.name,
+    entityBrandColor: item.project.entity.brandPrimaryColor,
+    title: item.title,
+    deadline: item.deadline,
+    status: item.status as any,
+    priority: item.priority as any,
+    assigneeId: item.assigneeId,
+    assigneeName: item.assignee.name,
+  }));
 
-  // Fetch upcoming meetings (next 7 days) within allowed entities
-  const todayStr = format(new Date(), "yyyy-MM-dd");
-  const nextWeekStr = format(addDays(new Date(), 7), "yyyy-MM-dd");
+  // Filter items by allowed entities if restricted
+  const scopedItems = user?.hasGlobalAccess
+    ? mappedItems
+    : mappedItems.filter((i) => allowedEntityIds.includes(i.entityId));
 
-  const upcomingMtgs = await db.query.meetings.findMany({
+  // Upcoming meetings (next 14 days)
+  const today = new Date();
+  const future = addDays(today, 14);
+
+  const upcomingMeetingsData = await db.query.meetings.findMany({
     where: and(
-      gte(meetings.meetingDate, todayStr),
-      lte(meetings.meetingDate, nextWeekStr)
+      gte(meetings.meetingDate, format(today, "yyyy-MM-dd")),
+      lte(meetings.meetingDate, format(future, "yyyy-MM-dd"))
     ),
     with: {
       entity: true,
       attendees: true,
     },
     orderBy: [meetings.meetingDate],
+    limit: 5,
   });
 
-  const scopedMeetings: MeetingSummary[] = upcomingMtgs
+  const scopedMeetings: MeetingSummary[] = upcomingMeetingsData
     .filter((m) => allowedEntityIds.includes(m.entityId))
     .map((m) => ({
       id: m.id,
       subject: m.subject,
-      entityName: m.entity.name,
       meetingDate: m.meetingDate,
+      entityName: m.entity.name,
       venue: m.venue,
       isVirtual: m.isVirtual,
       attendeeCount: m.attendees.length,
     }));
 
-  // Fetch recent activity
+  // Recent activity logs (top 5)
   const recentLogs = await db.query.activityLog.findMany({
     with: {
       actor: true,
       actionItem: true,
     },
     orderBy: [desc(activityLog.createdAt)],
-    limit: 8,
+    limit: 5,
   });
 
-  const mappedActivities: ActivitySummary[] = recentLogs.map((log) => ({
-    id: log.id,
-    actorName: log.actor.name,
-    actionItemTitle: log.actionItem?.title || "Action item",
-    note: log.note,
-    createdAt: log.createdAt.toISOString(),
+  const mappedActivities: ActivitySummary[] = recentLogs.map((l) => ({
+    id: l.id,
+    actorName: l.actor?.name || "System",
+    actionItemTitle: l.actionItem?.title || "Action Item",
+    note: l.note,
+    createdAt: l.createdAt.toISOString(),
   }));
 
   // Fetch active projects and users for quick task creation
@@ -140,6 +150,7 @@ export default async function DashboardPage() {
       projects={scopedProjects}
       users={mappedUsers}
       currentUserId={userId}
+      initialFilter={initialFilter}
     />
   );
 }

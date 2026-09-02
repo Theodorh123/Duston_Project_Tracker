@@ -66,6 +66,7 @@ interface DashboardClientProps {
   projects?: Array<{ id: string; name: string; entityName: string; entityBrandColor?: string }>;
   users?: Array<{ id: string; name: string }>;
   currentUserId?: string;
+  initialFilter?: "all" | "open" | "overdue" | "due_this_week" | "completed";
 }
 
 export function DashboardClient({
@@ -78,18 +79,39 @@ export function DashboardClient({
   projects = [],
   users = [],
   currentUserId,
+  initialFilter = "all",
 }: DashboardClientProps) {
   const { selectedEntityId, openActionItem } = useAppShell();
   const [currentView, setCurrentView] = useState<"todo" | "kanban" | "planner">(defaultView);
   const [items, setItems] = useState<ActionItemSummary[]>(initialItems);
   const router = useRouter();
 
+  // Active metric filter state (open, overdue, due_this_week, completed, all)
+  const [metricFilter, setMetricFilter] = useState<"all" | "open" | "overdue" | "due_this_week" | "completed">(
+    ["open", "overdue", "due_this_week", "completed"].includes(initialFilter as any)
+      ? (initialFilter as any)
+      : "all"
+  );
+
+  const handleSelectMetric = (filterKey: "open" | "overdue" | "due_this_week" | "completed") => {
+    const nextFilter = metricFilter === filterKey ? "all" : filterKey;
+    setMetricFilter(nextFilter);
+    router.replace(nextFilter === "all" ? "/" : `/?filter=${nextFilter}`, { scroll: false });
+    // Smooth scroll down to tasks view container
+    setTimeout(() => {
+      const el = document.getElementById("tasks-section");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 50);
+  };
+
   // Filter items by entity chip if selected
   const filteredItems = selectedEntityId
     ? items.filter((i) => i.entityId === selectedEntityId)
     : items;
 
-  // Derive metrics
+  // Derive metrics across all entity-filtered items
   const openCount = filteredItems.filter((i) => i.status !== "done").length;
   const overdueCount = filteredItems.filter((i) => isDeadlineOverdue(i.deadline, i.status)).length;
   const todayStr = new Date().toISOString().split("T")[0];
@@ -274,22 +296,37 @@ export function DashboardClient({
     }
   };
 
-  // Group items for Todo view: Overdue, Today, This Week, Later
+  // Filter items based on active metric filter
+  const displayedItems = filteredItems.filter((i) => {
+    if (metricFilter === "open") return i.status !== "done";
+    if (metricFilter === "overdue") return isDeadlineOverdue(i.deadline, i.status) && i.status !== "done";
+    if (metricFilter === "due_this_week") {
+      if (i.status === "done") return false;
+      const itemDate = new Date(i.deadline);
+      const diff = (itemDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24);
+      return diff >= 0 && diff <= 7;
+    }
+    if (metricFilter === "completed") return i.status === "done";
+    return true;
+  });
+
+  // Group items for Todo view: Overdue, Today, This Week, Later, Completed
   const groupedTodo = {
-    overdue: filteredItems.filter((i) => isDeadlineOverdue(i.deadline, i.status)),
-    today: filteredItems.filter((i) => !isDeadlineOverdue(i.deadline, i.status) && i.deadline === todayStr && i.status !== "done"),
-    thisWeek: filteredItems.filter((i) => {
+    overdue: displayedItems.filter((i) => isDeadlineOverdue(i.deadline, i.status) && i.status !== "done"),
+    today: displayedItems.filter((i) => !isDeadlineOverdue(i.deadline, i.status) && i.deadline === todayStr && i.status !== "done"),
+    thisWeek: displayedItems.filter((i) => {
       if (isDeadlineOverdue(i.deadline, i.status) || i.deadline === todayStr || i.status === "done") return false;
       const itemDate = new Date(i.deadline);
       const diff = (itemDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24);
       return diff > 0 && diff <= 7;
     }),
-    later: filteredItems.filter((i) => {
+    later: displayedItems.filter((i) => {
       if (i.status === "done" || isDeadlineOverdue(i.deadline, i.status)) return false;
       const itemDate = new Date(i.deadline);
       const diff = (itemDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24);
       return diff > 7;
     }),
+    completed: displayedItems.filter((i) => i.status === "done"),
   };
 
   const firstName = userName.split(" ")[0] || "User";
@@ -311,20 +348,70 @@ export function DashboardClient({
         </div>
       </div>
 
-      {/* 4 Rounded Metric Cards Row */}
+      {/* 4 Rounded Interactive Metric Cards Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Open items */}
-        <div className="bg-white border border-duston-border rounded-xl p-4 sm:p-5 lg:p-6 shadow-subtle">
-          <div className="text-xs font-medium text-duston-muted">Open items</div>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => handleSelectMetric("open")}
+          className={cn(
+            "bg-white border rounded-xl p-4 sm:p-5 lg:p-6 shadow-subtle cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md group select-none",
+            metricFilter === "open"
+              ? "ring-2 ring-[#023542] border-[#023542] bg-[#023542]/5 shadow-sm"
+              : "border-duston-border hover:border-[#023542]"
+          )}
+          title="Click to view all open items"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-duston-muted group-hover:text-duston-dark transition-colors">
+              Open items
+            </span>
+            <ChevronRight
+              size={14}
+              className={cn(
+                "transition-all",
+                metricFilter === "open"
+                  ? "text-[#023542] rotate-90"
+                  : "text-duston-muted/50 group-hover:text-[#023542] group-hover:translate-x-0.5"
+              )}
+            />
+          </div>
           <div className="text-2xl sm:text-3xl font-medium text-[#023542] mt-1.5 sm:mt-2">
             {openCount}
           </div>
-          <div className="text-[10px] sm:text-[11px] text-duston-muted mt-1 truncate">Your responsibility</div>
+          <div className="text-[10px] sm:text-[11px] text-duston-muted mt-1 truncate">
+            Active pending workstreams
+          </div>
         </div>
 
         {/* Overdue */}
-        <div className="bg-white border border-duston-border rounded-xl p-4 sm:p-5 lg:p-6 shadow-subtle">
-          <div className="text-xs font-medium text-duston-muted">Overdue</div>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => handleSelectMetric("overdue")}
+          className={cn(
+            "bg-white border rounded-xl p-4 sm:p-5 lg:p-6 shadow-subtle cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md group select-none",
+            metricFilter === "overdue"
+              ? "ring-2 ring-[#F15A24] border-[#F15A24] bg-[#F15A24]/5 shadow-sm"
+              : "border-duston-border hover:border-[#F15A24]"
+          )}
+          title="Click to view overdue items"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-duston-muted group-hover:text-duston-orange transition-colors">
+              Overdue
+            </span>
+            <ChevronRight
+              size={14}
+              className={cn(
+                "transition-all",
+                metricFilter === "overdue"
+                  ? "text-duston-orange rotate-90"
+                  : "text-duston-muted/50 group-hover:text-duston-orange group-hover:translate-x-0.5"
+              )}
+            />
+          </div>
           <div className="text-2xl sm:text-3xl font-medium text-[#F15A24] mt-1.5 sm:mt-2">
             {overdueCount}
           </div>
@@ -334,28 +421,116 @@ export function DashboardClient({
         </div>
 
         {/* Due this week */}
-        <div className="bg-white border border-duston-border rounded-xl p-4 sm:p-5 lg:p-6 shadow-subtle">
-          <div className="text-xs font-medium text-duston-muted">Due this week</div>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => handleSelectMetric("due_this_week")}
+          className={cn(
+            "bg-white border rounded-xl p-4 sm:p-5 lg:p-6 shadow-subtle cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md group select-none",
+            metricFilter === "due_this_week"
+              ? "ring-2 ring-[#FBB03B] border-[#FBB03B] bg-[#FBB03B]/5 shadow-sm"
+              : "border-duston-border hover:border-[#FBB03B]"
+          )}
+          title="Click to view items due this week"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-duston-muted group-hover:text-amber-600 transition-colors">
+              Due this week
+            </span>
+            <ChevronRight
+              size={14}
+              className={cn(
+                "transition-all",
+                metricFilter === "due_this_week"
+                  ? "text-amber-600 rotate-90"
+                  : "text-duston-muted/50 group-hover:text-amber-600 group-hover:translate-x-0.5"
+              )}
+            />
+          </div>
           <div className="text-2xl sm:text-3xl font-medium text-[#FBB03B] mt-1.5 sm:mt-2">
             {dueThisWeekCount}
           </div>
-          <div className="text-[10px] sm:text-[11px] text-duston-muted mt-1 truncate">Next 7 calendar days</div>
+          <div className="text-[10px] sm:text-[11px] text-duston-muted mt-1 truncate">
+            Next 7 calendar days
+          </div>
         </div>
 
         {/* Completed this month */}
-        <div className="bg-white border border-duston-border rounded-xl p-4 sm:p-5 lg:p-6 shadow-subtle">
-          <div className="text-xs font-medium text-duston-muted">Completed this month</div>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => handleSelectMetric("completed")}
+          className={cn(
+            "bg-white border rounded-xl p-4 sm:p-5 lg:p-6 shadow-subtle cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md group select-none",
+            metricFilter === "completed"
+              ? "ring-2 ring-[#39B54A] border-[#39B54A] bg-[#39B54A]/5 shadow-sm"
+              : "border-duston-border hover:border-[#39B54A]"
+          )}
+          title="Click to view completed items"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-duston-muted group-hover:text-[#39B54A] transition-colors">
+              Completed this month
+            </span>
+            <ChevronRight
+              size={14}
+              className={cn(
+                "transition-all",
+                metricFilter === "completed"
+                  ? "text-[#39B54A] rotate-90"
+                  : "text-duston-muted/50 group-hover:text-[#39B54A] group-hover:translate-x-0.5"
+              )}
+            />
+          </div>
           <div className="text-2xl sm:text-3xl font-medium text-[#39B54A] mt-1.5 sm:mt-2">
             {completedCount}
           </div>
-          <div className="text-[10px] sm:text-[11px] text-[#39B54A] font-medium mt-1 truncate">On schedule</div>
+          <div className="text-[10px] sm:text-[11px] text-[#39B54A] font-medium mt-1 truncate">
+            Resolved & closed
+          </div>
         </div>
       </div>
 
       {/* Main Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div id="tasks-section" className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-1">
         {/* Left Column (2/3 width) */}
         <div className="lg:col-span-2 space-y-4">
+          {/* Active Metric Filter Banner */}
+          {metricFilter !== "all" && (
+            <div className="flex items-center justify-between bg-white border border-duston-border rounded-xl px-4 py-2.5 shadow-subtle animate-in fade-in duration-150">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-duston-dark">Active filter:</span>
+                <span
+                  className={cn(
+                    "px-2.5 py-0.5 rounded-full text-[11px] font-semibold flex items-center gap-1",
+                    metricFilter === "overdue"
+                      ? "bg-duston-orange/10 text-duston-orange border border-duston-orange/20"
+                      : metricFilter === "due_this_week"
+                      ? "bg-[#FBB03B]/15 text-amber-800 border border-amber-300"
+                      : metricFilter === "completed"
+                      ? "bg-[#39B54A]/10 text-[#39B54A] border border-[#39B54A]/20"
+                      : "bg-[#023542]/10 text-[#023542] border border-[#023542]/20"
+                  )}
+                >
+                  {metricFilter === "open" && `Open Items (${openCount})`}
+                  {metricFilter === "overdue" && `Overdue Items (${overdueCount})`}
+                  {metricFilter === "due_this_week" && `Due This Week (${dueThisWeekCount})`}
+                  {metricFilter === "completed" && `Completed Items (${completedCount})`}
+                </span>
+                <span className="text-[11px] text-duston-muted hidden sm:inline">
+                  • Showing {displayedItems.length} matching {displayedItems.length === 1 ? "task" : "tasks"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSelectMetric(metricFilter)}
+                className="text-xs text-duston-muted hover:text-duston-dark font-medium flex items-center gap-1 hover:underline cursor-pointer"
+              >
+                <span>Clear filter (Show all)</span>
+                <X size={13} />
+              </button>
+            </div>
+          )}
           {/* View Toggle Bar */}
           <div className="flex items-center justify-between bg-white border border-duston-border rounded-xl p-2 shadow-subtle">
             <div className="flex items-center gap-1">
@@ -603,6 +778,86 @@ export function DashboardClient({
                   </div>
                 </div>
               )}
+
+              {/* Completed Section */}
+              {groupedTodo.completed.length > 0 && (
+                <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-2 h-2 rounded-full bg-[#39B54A]" />
+                    <span className="text-xs font-semibold text-[#39B54A]">
+                      Completed ({groupedTodo.completed.length})
+                    </span>
+                  </div>
+                  <div className="divide-y divide-duston-border">
+                    {groupedTodo.completed.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => openActionItem(item.id)}
+                        className="py-2.5 flex items-center justify-between hover:bg-duston-bg px-2 rounded-lg cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={true}
+                            onChange={(e) => handleToggleDone(e, item.id, item.status)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer"
+                          />
+                          <div>
+                            <div className="text-xs font-medium text-duston-dark line-through opacity-75">
+                              {item.title}
+                            </div>
+                            <div className="text-[11px] text-duston-muted flex items-center gap-2 mt-0.5">
+                              <span
+                                className="px-1.5 py-0.2 rounded text-[10px] font-medium truncate max-w-[120px]"
+                                style={{
+                                  backgroundColor: `${item.entityBrandColor}15`,
+                                  color: item.entityBrandColor,
+                                }}
+                              >
+                                {item.entityName}
+                              </span>
+                              <span>•</span>
+                              <span>{item.projectName}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-[11px] text-[#39B54A] font-medium flex items-center gap-1">
+                          <CheckCircle2 size={13} />
+                          <span>Done</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Empty state when no items match the filter */}
+              {displayedItems.length === 0 && (
+                <div className="bg-white border border-duston-border rounded-xl p-8 shadow-subtle text-center space-y-3">
+                  <div className="w-10 h-10 rounded-full bg-duston-bg border border-duston-border flex items-center justify-center mx-auto text-duston-muted">
+                    <CheckSquare size={18} />
+                  </div>
+                  <div className="text-sm font-medium text-duston-dark">
+                    No matching action items
+                  </div>
+                  <p className="text-xs text-duston-muted max-w-sm mx-auto">
+                    {metricFilter !== "all"
+                      ? `There are no action items matching the "${metricFilter.replace('_', ' ')}" filter.`
+                      : "You have no action items recorded."}
+                  </p>
+                  {metricFilter !== "all" && (
+                    <button
+                      type="button"
+                      onClick={() => setMetricFilter("all")}
+                      className="px-3 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-lg text-xs font-medium transition-colors shadow-2xs cursor-pointer inline-flex items-center gap-1.5"
+                    >
+                      <X size={12} />
+                      <span>Clear filter and view all</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -632,7 +887,7 @@ export function DashboardClient({
                   filterFn: (i: ActionItemSummary) => i.status === "done",
                 },
               ].map((col) => {
-                const colItems = filteredItems.filter(col.filterFn);
+                const colItems = displayedItems.filter(col.filterFn);
                 const isOver = dragOverCol === col.key;
 
                 return (
@@ -768,7 +1023,7 @@ export function DashboardClient({
                     const d = new Date();
                     d.setDate(d.getDate() + idx);
                     const dStr = d.toISOString().split("T")[0];
-                    const dayItems = filteredItems.filter((i) => i.deadline === dStr);
+                    const dayItems = displayedItems.filter((i) => i.deadline === dStr);
                     const isCurToday = idx === 0;
                     const isOverDay = dragOverPlannerDate === dStr;
 

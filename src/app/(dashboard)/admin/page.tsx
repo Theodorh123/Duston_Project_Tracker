@@ -9,7 +9,7 @@ export default async function AdminPage() {
   const session = await auth();
   const role = (session?.user as any)?.role;
 
-  if (role !== "ea" && role !== "ceo") {
+  if (role !== "admin") {
     redirect("/");
   }
 

@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
-export async function updateUserRole(userId: string, role: "ceo" | "ea" | "md" | "hod" | "contributor" | "external") {
+export async function updateUserRole(userId: string, role: "admin" | "ceo" | "ea" | "md" | "hod" | "contributor" | "external") {
   try {
     await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, userId));
     revalidatePath("/admin");
@@ -41,7 +41,7 @@ export async function toggleUserStatus(userId: string, isActive: boolean) {
 export async function createUser(data: {
   name: string;
   email: string;
-  role: "ceo" | "ea" | "md" | "hod" | "contributor" | "external";
+  role: "admin" | "ceo" | "ea" | "md" | "hod" | "contributor" | "external";
   phoneE164?: string;
   hasGlobalAccess?: boolean;
 }) {

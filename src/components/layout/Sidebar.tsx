@@ -24,8 +24,9 @@ interface SidebarProps {
 
 export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
-  const isCeo = userRole === "ceo" || userRole === "admin";
+  const isCeo = userRole === "ceo";
   const isEa = userRole === "ea";
+  const isAdmin = userRole === "admin";
 
   const mainNav = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -40,7 +41,7 @@ export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile 
 
   const settingsNav = [
     { name: "Settings", href: "/settings", icon: Settings },
-    ...(isCeo || isEa ? [{ name: "Admin", href: "/admin", icon: ShieldCheck }] : []),
+    ...(isAdmin ? [{ name: "Admin", href: "/admin", icon: ShieldCheck }] : []),
   ];
 
   const renderNavList = (items: typeof mainNav) => (

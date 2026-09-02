@@ -28,7 +28,7 @@ export interface AdminUser {
   id: string;
   name: string;
   email: string;
-  role: "ceo" | "ea" | "md" | "hod" | "contributor" | "external";
+  role: "admin" | "ceo" | "ea" | "md" | "hod" | "contributor" | "external";
   hasGlobalAccess: boolean;
   isActive: boolean;
   createdAt: string;
@@ -280,6 +280,7 @@ export function AdminClient({
                       onChange={(e) => handleRoleChange(user.id, e.target.value)}
                       className="bg-white border border-duston-border rounded px-2 py-1 text-xs text-duston-text outline-none focus:border-[#1BCECE]"
                     >
+                      <option value="admin">Admin</option>
                       <option value="ceo">CEO</option>
                       <option value="ea">EA</option>
                       <option value="md">MD</option>
@@ -529,6 +530,7 @@ export function AdminClient({
                   <option value="md">Managing Director (MD)</option>
                   <option value="ea">Executive Assistant (EA)</option>
                   <option value="ceo">CEO</option>
+                  <option value="admin">System Administrator (Admin)</option>
                   <option value="external">External</option>
                 </select>
               </div>
