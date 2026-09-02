@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  ClipboardList,
   FolderKanban,
   CalendarDays,
   ShieldAlert,
@@ -30,6 +31,7 @@ export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile 
 
   const mainNav = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
+    { name: "Action Register", href: "/action-items", icon: ClipboardList },
     { name: "Projects", href: "/projects", icon: FolderKanban },
     { name: "Meetings", href: "/meetings", icon: CalendarDays },
   ];
