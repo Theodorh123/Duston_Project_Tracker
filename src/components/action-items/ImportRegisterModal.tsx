@@ -26,6 +26,7 @@ export interface StagingActionItem {
   id: string;
   selected: boolean;
   itemNumber?: number | string;
+  sourceDocument?: string;
   title: string;
   rawResponsible: string;
   assigneeId: string;
@@ -34,7 +35,7 @@ export interface StagingActionItem {
   deadline: string; // YYYY-MM-DD
   isDeadlineTBA: boolean;
   priority: "low" | "medium" | "high" | "critical";
-  status: "not_started" | "in_progress" | "blocked" | "done";
+  status: "not_started" | "in_progress" | "done";
   notes?: string;
 }
 
@@ -79,8 +80,10 @@ export function ImportRegisterModal({
   const [meetingSubject, setMeetingSubject] = useState("");
   const [recordMeeting, setRecordMeeting] = useState(true);
 
-  // Staging items
+  // Staging items & batch document metadata
   const [items, setItems] = useState<StagingActionItem[]>([]);
+  const [uploadedDocs, setUploadedDocs] = useState<Array<{ name: string; title: string; count: number }>>([]);
+  const [uploadFileCount, setUploadFileCount] = useState<number>(1);
   const [bulkExternalAssignee, setBulkExternalAssignee] = useState<string>(currentUserId);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -104,14 +107,18 @@ export function ImportRegisterModal({
 
   if (!isOpen) return null;
 
-  const handleFileUpload = async (file: File) => {
+  const handleFilesUpload = async (fileList: FileList | File[]) => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
+
     setIsExtracting(true);
     setExtractError(null);
     setWarnings([]);
+    setUploadFileCount(files.length);
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      files.forEach((f) => formData.append("files", f));
 
       const res = await fetch("/api/action-items/extract", {
         method: "POST",
@@ -123,29 +130,36 @@ export function ImportRegisterModal({
         throw new Error(data.error || "Failed to extract action items.");
       }
 
-      setMeetingSubject(data.documentTitle || file.name.replace(/\.[^/.]+$/, ""));
+      setMeetingSubject(
+        data.documentTitle ||
+          (files.length > 1
+            ? `${files.length} Minutes Documents`
+            : files[0].name.replace(/\.[^/.]+$/, ""))
+      );
+      setUploadedDocs(data.documents || []);
       setWarnings(data.warnings || []);
 
       const stagingList: StagingActionItem[] = (data.items || []).map((it: any) => ({
-        id: it.id,
+        id: it.id || Math.random().toString(),
         selected: true,
         itemNumber: it.itemNumber,
+        sourceDocument: it.sourceDocument,
         title: it.title,
         rawResponsible: it.rawResponsible || "",
         assigneeId: it.matchedUserId || currentUserId,
         isExternal: it.isExternal || false,
         rawDeadline: it.rawDeadline || "",
-        deadline: it.parsedDeadline,
+        deadline: it.parsedDeadline || new Date().toISOString().split("T")[0],
         isDeadlineTBA: it.isDeadlineTBA || false,
         priority: it.priority || "medium",
-        status: it.status || "not_started",
+        status: "not_started",
         notes: it.notes,
       }));
 
       setItems(stagingList);
       setStep("review");
     } catch (err: any) {
-      setExtractError(err.message || "Could not read file. Please verify file format.");
+      setExtractError(err.message || "Could not read files. Please verify file format.");
     } finally {
       setIsExtracting(false);
     }
@@ -382,11 +396,12 @@ export function ImportRegisterModal({
                   <input
                     ref={fileInputRef}
                     type="file"
+                    multiple
                     accept=".xlsx,.xls,.csv,.pdf"
                     className="hidden"
                     onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleFileUpload(file);
+                      const files = e.target.files;
+                      if (files && files.length > 0) handleFilesUpload(files);
                     }}
                   />
                   <div
@@ -394,8 +409,8 @@ export function ImportRegisterModal({
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
                       e.preventDefault();
-                      const file = e.dataTransfer.files?.[0];
-                      if (file) handleFileUpload(file);
+                      const files = e.dataTransfer.files;
+                      if (files && files.length > 0) handleFilesUpload(files);
                     }}
                     className={cn(
                       "border-2 border-dashed border-duston-border rounded-2xl p-8 sm:p-10 text-center hover:border-[#1BCECE] hover:bg-duston-bg/40 transition-all cursor-pointer space-y-3",
@@ -408,15 +423,15 @@ export function ImportRegisterModal({
                     <div>
                       <span className="font-semibold text-duston-dark text-sm block">
                         {isExtracting
-                          ? "Extracting action register..."
-                          : "Choose or drag and drop minutes / register"}
+                          ? `Extracting action register from ${uploadFileCount} document(s)...`
+                          : "Choose or drag and drop minutes / registers"}
                       </span>
                       <p className="text-[11px] text-duston-muted mt-1">
-                        Supports Microsoft Excel (.xlsx, .xls), PDF minutes (.pdf), and CSV (.csv)
+                        Upload one or multiple PDF minutes (.pdf), Microsoft Excel (.xlsx), or CSV files at once
                       </p>
                     </div>
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-duston-border rounded-xl text-[11px] text-duston-dark font-medium shadow-2xs">
-                      <span>Browse local files</span>
+                      <span>Browse local files (multi-file supported)</span>
                     </div>
                   </div>
                 </div>
@@ -509,10 +524,32 @@ export function ImportRegisterModal({
                     onClick={() => setStep("upload")}
                     className="text-[11px] text-duston-muted hover:text-duston-dark underline"
                   >
-                    Upload a different file
+                    Upload different file(s)
                   </button>
                 </div>
               </div>
+
+              {/* Batch Upload Documents Summary */}
+              {uploadedDocs.length > 1 && (
+                <div className="p-3 bg-[#023542]/5 border border-[#023542]/15 rounded-xl flex flex-col gap-2 text-xs">
+                  <div className="flex items-center gap-2 font-semibold text-[#023542]">
+                    <Layers size={14} className="text-[#1BCECE]" />
+                    <span>Batch Extracted across {uploadedDocs.length} minutes documents ({items.length} total deliverables):</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {uploadedDocs.map((doc, i) => (
+                      <span
+                        key={i}
+                        className="px-2.5 py-1 rounded-lg bg-white border border-duston-border text-duston-dark text-[11px] font-medium inline-flex items-center gap-1 shadow-2xs"
+                      >
+                        <FileText size={11} className="text-duston-muted" />
+                        <span className="truncate max-w-[200px]">{doc.name}</span>
+                        <strong className="text-[#023542] ml-1">({doc.count} items)</strong>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Outsider Follow-Up Batch Helper */}
               {items.some((i) => i.isExternal) && (
@@ -637,6 +674,13 @@ export function ImportRegisterModal({
                             }}
                             className="w-full bg-transparent border border-transparent hover:border-duston-border focus:border-[#1BCECE] focus:bg-white rounded-lg p-1.5 text-xs text-duston-dark outline-none transition-all resize-none leading-snug"
                           />
+                          {item.sourceDocument && uploadedDocs.length > 1 && (
+                            <div className="text-[10px] text-duston-muted mt-0.5 flex items-center gap-1 font-medium">
+                              <span className="px-1.5 py-0.2 rounded bg-duston-bg border border-duston-border truncate max-w-[240px]">
+                                Doc: {item.sourceDocument}
+                              </span>
+                            </div>
+                          )}
                           {item.rawResponsible && item.isExternal && (
                             <div className="text-[10px] text-purple-700 mt-0.5 flex items-center gap-1 font-medium">
                               <span className="px-1.5 py-0.2 rounded bg-purple-100 border border-purple-200">
