@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Calendar, Users, MapPin, Video, CalendarDays } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { NewMeetingModal } from "./NewMeetingModal";
+import { CalendarSyncModal } from "./CalendarSyncModal";
 import { useAppShell } from "../layout/AppShell";
 
 export interface MeetingListItem {
@@ -26,6 +27,8 @@ interface MeetingsClientProps {
   entities: Array<{ id: string; name: string }>;
   users: Array<{ id: string; name: string }>;
   currentUserId: string;
+  initialFeedUrl?: string | null;
+  lastSyncedAt?: string | null;
 }
 
 export function MeetingsClient({
@@ -33,11 +36,14 @@ export function MeetingsClient({
   entities,
   users,
   currentUserId,
+  initialFeedUrl,
+  lastSyncedAt,
 }: MeetingsClientProps) {
   const router = useRouter();
   const { selectedEntityId } = useAppShell();
   const [selectedAttendee, setSelectedAttendee] = useState<string>("all");
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
+  const [isCalendarSyncOpen, setIsCalendarSyncOpen] = useState(false);
 
   const filteredMeetings = useMemo(() => {
     return meetings.filter((m) => {
@@ -60,13 +66,24 @@ export function MeetingsClient({
           </p>
         </div>
 
-        <button
-          onClick={() => setIsNewMeetingOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors shadow-subtle self-start sm:self-auto"
-        >
-          <Plus size={16} strokeWidth={1.5} />
-          <span>New meeting</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={() => setIsCalendarSyncOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2 bg-white border border-duston-border hover:border-[#023542] text-duston-dark rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+            title="Connect Outlook, Microsoft 365, or iCal calendar feed"
+          >
+            <Calendar size={14} className="text-[#1BCECE]" />
+            <span>Sync Outlook / iCal</span>
+          </button>
+
+          <button
+            onClick={() => setIsNewMeetingOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors shadow-subtle cursor-pointer"
+          >
+            <Plus size={16} strokeWidth={1.5} />
+            <span>New meeting</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Strip */}
@@ -187,6 +204,15 @@ export function MeetingsClient({
         entities={entities}
         users={users}
         currentUserId={currentUserId}
+      />
+
+      {/* Calendar Sync Modal */}
+      <CalendarSyncModal
+        isOpen={isCalendarSyncOpen}
+        onClose={() => setIsCalendarSyncOpen(false)}
+        entities={entities}
+        initialFeedUrl={initialFeedUrl}
+        lastSyncedAt={lastSyncedAt}
       />
     </div>
   );

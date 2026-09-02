@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { users, userPreferences } from "@/lib/db/schema";
+import { users, userPreferences, entities } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { SettingsClient } from "@/components/settings/SettingsClient";
 
@@ -8,13 +8,17 @@ export default async function SettingsPage() {
   const session = await auth();
   const userId = session?.user?.id!;
 
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-  });
-
-  const preferences = await db.query.userPreferences.findFirst({
-    where: eq(userPreferences.userId, userId),
-  });
+  const [user, preferences, allEntities] = await Promise.all([
+    db.query.users.findFirst({
+      where: eq(users.id, userId),
+    }),
+    db.query.userPreferences.findFirst({
+      where: eq(userPreferences.userId, userId),
+    }),
+    db.query.entities.findMany({
+      where: eq(entities.isActive, true),
+    }),
+  ]);
 
   return (
     <SettingsClient
@@ -32,7 +36,10 @@ export default async function SettingsPage() {
         whatsappEnabled: preferences?.whatsappEnabled ?? true,
         digestFrequency: preferences?.digestFrequency || "daily",
         timezone: preferences?.timezone || "Africa/Accra",
+        calendarFeedUrl: preferences?.calendarFeedUrl,
+        calendarLastSyncedAt: preferences?.calendarLastSyncedAt?.toISOString(),
       }}
+      entities={allEntities.map((e) => ({ id: e.id, name: e.name }))}
     />
   );
 }

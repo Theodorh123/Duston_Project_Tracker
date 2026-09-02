@@ -233,6 +233,7 @@ export const meetings = pgTable("meetings", {
   venue: text("venue"),
   isVirtual: boolean("is_virtual").default(false),
   minutesDocUrl: text("minutes_doc_url"),
+  externalEventId: text("external_event_id"),
   createdBy: uuid("created_by")
     .notNull()
     .references(() => users.id),
@@ -404,6 +405,8 @@ export const userPreferences = pgTable("user_preferences", {
   digestFrequency: digestFrequencyEnum("digest_frequency")
     .notNull()
     .default("daily"),
+  calendarFeedUrl: text("calendar_feed_url"),
+  calendarLastSyncedAt: timestamp("calendar_last_synced_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

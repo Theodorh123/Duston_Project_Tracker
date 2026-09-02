@@ -1,9 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { Sliders, User, Shield, Plus, Trash2, CheckCircle2 } from "lucide-react";
+import { useState, useRef } from "react";
+import {
+  Sliders,
+  User,
+  Shield,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  Calendar,
+  RefreshCw,
+  Copy,
+  Check,
+  Upload,
+  Link2,
+  HelpCircle,
+  Sparkles,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { updateUserPreferences, updateUserProfile, changeUserPassword } from "@/lib/actions/preferences";
+import { syncCalendarFeed, SyncCalendarResult } from "@/lib/actions/calendar";
+import { useRouter } from "next/navigation";
 
 interface SettingsClientProps {
   user: {
@@ -20,13 +38,26 @@ interface SettingsClientProps {
     whatsappEnabled: boolean;
     digestFrequency: "daily" | "weekly" | "off";
     timezone: string;
+    calendarFeedUrl?: string | null;
+    calendarLastSyncedAt?: string | null;
   };
+  entities?: Array<{ id: string; name: string }>;
 }
 
-export function SettingsClient({ user, preferences }: SettingsClientProps) {
-  const [activeTab, setActiveTab] = useState<"preferences" | "profile" | "security">("preferences");
+export function SettingsClient({ user, preferences, entities = [] }: SettingsClientProps) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"preferences" | "profile" | "calendar" | "security">("preferences");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Calendar sync state
+  const [calendarUrl, setCalendarUrl] = useState(preferences.calendarFeedUrl || "");
+  const [calendarLastSynced, setCalendarLastSynced] = useState<string | null>(preferences.calendarLastSyncedAt || null);
+  const [calendarEntityId, setCalendarEntityId] = useState(entities[0]?.id || "");
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [calendarResult, setCalendarResult] = useState<SyncCalendarResult | null>(null);
+  const [copiedGuide, setCopiedGuide] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Preferences state
   const [defaultView, setDefaultView] = useState<"todo" | "kanban" | "planner">(preferences.defaultView);
@@ -165,6 +196,23 @@ export function SettingsClient({ user, preferences }: SettingsClientProps) {
         >
           <User size={14} strokeWidth={1.5} />
           <span>Profile</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab("calendar");
+            setMessage(null);
+            setError(null);
+          }}
+          className={cn(
+            "pb-3 text-xs font-medium border-b-2 flex items-center gap-2 transition-colors",
+            activeTab === "calendar"
+              ? "border-[#023542] text-[#023542]"
+              : "border-transparent text-duston-muted hover:text-duston-dark"
+          )}
+        >
+          <Calendar size={14} strokeWidth={1.5} />
+          <span>Calendar Sync</span>
         </button>
 
         <button
@@ -398,6 +446,218 @@ export function SettingsClient({ user, preferences }: SettingsClientProps) {
             Update profile
           </button>
         </form>
+      )}
+
+      {/* Calendar Sync Tab */}
+      {activeTab === "calendar" && (
+        <div className="space-y-6 max-w-xl">
+          {calendarResult && (
+            <div
+              className={cn(
+                "p-3 rounded-xl border flex items-start gap-2.5",
+                calendarResult.success
+                  ? "bg-[#39B54A]/10 border-[#39B54A]/30 text-[#023542]"
+                  : "bg-duston-orange/10 border-duston-orange/30 text-duston-orange"
+              )}
+            >
+              {calendarResult.success ? (
+                <CheckCircle2 size={16} className="text-[#39B54A] shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle size={16} className="text-duston-orange shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1">
+                <div className="font-semibold text-xs">
+                  {calendarResult.success ? "Sync Successful" : "Synchronization Error"}
+                </div>
+                <div className="text-[11px] mt-0.5 text-duston-dark/80">
+                  {calendarResult.message || calendarResult.error}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white border border-duston-border rounded-xl p-6 shadow-subtle space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b border-duston-border pb-3">
+              <div>
+                <h3 className="font-semibold text-duston-dark text-sm flex items-center gap-2">
+                  <span>Outlook / iCal Feed Synchronization</span>
+                  <span className="text-[10px] font-normal bg-[#1BCECE]/15 text-[#023542] px-2 py-0.5 rounded-full border border-[#1BCECE]/30">
+                    Zero Cost • No Azure Setup
+                  </span>
+                </h3>
+                <p className="text-[11px] text-duston-muted mt-0.5">
+                  Synchronize your meetings, location/venue, and attendees directly into the tracker
+                </p>
+              </div>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!calendarUrl.trim()) return;
+                setCalendarLoading(true);
+                setCalendarResult(null);
+                try {
+                  const res = await syncCalendarFeed({
+                    feedUrl: calendarUrl.trim(),
+                    entityId: calendarEntityId,
+                  });
+                  setCalendarResult(res);
+                  if (res.success && res.lastSyncedAt) {
+                    setCalendarLastSynced(res.lastSyncedAt);
+                    router.refresh();
+                  }
+                } catch (err: any) {
+                  setCalendarResult({
+                    success: false,
+                    error: err.message || "Failed to sync calendar.",
+                  });
+                } finally {
+                  setCalendarLoading(false);
+                }
+              }}
+              className="space-y-4 pt-1"
+            >
+              <div>
+                <label className="block text-duston-dark font-medium mb-1">
+                  Private Outlook or iCal Subscription URL
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://outlook.office365.com/owa/calendar/.../calendar.ics"
+                  value={calendarUrl}
+                  onChange={(e) => setCalendarUrl(e.target.value)}
+                  className="w-full bg-white border border-duston-border rounded-xl px-3.5 py-2.5 text-xs text-duston-text outline-none focus:border-[#1BCECE] focus:ring-1 focus:ring-[#1BCECE]"
+                />
+                <p className="text-[10px] text-duston-muted mt-1">
+                  Obtained from Outlook Web &rarr; Settings &rarr; Calendar &rarr; Shared Calendars &rarr; Publish a calendar.
+                </p>
+              </div>
+
+              {entities.length > 0 && (
+                <div>
+                  <label className="block text-duston-dark font-medium mb-1">
+                    Default Subsidiary Entity for Imported Meetings
+                  </label>
+                  <select
+                    value={calendarEntityId}
+                    onChange={(e) => setCalendarEntityId(e.target.value)}
+                    className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-xs text-duston-text outline-none focus:border-[#1BCECE]"
+                  >
+                    {entities.map((ent) => (
+                      <option key={ent.id} value={ent.id}>
+                        {ent.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {calendarLastSynced && (
+                <div className="text-[11px] text-duston-muted flex items-center gap-1.5 pt-1">
+                  <CheckCircle2 size={13} className="text-[#39B54A]" />
+                  <span>Last synchronized: {new Date(calendarLastSynced).toLocaleString()}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={calendarLoading || !calendarUrl.trim()}
+                  className="px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors shadow-subtle disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                >
+                  <RefreshCw size={13} className={cn(calendarLoading && "animate-spin")} />
+                  <span>{calendarLoading ? "Syncing Calendar..." : "Sync Calendar Now"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-3.5 py-2 bg-white border border-duston-border hover:border-[#023542] text-duston-dark rounded-xl text-xs font-medium transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Upload size={13} />
+                  <span>Upload .ICS File</span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".ics,text/calendar"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setCalendarLoading(true);
+                    setCalendarResult(null);
+                    try {
+                      const text = await file.text();
+                      const res = await syncCalendarFeed({
+                        icsContent: text,
+                        entityId: calendarEntityId,
+                      });
+                      setCalendarResult(res);
+                      if (res.success) router.refresh();
+                    } catch (err: any) {
+                      setCalendarResult({ success: false, error: "Failed to parse file." });
+                    } finally {
+                      setCalendarLoading(false);
+                    }
+                  }}
+                />
+              </div>
+            </form>
+          </div>
+
+          {/* Quick Guide Card */}
+          <div className="bg-white border border-duston-border rounded-xl p-5 shadow-subtle space-y-3 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-duston-dark">
+                How to Share Calendar Sync with the Executive Team
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const guideText = `📅 *How to Connect Your Outlook Calendar to Duston Project Tracker*
+
+Follow these quick steps (takes less than 30 seconds, zero IT setup required):
+
+1. Open Outlook on the web (outlook.office.com) or Outlook desktop.
+2. Click the ⚙️ *Settings* icon (top right) > *Calendar* > *Shared calendars*.
+3. Scroll down to *Publish a calendar*:
+   - Select your *Calendar*
+   - Set permissions to *"Can view all details"*
+   - Click *Publish*
+4. Click on the *ICS link* and choose *Copy link*.
+5. Go to Duston Project Tracker (Settings > Calendar Sync), paste the link, and click *Sync Calendar Now*.
+
+Your upcoming meetings will automatically sync to the executive dashboard!`;
+                  navigator.clipboard.writeText(guideText);
+                  setCopiedGuide(true);
+                  setTimeout(() => setCopiedGuide(false), 3000);
+                }}
+                className="px-2.5 py-1 bg-duston-bg border border-duston-border hover:border-[#023542] text-[#023542] rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                {copiedGuide ? (
+                  <>
+                    <Check size={11} className="text-[#39B54A]" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={11} />
+                    <span>Copy Instructions</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <ol className="list-decimal list-inside space-y-1.5 text-[11px] text-duston-muted leading-relaxed pl-1">
+              <li>In Outlook on the web (<strong>outlook.office.com</strong>), click the <strong>⚙️ Settings</strong> icon.</li>
+              <li>Select <strong>Calendar &rarr; Shared calendars</strong>.</li>
+              <li>Under <strong>Publish a calendar</strong>, select your primary Calendar and choose <strong>Can view all details</strong>, then click <strong>Publish</strong>.</li>
+              <li>Click the <strong>ICS link</strong> &rarr; <strong>Copy link</strong>, then paste it above.</li>
+            </ol>
+          </div>
+        </div>
       )}
 
       {/* 3. Security Tab */}
