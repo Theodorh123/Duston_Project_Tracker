@@ -90,7 +90,7 @@ export function DashboardClient({
 
   const completedCount = filteredItems.filter((i) => i.status === "done").length;
 
-  const handleToggleDone = async (e: React.MouseEvent, itemId: string, currentStatus: string) => {
+  const handleToggleDone = async (e: React.SyntheticEvent, itemId: string, currentStatus: string) => {
     e.stopPropagation();
     const newStatus = currentStatus === "done" ? "in_progress" : "done";
     setItems((prev) =>
@@ -285,7 +285,8 @@ export function DashboardClient({
                           <input
                             type="checkbox"
                             checked={item.status === "done"}
-                            onClick={(e) => handleToggleDone(e, item.id, item.status)}
+                            onChange={(e) => handleToggleDone(e, item.id, item.status)}
+                            onClick={(e) => e.stopPropagation()}
                             className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer"
                           />
                           <div>
@@ -334,7 +335,8 @@ export function DashboardClient({
                           <input
                             type="checkbox"
                             checked={item.status === "done"}
-                            onClick={(e) => handleToggleDone(e, item.id, item.status)}
+                            onChange={(e) => handleToggleDone(e, item.id, item.status)}
+                            onClick={(e) => e.stopPropagation()}
                             className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer"
                           />
                           <div>
@@ -381,7 +383,8 @@ export function DashboardClient({
                           <input
                             type="checkbox"
                             checked={item.status === "done"}
-                            onClick={(e) => handleToggleDone(e, item.id, item.status)}
+                            onChange={(e) => handleToggleDone(e, item.id, item.status)}
+                            onClick={(e) => e.stopPropagation()}
                             className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer"
                           />
                           <div>
@@ -424,7 +427,8 @@ export function DashboardClient({
                           <input
                             type="checkbox"
                             checked={item.status === "done"}
-                            onClick={(e) => handleToggleDone(e, item.id, item.status)}
+                            onChange={(e) => handleToggleDone(e, item.id, item.status)}
+                            onClick={(e) => e.stopPropagation()}
                             className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer"
                           />
                           <div>
