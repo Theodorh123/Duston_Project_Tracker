@@ -349,38 +349,35 @@ function parseExcelBuffer(
 }
 
 /**
- * Ensure browser DOM globals required by PDF.js in Node.js runtime are available
+ * Ensure browser DOM globals required by PDF parsers in Node.js runtime are available
  */
 function ensurePdfEnvironment() {
-  if (typeof (globalThis as any).DOMMatrix === "undefined") {
-    try {
-      (globalThis as any).DOMMatrix = require("dommatrix");
-    } catch {
-      class DOMMatrixPolyfill {
-        a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
-        m11 = 1; m12 = 0; m21 = 0; m22 = 1; m41 = 0; m42 = 0;
-        is2D = true; isIdentity = true;
-        constructor(init?: any) {
-          if (Array.isArray(init) && init.length >= 6) {
-            this.a = this.m11 = init[0];
-            this.b = this.m12 = init[1];
-            this.c = this.m21 = init[2];
-            this.d = this.m22 = init[3];
-            this.e = this.m41 = init[4];
-            this.f = this.m42 = init[5];
-          }
+  if (typeof (globalThis as any).DOMMatrix === "undefined" || typeof (globalThis as any).DOMMatrix !== "function") {
+    class DOMMatrixPolyfill {
+      a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+      m11 = 1; m12 = 0; m21 = 0; m22 = 1; m41 = 0; m42 = 0;
+      is2D = true; isIdentity = true;
+      constructor(init?: any) {
+        if (Array.isArray(init) && init.length >= 6) {
+          this.a = this.m11 = init[0];
+          this.b = this.m12 = init[1];
+          this.c = this.m21 = init[2];
+          this.d = this.m22 = init[3];
+          this.e = this.m41 = init[4];
+          this.f = this.m42 = init[5];
         }
-        multiply() { return this; }
-        translate() { return this; }
-        scale() { return this; }
-        rotate() { return this; }
-        inverse() { return this; }
-        transformPoint(p: any) { return p; }
-        toFloat32Array() { return new Float32Array([this.a, this.b, this.c, this.d, this.e, this.f]); }
-        toFloat64Array() { return new Float64Array([this.a, this.b, this.c, this.d, this.e, this.f]); }
       }
-      (globalThis as any).DOMMatrix = DOMMatrixPolyfill;
+      multiply() { return this; }
+      translate() { return this; }
+      scale() { return this; }
+      rotate() { return this; }
+      inverse() { return this; }
+      transformPoint(p: any) { return p; }
+      toFloat32Array() { return new Float32Array([this.a, this.b, this.c, this.d, this.e, this.f]); }
+      toFloat64Array() { return new Float64Array([this.a, this.b, this.c, this.d, this.e, this.f]); }
     }
+    (globalThis as any).DOMMatrix = DOMMatrixPolyfill;
+    (globalThis as any).DOMMatrixReadOnly = DOMMatrixPolyfill;
   }
   if (typeof (globalThis as any).Path2D === "undefined") {
     (globalThis as any).Path2D = class Path2D {};
@@ -391,7 +388,7 @@ function ensurePdfEnvironment() {
 }
 
 /**
- * Parse PDF Document using pdf-parse native table & line detection
+ * Parse PDF Document using unpdf engine with multi-runtime resilience
  */
 async function parsePdfBuffer(
   buffer: Buffer,
@@ -403,13 +400,32 @@ async function parsePdfBuffer(
 
   try {
     ensurePdfEnvironment();
-    const { PDFParse } = require("pdf-parse");
-    const parser = new PDFParse({ data: buffer });
-    const textResult = await parser.getText();
-    await parser.destroy();
 
-    const fullText = textResult?.text || "";
-    if (!fullText.trim()) {
+    let fullText = "";
+
+    // Primary: unpdf (lightweight, zero-canvas, serverless/Node-native)
+    try {
+      const { extractText } = require("unpdf");
+      const uint8 = new Uint8Array(buffer);
+      const res = await extractText(uint8, { mergePages: true });
+      fullText =
+        typeof res.text === "string"
+          ? res.text
+          : Array.isArray(res.text)
+          ? res.text.join("\n\n")
+          : "";
+    } catch (unpdfErr: any) {
+      // Fallback: pdf-parse
+      try {
+        const pdf = require("pdf-parse");
+        const data = await pdf(buffer);
+        fullText = data?.text || "";
+      } catch (fallbackErr: any) {
+        throw new Error(unpdfErr?.message || fallbackErr?.message || "Could not read PDF");
+      }
+    }
+
+    if (!fullText || !fullText.trim()) {
       return {
         documentTitle: cleanFileName(fileName),
         items: [],
