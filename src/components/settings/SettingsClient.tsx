@@ -10,6 +10,7 @@ interface SettingsClientProps {
     id: string;
     name: string;
     email: string;
+    role?: string | null;
     phoneE164?: string | null;
     avatarUrl?: string | null;
   };
@@ -279,23 +280,25 @@ export function SettingsClient({ user, preferences }: SettingsClientProps) {
             </div>
           </div>
 
-          {/* WhatsApp toggle */}
-          <div className="pt-2 border-t border-duston-border flex items-center justify-between max-w-md">
-            <div>
-              <span className="text-duston-dark font-medium block">
-                WhatsApp deadline notifications
-              </span>
-              <span className="text-[11px] text-duston-muted">
-                Receive automated deadline and blocker alerts on registered phone
-              </span>
+          {/* WhatsApp push notifications toggle - Restricted strictly to EA role */}
+          {user.role === "ea" && (
+            <div className="pt-2 border-t border-duston-border flex items-center justify-between max-w-md">
+              <div>
+                <span className="text-duston-dark font-medium block">
+                  WhatsApp push notifications
+                </span>
+                <span className="text-[11px] text-duston-muted">
+                  Receive automated deadline and blocker alerts on registered phone
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={whatsappEnabled}
+                onChange={(e) => setWhatsappEnabled(e.target.checked)}
+                className="h-4 w-4 rounded border-duston-border text-[#023542] focus:ring-0"
+              />
             </div>
-            <input
-              type="checkbox"
-              checked={whatsappEnabled}
-              onChange={(e) => setWhatsappEnabled(e.target.checked)}
-              className="h-4 w-4 rounded border-duston-border text-[#023542] focus:ring-0"
-            />
-          </div>
+          )}
 
           {/* Digest frequency */}
           <div className="max-w-md">

@@ -24,7 +24,8 @@ interface SidebarProps {
 
 export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
-  const isCeoOrEa = userRole === "ceo" || userRole === "ea";
+  const isCeo = userRole === "ceo" || userRole === "admin";
+  const isEa = userRole === "ea";
 
   const mainNav = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -32,16 +33,14 @@ export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile 
     { name: "Meetings", href: "/meetings", icon: CalendarDays },
   ];
 
-  const viewsNav = isCeoOrEa
-    ? [
-        { name: "EA view", href: "/ea-view", icon: ShieldAlert },
-        { name: "CEO view", href: "/ceo-view", icon: BarChart3 },
-      ]
-    : [];
+  const viewsNav = [
+    ...(isEa ? [{ name: "EA view", href: "/ea-view", icon: ShieldAlert }] : []),
+    ...(isCeo ? [{ name: "CEO view", href: "/ceo-view", icon: BarChart3 }] : []),
+  ];
 
   const settingsNav = [
     { name: "Settings", href: "/settings", icon: Settings },
-    ...(isCeoOrEa ? [{ name: "Admin", href: "/admin", icon: ShieldCheck }] : []),
+    ...(isCeo || isEa ? [{ name: "Admin", href: "/admin", icon: ShieldCheck }] : []),
   ];
 
   const renderNavList = (items: typeof mainNav) => (

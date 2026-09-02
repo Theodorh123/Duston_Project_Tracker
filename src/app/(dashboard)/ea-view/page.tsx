@@ -11,7 +11,7 @@ export default async function EaViewPage() {
   const session = await auth();
   const role = (session?.user as any)?.role;
 
-  if (role !== "ea" && role !== "ceo") {
+  if (role !== "ea") {
     redirect("/");
   }
 

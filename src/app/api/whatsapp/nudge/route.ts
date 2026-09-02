@@ -8,6 +8,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const role = (session.user as any)?.role;
+  if (role !== "ea") {
+    return NextResponse.json(
+      { error: "Forbidden: WhatsApp push notifications are strictly reserved for the Executive Assistant." },
+      { status: 403 }
+    );
+  }
+
   const { userId, actionItemId, message } = await req.json();
 
   if (!userId || !message) {

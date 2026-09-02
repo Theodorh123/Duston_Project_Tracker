@@ -22,6 +22,7 @@ export default async function SettingsPage() {
         id: user?.id || userId,
         name: user?.name || "User",
         email: user?.email || "",
+        role: user?.role || (session?.user as any)?.role || "contributor",
         phoneE164: user?.phoneE164,
         avatarUrl: user?.avatarUrl,
       }}
