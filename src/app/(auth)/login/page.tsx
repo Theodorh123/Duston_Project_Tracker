@@ -54,7 +54,7 @@ export default function LoginPage() {
             <img
               src="/logo-duston-group.png"
               alt="Duston Group"
-              className="h-20 w-auto object-contain mx-auto -my-2"
+              className="h-10 sm:h-12 w-auto max-w-[280px] sm:max-w-[320px] object-contain mx-auto mb-2 transition-all"
             />
           </Link>
           <h1 className="text-sm font-medium text-duston-dark mt-2">

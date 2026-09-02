@@ -107,7 +107,7 @@ export function TopBar({
             <img
               src="/logo-duston-group.png"
               alt="Duston Group"
-              className="h-9 sm:h-11 md:h-12 w-auto object-contain max-w-[170px] sm:max-w-[220px] transition-all"
+              className="h-6 sm:h-7 md:h-8 w-auto object-contain max-w-[160px] sm:max-w-[200px] transition-all"
             />
           </Link>
         </div>

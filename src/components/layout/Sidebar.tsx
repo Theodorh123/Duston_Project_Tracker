@@ -100,7 +100,7 @@ export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile 
             <img
               src="/logo-duston-group.png"
               alt="Duston Group"
-              className="h-12 sm:h-14 lg:h-16 xl:h-20 w-auto max-w-[210px] xl:max-w-[230px] 2xl:max-w-[250px] object-contain transition-all duration-200"
+              className="h-8 sm:h-9 lg:h-9 xl:h-10 2xl:h-11 w-auto max-w-full object-contain transition-all duration-200"
             />
           </Link>
           <button
