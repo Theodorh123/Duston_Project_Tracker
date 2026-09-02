@@ -94,9 +94,9 @@ export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile 
           <Link href="/" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo-duston.png"
-              alt="Duston"
-              className="h-10 w-auto object-contain"
+              src="/logo-duston-group.png"
+              alt="Duston Group"
+              className="h-9 sm:h-10 w-auto object-contain"
             />
           </Link>
           <button
