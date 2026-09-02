@@ -18,7 +18,7 @@ export interface MeetingListItem {
   isVirtual?: boolean | null;
   minutesDocUrl?: string | null;
   attendees: Array<{ id: string; name: string }>;
-  actionItemsProducedCount: number;
+  actionItemsProducedCount?: number;
 }
 
 interface MeetingsClientProps {
@@ -56,7 +56,7 @@ export function MeetingsClient({
             Meetings
           </h1>
           <p className="text-xs text-duston-muted mt-1">
-            Track executive proceedings, venues, attendee registers, and action items produced
+            Track executive proceedings, venues, and attendee registers
           </p>
         </div>
 
@@ -105,7 +105,6 @@ export function MeetingsClient({
                 <th className="py-3 px-4">Format & Venue</th>
                 <th className="py-3 px-4">Date</th>
                 <th className="py-3 px-4">Attendees</th>
-                <th className="py-3 px-4 text-right">Action items produced</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-duston-border">
@@ -173,9 +172,6 @@ export function MeetingsClient({
                         </span>
                       )}
                     </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-medium text-duston-dark">
-                    {meeting.actionItemsProducedCount}
                   </td>
                 </tr>
               ))}

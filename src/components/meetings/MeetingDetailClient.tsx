@@ -124,7 +124,7 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-duston-dark">
-            Action items from this meeting ({actionItems.length})
+            Action items from this meeting
           </h2>
           <span className="text-xs text-duston-muted">Click any item to edit in drawer</span>
         </div>
