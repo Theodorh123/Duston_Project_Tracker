@@ -107,6 +107,28 @@ export default async function DashboardPage() {
     createdAt: log.createdAt.toISOString(),
   }));
 
+  // Fetch active projects and users for quick task creation
+  const allProjects = await db.query.projects.findMany({
+    with: {
+      entity: true,
+    },
+    orderBy: [desc(projects.createdAt)],
+  });
+  const scopedProjects = allProjects
+    .filter((p) => allowedEntityIds.includes(p.entityId))
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      entityName: p.entity.name,
+      entityBrandColor: p.entity.brandPrimaryColor,
+    }));
+
+  const allUsers = await db.query.users.findMany({
+    where: eq(users.isActive, true),
+    orderBy: [users.name],
+  });
+  const mappedUsers = allUsers.map((u) => ({ id: u.id, name: u.name }));
+
   return (
     <DashboardClient
       userName={user?.name || "User"}
@@ -115,6 +137,9 @@ export default async function DashboardPage() {
       recentActivities={mappedActivities}
       defaultView={preferences?.defaultView || "todo"}
       kanbanColumns={preferences?.kanbanColumns || ["Backlog", "This Week", "In Progress", "Blocked", "Done"]}
+      projects={scopedProjects}
+      users={mappedUsers}
+      currentUserId={userId}
     />
   );
 }

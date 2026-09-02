@@ -15,10 +15,13 @@ import {
   ExternalLink,
   MapPin,
   Video,
+  Plus,
+  X,
 } from "lucide-react";
 import { cn, formatDate, formatShortDate, isDeadlineOverdue } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createActionItem } from "@/lib/actions/action-items";
 
 export interface ActionItemSummary {
   id: string;
@@ -60,6 +63,9 @@ interface DashboardClientProps {
   recentActivities: ActivitySummary[];
   defaultView?: "todo" | "kanban" | "planner";
   kanbanColumns?: string[];
+  projects?: Array<{ id: string; name: string; entityName: string; entityBrandColor?: string }>;
+  users?: Array<{ id: string; name: string }>;
+  currentUserId?: string;
 }
 
 export function DashboardClient({
@@ -69,6 +75,9 @@ export function DashboardClient({
   recentActivities,
   defaultView = "todo",
   kanbanColumns = ["Backlog", "This Week", "In Progress", "Blocked", "Done"],
+  projects = [],
+  users = [],
+  currentUserId,
 }: DashboardClientProps) {
   const { selectedEntityId, openActionItem } = useAppShell();
   const [currentView, setCurrentView] = useState<"todo" | "kanban" | "planner">(defaultView);
@@ -94,8 +103,95 @@ export function DashboardClient({
 
   const completedCount = filteredItems.filter((i) => i.status === "done").length;
 
+  // Drag & drop state
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+  const [dragOverPlannerDate, setDragOverPlannerDate] = useState<string | null>(null);
+
+  // Quick Add Task modal state
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [quickAddTitle, setQuickAddTitle] = useState("");
+  const [quickAddProjectId, setQuickAddProjectId] = useState(projects[0]?.id || "");
+  const [quickAddAssigneeId, setQuickAddAssigneeId] = useState(currentUserId || users[0]?.id || "");
+  const [quickAddColumn, setQuickAddColumn] = useState<"not_started" | "todo" | "in_progress" | "overdue" | "done">("not_started");
+  const [quickAddDeadline, setQuickAddDeadline] = useState(
+    new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]
+  );
+  const [quickAddPriority, setQuickAddPriority] = useState<"low" | "medium" | "high" | "critical">("medium");
+  const [isSubmittingQuickAdd, setIsSubmittingQuickAdd] = useState(false);
+
+  const handleOpenQuickAdd = (targetCol: "not_started" | "todo" | "in_progress" | "overdue" | "done") => {
+    setQuickAddColumn(targetCol);
+    const today = new Date().toISOString().split("T")[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+    const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
+    const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
+
+    if (targetCol === "todo") {
+      setQuickAddDeadline(today);
+    } else if (targetCol === "overdue") {
+      setQuickAddDeadline(yesterday);
+    } else if (targetCol === "in_progress") {
+      setQuickAddDeadline(in3Days);
+    } else if (targetCol === "done") {
+      setQuickAddDeadline(today);
+    } else {
+      setQuickAddDeadline(in7Days);
+    }
+    setIsQuickAddOpen(true);
+  };
+
+  const handleCreateQuickTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickAddTitle.trim() || !quickAddProjectId) return;
+
+    setIsSubmittingQuickAdd(true);
+
+    const targetStatus =
+      quickAddColumn === "done"
+        ? "done"
+        : quickAddColumn === "in_progress"
+        ? "in_progress"
+        : "not_started";
+
+    const selectedProj = projects.find((p) => p.id === quickAddProjectId);
+    const selectedUser = users.find((u) => u.id === quickAddAssigneeId);
+
+    const res = await createActionItem({
+      projectId: quickAddProjectId,
+      title: quickAddTitle.trim(),
+      assigneeId: quickAddAssigneeId || currentUserId || "00000000-0000-0000-0000-000000000000",
+      deadline: quickAddDeadline,
+      status: targetStatus,
+      priority: quickAddPriority,
+      createdBy: currentUserId || quickAddAssigneeId || "00000000-0000-0000-0000-000000000000",
+    });
+
+    if (res.success && res.item) {
+      setItems((prev) => [
+        {
+          id: res.item.id,
+          projectId: res.item.projectId,
+          projectName: selectedProj?.name || "Project",
+          entityId: "",
+          entityName: selectedProj?.entityName || "Subsidiary",
+          entityBrandColor: selectedProj?.entityBrandColor || "#023542",
+          title: res.item.title,
+          deadline: res.item.deadline,
+          status: res.item.status as any,
+          priority: res.item.priority as any,
+          assigneeId: res.item.assigneeId,
+          assigneeName: selectedUser?.name || userName,
+        },
+        ...prev,
+      ]);
+
+      setQuickAddTitle("");
+      setIsQuickAddOpen(false);
+      router.refresh();
+    }
+    setIsSubmittingQuickAdd(false);
+  };
 
   const handleToggleDone = async (e: React.SyntheticEvent, itemId: string, currentStatus: string) => {
     e.stopPropagation();
@@ -111,27 +207,83 @@ export function DashboardClient({
     });
   };
 
-  const handleDropItem = async (itemId: string, newColStatus: "not_started" | "in_progress" | "done") => {
+  const handleDropItem = async (
+    itemId: string,
+    targetCol: "not_started" | "todo" | "in_progress" | "overdue" | "done"
+  ) => {
     setDragOverCol(null);
     setDraggingItemId(null);
 
     const targetItem = items.find((it) => it.id === itemId);
     if (!targetItem) return;
-    if (targetItem.status === newColStatus) return;
+
+    const today = new Date().toISOString().split("T")[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+    const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
+    const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
+
+    let newStatus = targetItem.status;
+    let newDeadline = targetItem.deadline;
+
+    if (targetCol === "done") {
+      newStatus = "done";
+    } else if (targetCol === "in_progress") {
+      newStatus = "in_progress";
+      if (isDeadlineOverdue(targetItem.deadline, targetItem.status)) {
+        newDeadline = in3Days;
+      }
+    } else if (targetCol === "todo") {
+      newStatus = "not_started";
+      newDeadline = today;
+    } else if (targetCol === "not_started") {
+      newStatus = "not_started";
+      if (isDeadlineOverdue(targetItem.deadline, targetItem.status) || targetItem.deadline <= today) {
+        newDeadline = in7Days;
+      }
+    } else if (targetCol === "overdue") {
+      if (targetItem.status === "done") newStatus = "not_started";
+      newDeadline = yesterday;
+    }
 
     setItems((prev) =>
-      prev.map((it) => (it.id === itemId ? { ...it, status: newColStatus } : it))
+      prev.map((it) =>
+        it.id === itemId ? { ...it, status: newStatus as any, deadline: newDeadline } : it
+      )
     );
 
     try {
       await fetch(`/api/action-items/${itemId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newColStatus }),
+        body: JSON.stringify({ status: newStatus, deadline: newDeadline }),
       });
       router.refresh();
     } catch (err) {
       console.error("Failed to update status on drop:", err);
+    }
+  };
+
+  const handleDropPlannerDate = async (itemId: string, newDateStr: string) => {
+    setDragOverPlannerDate(null);
+    setDraggingItemId(null);
+
+    const targetItem = items.find((it) => it.id === itemId);
+    if (!targetItem) return;
+    if (targetItem.deadline === newDateStr) return;
+
+    setItems((prev) =>
+      prev.map((it) => (it.id === itemId ? { ...it, deadline: newDateStr } : it))
+    );
+
+    try {
+      await fetch(`/api/action-items/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deadline: newDateStr }),
+      });
+      router.refresh();
+    } catch (err) {
+      console.error("Failed to update deadline on drop:", err);
     }
   };
 
@@ -257,11 +409,23 @@ export function DashboardClient({
                 <span>Planner</span>
               </button>
             </div>
-            <span className="text-[11px] text-duston-muted pr-2 hidden sm:inline">
-              {currentView === "kanban"
-                ? "Drag cards between columns to change status, or click to edit"
-                : "Click any item to view details"}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] text-duston-muted pr-1 hidden md:inline">
+                {currentView === "kanban"
+                  ? "Drag cards across columns to move, or click '+' to add"
+                  : currentView === "planner"
+                  ? "Drag cards between dates to reschedule"
+                  : "Click any item to view details"}
+              </span>
+              <button
+                onClick={() => handleOpenQuickAdd("not_started")}
+                className="px-3 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors shadow-subtle shrink-0 cursor-pointer"
+                title="Add new action item"
+              >
+                <Plus size={14} strokeWidth={2} />
+                <span>Add task</span>
+              </button>
+            </div>
           </div>
 
           {/* View Contents */}
@@ -455,28 +619,60 @@ export function DashboardClient({
             </div>
           )}
 
-          {/* Board View with Interactive Drag & Drop */}
+          {/* Board View with 5 Columns, Header "+" Buttons & Full Drag & Drop */}
           {currentView === "kanban" && (
-            <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto pb-4 no-scrollbar snap-x">
+            <div className="flex xl:grid xl:grid-cols-5 gap-3.5 overflow-x-auto pb-4 no-scrollbar snap-x">
               {[
-                { label: "To do", status: "not_started" as const, dotColor: "bg-slate-400" },
-                { label: "In progress", status: "in_progress" as const, dotColor: "bg-[#1BCECE]" },
-                { label: "Done", status: "done" as const, dotColor: "bg-[#39B54A]" },
+                {
+                  key: "not_started" as const,
+                  label: "Not Started",
+                  dotColor: "bg-slate-400",
+                  filterFn: (i: ActionItemSummary) =>
+                    i.status === "not_started" &&
+                    !isDeadlineOverdue(i.deadline, i.status) &&
+                    i.deadline !== todayStr,
+                },
+                {
+                  key: "todo" as const,
+                  label: "To Do",
+                  dotColor: "bg-indigo-500",
+                  filterFn: (i: ActionItemSummary) =>
+                    i.status === "not_started" &&
+                    !isDeadlineOverdue(i.deadline, i.status) &&
+                    i.deadline === todayStr,
+                },
+                {
+                  key: "in_progress" as const,
+                  label: "In-Progress",
+                  dotColor: "bg-[#1BCECE]",
+                  filterFn: (i: ActionItemSummary) =>
+                    !isDeadlineOverdue(i.deadline, i.status) &&
+                    (i.status === "in_progress" || i.status === "blocked"),
+                },
+                {
+                  key: "overdue" as const,
+                  label: "Overdue",
+                  dotColor: "bg-[#F15A24]",
+                  filterFn: (i: ActionItemSummary) =>
+                    isDeadlineOverdue(i.deadline, i.status) && i.status !== "done",
+                },
+                {
+                  key: "done" as const,
+                  label: "Done",
+                  dotColor: "bg-[#39B54A]",
+                  filterFn: (i: ActionItemSummary) => i.status === "done",
+                },
               ].map((col) => {
-                const colItems = filteredItems.filter((i) =>
-                  col.status === "in_progress"
-                    ? i.status === "in_progress" || i.status === "blocked"
-                    : i.status === col.status
-                );
-                const isOver = dragOverCol === col.status;
+                const colItems = filteredItems.filter(col.filterFn);
+                const isOver = dragOverCol === col.key;
 
                 return (
                   <div
-                    key={col.status}
+                    key={col.key}
                     onDragOver={(e) => {
                       e.preventDefault();
                       e.dataTransfer.dropEffect = "move";
-                      if (dragOverCol !== col.status) setDragOverCol(col.status);
+                      if (dragOverCol !== col.key) setDragOverCol(col.key);
                     }}
                     onDragLeave={(e) => {
                       if (e.currentTarget.contains(e.relatedTarget as Node)) return;
@@ -486,32 +682,45 @@ export function DashboardClient({
                       e.preventDefault();
                       const droppedId = e.dataTransfer.getData("text/plain");
                       if (droppedId) {
-                        handleDropItem(droppedId, col.status);
+                        handleDropItem(droppedId, col.key);
                       }
                     }}
                     className={cn(
-                      "w-[82vw] sm:w-[320px] md:w-auto shrink-0 snap-center md:shrink rounded-xl p-3.5 flex flex-col space-y-3 min-h-[360px] transition-all duration-150",
+                      "w-[78vw] sm:w-[280px] xl:w-auto shrink-0 snap-center xl:shrink rounded-xl p-3 flex flex-col space-y-3 min-h-[380px] transition-all duration-150",
                       isOver
                         ? "bg-[#1BCECE]/10 border-2 border-dashed border-[#1BCECE] shadow-sm scale-[1.01]"
                         : "bg-duston-bg/60 border border-duston-border"
                     )}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between pb-1 border-b border-duston-border/50">
+                      <div className="flex items-center gap-1.5">
                         <span className={cn("w-2 h-2 rounded-full", col.dotColor)} />
                         <span className="text-xs font-medium text-duston-dark">
                           {col.label}
                         </span>
+                        <span className="text-[10px] text-duston-muted font-medium bg-white px-1.5 py-0.2 rounded-full border border-duston-border ml-0.5">
+                          {colItems.length}
+                        </span>
                       </div>
-                      <span className="text-[10px] text-duston-muted font-medium bg-white px-2 py-0.5 rounded-full border border-duston-border">
-                        {colItems.length}
-                      </span>
+                      <button
+                        onClick={() => handleOpenQuickAdd(col.key)}
+                        className="p-1 rounded hover:bg-white text-duston-muted hover:text-[#023542] transition-colors border border-transparent hover:border-duston-border"
+                        title={`Add task to ${col.label}`}
+                      >
+                        <Plus size={13} strokeWidth={2} />
+                      </button>
                     </div>
 
                     <div className="space-y-2 flex-1">
                       {colItems.length === 0 ? (
-                        <div className="h-28 border border-dashed border-duston-border rounded-lg flex items-center justify-center text-duston-muted text-[11px] select-none">
-                          Drop items here
+                        <div className="h-28 border border-dashed border-duston-border rounded-lg flex flex-col items-center justify-center text-duston-muted text-[11px] select-none gap-1">
+                          <span>Drop items here</span>
+                          <button
+                            onClick={() => handleOpenQuickAdd(col.key)}
+                            className="text-[10px] text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-0.5 mt-1"
+                          >
+                            <Plus size={11} /> Add to {col.label}
+                          </button>
                         </div>
                       ) : (
                         colItems.map((item) => {
@@ -542,7 +751,7 @@ export function DashboardClient({
                               </div>
                               <div className="flex items-center justify-between text-[11px]">
                                 <span
-                                  className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-medium truncate max-w-[120px]"
                                   style={{
                                     backgroundColor: `${item.entityBrandColor}15`,
                                     color: item.entityBrandColor,
@@ -572,11 +781,16 @@ export function DashboardClient({
             </div>
           )}
 
-          {/* Planner View (7-day calendar) */}
+          {/* Planner View (7-day calendar) with Drag & Drop */}
           {currentView === "planner" && (
             <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle space-y-4">
-              <div className="text-xs font-medium text-duston-dark">
-                Upcoming 7 Days Planner
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <div className="text-xs font-medium text-duston-dark">
+                  Upcoming 7 Days Planner
+                </div>
+                <span className="text-[11px] text-duston-muted">
+                  Drag tasks between dates to reschedule deadlines
+                </span>
               </div>
               <div className="overflow-x-auto pb-2 no-scrollbar">
                 <div className="min-w-[580px] md:min-w-0 grid grid-cols-7 gap-2 text-center text-xs">
@@ -586,34 +800,85 @@ export function DashboardClient({
                     const dStr = d.toISOString().split("T")[0];
                     const dayItems = filteredItems.filter((i) => i.deadline === dStr);
                     const isCurToday = idx === 0;
+                    const isOverDay = dragOverPlannerDate === dStr;
 
                     return (
                       <div
                         key={idx}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                          if (dragOverPlannerDate !== dStr) setDragOverPlannerDate(dStr);
+                        }}
+                        onDragLeave={(e) => {
+                          if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                          setDragOverPlannerDate(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const droppedId = e.dataTransfer.getData("text/plain");
+                          if (droppedId) {
+                            handleDropPlannerDate(droppedId, dStr);
+                          }
+                        }}
                         className={cn(
-                          "p-2 rounded-xl border min-h-[140px] flex flex-col",
-                          isCurToday
+                          "p-2 rounded-xl border min-h-[160px] flex flex-col transition-all duration-150",
+                          isOverDay
+                            ? "border-2 border-dashed border-[#1BCECE] bg-[#1BCECE]/10 shadow-sm scale-[1.02]"
+                            : isCurToday
                             ? "border-[#1BCECE] bg-[#1BCECE]/5"
                             : "border-duston-border bg-duston-bg/40"
                         )}
                       >
-                        <div className="text-[10px] text-duston-muted uppercase">
-                          {d.toLocaleDateString("en-US", { weekday: "narrow" })}
+                        <div className="text-[10px] text-duston-muted uppercase font-medium">
+                          {d.toLocaleDateString("en-US", { weekday: "short" })}
                         </div>
-                        <div className="text-xs font-medium text-duston-dark mb-2">
+                        <div className={cn(
+                          "text-xs font-semibold my-1",
+                          isCurToday ? "text-[#023542]" : "text-duston-dark"
+                        )}>
                           {d.getDate()}
                         </div>
-                        <div className="flex-1 space-y-1">
-                          {dayItems.map((it) => (
-                            <div
-                              key={it.id}
-                              onClick={() => openActionItem(it.id)}
-                              className="p-1 rounded bg-white border border-duston-border text-[10px] text-left truncate cursor-pointer hover:border-[#1BCECE]"
-                              title={it.title}
-                            >
-                              {it.title}
+                        <div className="flex-1 space-y-1.5 mt-1">
+                          {dayItems.length === 0 ? (
+                            <div className="h-full min-h-[60px] border border-dashed border-duston-border/60 rounded flex items-center justify-center text-[9px] text-duston-muted">
+                              Drop here
                             </div>
-                          ))}
+                          ) : (
+                            dayItems.map((it) => {
+                              const isBeingDragged = draggingItemId === it.id;
+                              return (
+                                <div
+                                  key={it.id}
+                                  draggable={true}
+                                  onDragStart={(e) => {
+                                    e.dataTransfer.setData("text/plain", it.id);
+                                    e.dataTransfer.effectAllowed = "move";
+                                    setDraggingItemId(it.id);
+                                  }}
+                                  onDragEnd={() => {
+                                    setDraggingItemId(null);
+                                    setDragOverPlannerDate(null);
+                                  }}
+                                  onClick={() => openActionItem(it.id)}
+                                  className={cn(
+                                    "p-1.5 rounded bg-white border text-[10px] text-left cursor-grab active:cursor-grabbing transition-all select-none shadow-xs space-y-0.5",
+                                    isBeingDragged
+                                      ? "opacity-40 border-dashed border-[#1BCECE] scale-[0.98]"
+                                      : "border-duston-border hover:border-[#1BCECE] hover:shadow-subtle"
+                                  )}
+                                  title={`${it.title} (${it.entityName}) — Drag to another day to reschedule`}
+                                >
+                                  <div className="font-medium text-duston-dark line-clamp-2 leading-tight">
+                                    {it.title}
+                                  </div>
+                                  <div className="text-[9px] text-duston-muted truncate">
+                                    {it.entityName}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
                         </div>
                       </div>
                     );
@@ -718,6 +983,167 @@ export function DashboardClient({
           </div>
         </div>
       </div>
+
+      {/* Quick Add Action Item Modal */}
+      {isQuickAddOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-duston-border space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-duston-border">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#023542] text-white flex items-center justify-center text-xs font-semibold">
+                  +
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-duston-dark">
+                    Create Action Item
+                  </h3>
+                  <p className="text-[11px] text-duston-muted">
+                    Add a task directly from your dashboard
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsQuickAddOpen(false)}
+                className="p-1 rounded-md text-duston-muted hover:text-duston-dark hover:bg-duston-bg cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateQuickTask} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-duston-dark mb-1">
+                  Task title <span className="text-duston-orange">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={quickAddTitle}
+                  onChange={(e) => setQuickAddTitle(e.target.value)}
+                  placeholder="e.g., Review mining lease agreement with Norva..."
+                  className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-duston-dark mb-1">
+                    Project <span className="text-duston-orange">*</span>
+                  </label>
+                  <select
+                    value={quickAddProjectId}
+                    onChange={(e) => setQuickAddProjectId(e.target.value)}
+                    required
+                    className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
+                  >
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.entityName} — {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-duston-dark mb-1">
+                    Responsible Party <span className="text-duston-orange">*</span>
+                  </label>
+                  <select
+                    value={quickAddAssigneeId}
+                    onChange={(e) => setQuickAddAssigneeId(e.target.value)}
+                    required
+                    className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
+                  >
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-duston-dark mb-1">
+                    Add to column / status
+                  </label>
+                  <select
+                    value={quickAddColumn}
+                    onChange={(e) => {
+                      const val = e.target.value as any;
+                      setQuickAddColumn(val);
+                      const today = new Date().toISOString().split("T")[0];
+                      const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+                      const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
+                      const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
+                      if (val === "todo") setQuickAddDeadline(today);
+                      else if (val === "overdue") setQuickAddDeadline(yesterday);
+                      else if (val === "in_progress") setQuickAddDeadline(in3Days);
+                      else if (val === "done") setQuickAddDeadline(today);
+                      else setQuickAddDeadline(in7Days);
+                    }}
+                    className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
+                  >
+                    <option value="not_started">Not Started</option>
+                    <option value="todo">To Do (Due Today)</option>
+                    <option value="in_progress">In-Progress</option>
+                    <option value="overdue">Overdue (Yesterday)</option>
+                    <option value="done">Done</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-duston-dark mb-1">
+                    Deadline
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={quickAddDeadline}
+                    onChange={(e) => setQuickAddDeadline(e.target.value)}
+                    className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-duston-dark mb-1">
+                    Priority
+                  </label>
+                  <select
+                    value={quickAddPriority}
+                    onChange={(e) => setQuickAddPriority(e.target.value as any)}
+                    className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-duston-border">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickAddOpen(false)}
+                  className="px-4 py-2 text-xs font-medium text-duston-muted hover:text-duston-dark hover:bg-duston-bg rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingQuickAdd || !quickAddTitle.trim()}
+                  className="px-4 py-2 text-xs font-medium bg-[#023542] hover:bg-[#1BCECE] disabled:opacity-50 text-white rounded-lg transition-colors shadow-subtle flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isSubmittingQuickAdd ? "Creating..." : "Create task"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

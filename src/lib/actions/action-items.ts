@@ -149,6 +149,7 @@ export async function createActionItem(data: {
   description?: string;
   assigneeId: string;
   deadline: string;
+  status?: "not_started" | "in_progress" | "blocked" | "done" | "postponed";
   priority: "low" | "medium" | "high" | "critical";
   tag?: string;
   createdBy: string;
@@ -163,6 +164,7 @@ export async function createActionItem(data: {
         description: data.description,
         assigneeId: data.assigneeId,
         deadline: data.deadline,
+        status: data.status || "not_started",
         priority: data.priority,
         tag: data.tag,
         createdBy: data.createdBy,
