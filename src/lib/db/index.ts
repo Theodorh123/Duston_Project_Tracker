@@ -5,8 +5,41 @@ import * as dotenv from "dotenv";
 
 dotenv.config({ path: ".env.local" });
 
-const connectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/duston_db";
+const rawConnectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/duston_db";
 
-const sql = neon(connectionString);
+// Use direct endpoint for HTTP serverless (Neon recommends direct for HTTP proxying)
+const connectionString = rawConnectionString.replace("-pooler.", ".");
 
-export const db = drizzle(sql, { schema });
+const rawSql = neon(connectionString, {
+  fetchOptions: {
+    cache: "no-store",
+  },
+});
+
+// Resilient wrapper: automatically retry on transient network hiccups (ETIMEDOUT, fetch failed)
+const sql = async (...args: Parameters<typeof rawSql>) => {
+  let lastError: any;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await rawSql(...args);
+    } catch (err: any) {
+      lastError = err;
+      const isNetworkError =
+        err?.message?.includes("fetch failed") ||
+        err?.message?.includes("ETIMEDOUT") ||
+        err?.message?.includes("ECONNRESET") ||
+        err?.sourceError?.message?.includes("fetch failed") ||
+        err?.cause?.code === "ETIMEDOUT";
+
+      if (!isNetworkError || attempt === 2) {
+        throw err;
+      }
+
+      // Wait briefly before retrying (200ms, 400ms)
+      await new Promise((resolve) => setTimeout(resolve, (attempt + 1) * 200));
+    }
+  }
+  throw lastError;
+};
+
+export const db = drizzle(sql as any, { schema });
