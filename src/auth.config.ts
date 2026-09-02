@@ -32,7 +32,7 @@ export const authConfig = {
         if (nextUrl.pathname.startsWith("/ceo-view") && !isCeoOrEa) {
           return Response.redirect(new URL("/", nextUrl));
         }
-        if (nextUrl.pathname.startsWith("/admin") && !isCeoOrEa) {
+        if (nextUrl.pathname.startsWith("/admin") && role !== "admin") {
           return Response.redirect(new URL("/", nextUrl));
         }
         return true;

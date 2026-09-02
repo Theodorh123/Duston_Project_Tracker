@@ -96,14 +96,15 @@ export function DashboardClient({
   const handleSelectMetric = (filterKey: "open" | "overdue" | "due_this_week" | "completed") => {
     const nextFilter = metricFilter === filterKey ? "all" : filterKey;
     setMetricFilter(nextFilter);
-    router.replace(nextFilter === "all" ? "/" : `/?filter=${nextFilter}`, { scroll: false });
+    if (typeof window !== "undefined") {
+      const newUrl = nextFilter === "all" ? window.location.pathname : `?filter=${nextFilter}`;
+      window.history.replaceState(null, "", newUrl);
+    }
     // Smooth scroll down to tasks view container
-    setTimeout(() => {
-      const el = document.getElementById("tasks-section");
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 50);
+    const el = document.getElementById("tasks-section");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   // Filter items by entity chip if selected
@@ -266,7 +267,6 @@ export function DashboardClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus, deadline: newDeadline }),
       });
-      router.refresh();
     } catch (err) {
       console.error("Failed to update status on drop:", err);
     }
@@ -290,7 +290,6 @@ export function DashboardClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ deadline: newDateStr }),
       });
-      router.refresh();
     } catch (err) {
       console.error("Failed to update deadline on drop:", err);
     }

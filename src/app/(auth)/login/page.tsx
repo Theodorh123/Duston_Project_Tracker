@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
@@ -38,7 +39,6 @@ export default function LoginPage() {
     }
   };
 
-
   return (
     <div className="min-h-screen bg-duston-bg flanelines-bg flex flex-col items-center justify-center p-4 relative">
       <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl shadow-subtle p-8 z-10">
@@ -46,11 +46,15 @@ export default function LoginPage() {
         {/* Duston Group Logo Header */}
         <div className="text-center mb-6 flex flex-col items-center">
           <Link href="/" className="inline-block hover:opacity-90 transition-opacity" title="Duston Project Tracker">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src="/logo-duston-group.png"
               alt="Duston Group"
-              className="h-10 sm:h-12 w-auto max-w-[280px] sm:max-w-[320px] object-contain mx-auto mb-2 transition-all"
+              width={1024}
+              height={168}
+              priority
+              quality={100}
+              className="h-10 sm:h-12 w-auto max-w-[280px] sm:max-w-[320px] object-contain mx-auto mb-2"
+              style={{ aspectRatio: "1024 / 168" }}
             />
           </Link>
           <h1 className="text-sm font-medium text-duston-dark mt-2">
@@ -70,7 +74,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-duston-text mb-1.5">
-              Work email
+              Email
             </label>
             <input
               type="email"

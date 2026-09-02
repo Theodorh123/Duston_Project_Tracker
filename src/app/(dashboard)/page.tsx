@@ -15,39 +15,81 @@ export default async function DashboardPage({
   const session = await auth();
   const userId = session?.user?.id!;
 
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-  });
+  const today = new Date();
+  const future = addDays(today, 14);
 
-  const preferences = await db.query.userPreferences.findFirst({
-    where: eq(userPreferences.userId, userId),
-  });
+  // Fetch all dashboard data concurrently in parallel
+  const [
+    user,
+    preferences,
+    grants,
+    allEnt,
+    items,
+    upcomingMeetingsData,
+    recentLogs,
+    allProjects,
+    allUsers,
+  ] = await Promise.all([
+    db.query.users.findFirst({
+      where: eq(users.id, userId),
+    }),
+    db.query.userPreferences.findFirst({
+      where: eq(userPreferences.userId, userId),
+    }),
+    db.query.userEntityAccess.findMany({
+      where: eq(userEntityAccess.userId, userId),
+    }),
+    db.query.entities.findMany({
+      where: eq(entities.isActive, true),
+    }),
+    db.query.actionItems.findMany({
+      where: eq(actionItems.assigneeId, userId),
+      with: {
+        project: {
+          with: {
+            entity: true,
+          },
+        },
+        assignee: true,
+      },
+      orderBy: [actionItems.deadline],
+    }),
+    db.query.meetings.findMany({
+      where: and(
+        gte(meetings.meetingDate, format(today, "yyyy-MM-dd")),
+        lte(meetings.meetingDate, format(future, "yyyy-MM-dd"))
+      ),
+      with: {
+        entity: true,
+        attendees: true,
+      },
+      orderBy: [meetings.meetingDate],
+      limit: 5,
+    }),
+    db.query.activityLog.findMany({
+      with: {
+        actor: true,
+        actionItem: true,
+      },
+      orderBy: [desc(activityLog.createdAt)],
+      limit: 5,
+    }),
+    db.query.projects.findMany({
+      with: {
+        entity: true,
+      },
+      orderBy: [desc(projects.createdAt)],
+    }),
+    db.query.users.findMany({
+      where: eq(users.isActive, true),
+      orderBy: [users.name],
+    }),
+  ]);
 
   // Allowed entity IDs for scoping
-  let allowedEntityIds: string[] = [];
-  if (user?.hasGlobalAccess) {
-    const allEnt = await db.query.entities.findMany({ where: eq(entities.isActive, true) });
-    allowedEntityIds = allEnt.map((e) => e.id);
-  } else {
-    const grants = await db.query.userEntityAccess.findMany({
-      where: eq(userEntityAccess.userId, userId),
-    });
-    allowedEntityIds = grants.map((g) => g.entityId);
-  }
-
-  // Fetch action items assigned to user (or relevant to user's entities)
-  const items = await db.query.actionItems.findMany({
-    where: eq(actionItems.assigneeId, userId),
-    with: {
-      project: {
-        with: {
-          entity: true,
-        },
-      },
-      assignee: true,
-    },
-    orderBy: [actionItems.deadline],
-  });
+  const allowedEntityIds = user?.hasGlobalAccess
+    ? allEnt.map((e) => e.id)
+    : grants.map((g) => g.entityId);
 
   // Map action items for client
   const mappedItems: ActionItemSummary[] = items.map((item) => ({
@@ -70,23 +112,6 @@ export default async function DashboardPage({
     ? mappedItems
     : mappedItems.filter((i) => allowedEntityIds.includes(i.entityId));
 
-  // Upcoming meetings (next 14 days)
-  const today = new Date();
-  const future = addDays(today, 14);
-
-  const upcomingMeetingsData = await db.query.meetings.findMany({
-    where: and(
-      gte(meetings.meetingDate, format(today, "yyyy-MM-dd")),
-      lte(meetings.meetingDate, format(future, "yyyy-MM-dd"))
-    ),
-    with: {
-      entity: true,
-      attendees: true,
-    },
-    orderBy: [meetings.meetingDate],
-    limit: 5,
-  });
-
   const scopedMeetings: MeetingSummary[] = upcomingMeetingsData
     .filter((m) => allowedEntityIds.includes(m.entityId))
     .map((m) => ({
@@ -99,16 +124,6 @@ export default async function DashboardPage({
       attendeeCount: m.attendees.length,
     }));
 
-  // Recent activity logs (top 5)
-  const recentLogs = await db.query.activityLog.findMany({
-    with: {
-      actor: true,
-      actionItem: true,
-    },
-    orderBy: [desc(activityLog.createdAt)],
-    limit: 5,
-  });
-
   const mappedActivities: ActivitySummary[] = recentLogs.map((l) => ({
     id: l.id,
     actorName: l.actor?.name || "System",
@@ -117,13 +132,6 @@ export default async function DashboardPage({
     createdAt: l.createdAt.toISOString(),
   }));
 
-  // Fetch active projects and users for quick task creation
-  const allProjects = await db.query.projects.findMany({
-    with: {
-      entity: true,
-    },
-    orderBy: [desc(projects.createdAt)],
-  });
   const scopedProjects = allProjects
     .filter((p) => allowedEntityIds.includes(p.entityId))
     .map((p) => ({
@@ -133,10 +141,6 @@ export default async function DashboardPage({
       entityBrandColor: p.entity.brandPrimaryColor,
     }));
 
-  const allUsers = await db.query.users.findMany({
-    where: eq(users.isActive, true),
-    orderBy: [users.name],
-  });
   const mappedUsers = allUsers.map((u) => ({ id: u.id, name: u.name }));
 
   return (

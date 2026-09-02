@@ -103,7 +103,6 @@ export function ProjectDetailClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newColStatus }),
       });
-      router.refresh();
     } catch (err) {
       console.error("Failed to update status on drop:", err);
     }
