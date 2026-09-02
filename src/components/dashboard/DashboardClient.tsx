@@ -113,30 +113,25 @@ export function DashboardClient({
   const [quickAddTitle, setQuickAddTitle] = useState("");
   const [quickAddProjectId, setQuickAddProjectId] = useState(projects[0]?.id || "");
   const [quickAddAssigneeId, setQuickAddAssigneeId] = useState(currentUserId || users[0]?.id || "");
-  const [quickAddColumn, setQuickAddColumn] = useState<"not_started" | "todo" | "in_progress" | "overdue" | "done">("not_started");
+  const [quickAddColumn, setQuickAddColumn] = useState<"todo" | "in_progress" | "done">("todo");
   const [quickAddDeadline, setQuickAddDeadline] = useState(
     new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]
   );
   const [quickAddPriority, setQuickAddPriority] = useState<"low" | "medium" | "high" | "critical">("medium");
   const [isSubmittingQuickAdd, setIsSubmittingQuickAdd] = useState(false);
 
-  const handleOpenQuickAdd = (targetCol: "not_started" | "todo" | "in_progress" | "overdue" | "done") => {
+  const handleOpenQuickAdd = (targetCol: "todo" | "in_progress" | "done") => {
     setQuickAddColumn(targetCol);
     const today = new Date().toISOString().split("T")[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
     const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
     const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
 
     if (targetCol === "todo") {
-      setQuickAddDeadline(today);
-    } else if (targetCol === "overdue") {
-      setQuickAddDeadline(yesterday);
+      setQuickAddDeadline(in7Days);
     } else if (targetCol === "in_progress") {
       setQuickAddDeadline(in3Days);
     } else if (targetCol === "done") {
       setQuickAddDeadline(today);
-    } else {
-      setQuickAddDeadline(in7Days);
     }
     setIsQuickAddOpen(true);
   };
@@ -209,7 +204,7 @@ export function DashboardClient({
 
   const handleDropItem = async (
     itemId: string,
-    targetCol: "not_started" | "todo" | "in_progress" | "overdue" | "done"
+    targetCol: "todo" | "in_progress" | "done"
   ) => {
     setDragOverCol(null);
     setDraggingItemId(null);
@@ -217,8 +212,6 @@ export function DashboardClient({
     const targetItem = items.find((it) => it.id === itemId);
     if (!targetItem) return;
 
-    const today = new Date().toISOString().split("T")[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
     const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
     const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
 
@@ -234,15 +227,9 @@ export function DashboardClient({
       }
     } else if (targetCol === "todo") {
       newStatus = "not_started";
-      newDeadline = today;
-    } else if (targetCol === "not_started") {
-      newStatus = "not_started";
-      if (isDeadlineOverdue(targetItem.deadline, targetItem.status) || targetItem.deadline <= today) {
+      if (isDeadlineOverdue(targetItem.deadline, targetItem.status)) {
         newDeadline = in7Days;
       }
-    } else if (targetCol === "overdue") {
-      if (targetItem.status === "done") newStatus = "not_started";
-      newDeadline = yesterday;
     }
 
     setItems((prev) =>
@@ -418,7 +405,7 @@ export function DashboardClient({
                   : "Click any item to view details"}
               </span>
               <button
-                onClick={() => handleOpenQuickAdd("not_started")}
+                onClick={() => handleOpenQuickAdd("todo")}
                 className="px-3 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors shadow-subtle shrink-0 cursor-pointer"
                 title="Add new action item"
               >
@@ -619,42 +606,24 @@ export function DashboardClient({
             </div>
           )}
 
-          {/* Board View with 5 Columns, Header "+" Buttons & Full Drag & Drop */}
+          {/* Board View with 3 Columns & Visible Curved Edge "+" Button at Bottom */}
           {currentView === "kanban" && (
-            <div className="flex xl:grid xl:grid-cols-5 gap-3.5 overflow-x-auto pb-4 no-scrollbar snap-x">
+            <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto pb-4 no-scrollbar snap-x">
               {[
                 {
-                  key: "not_started" as const,
-                  label: "Not Started",
+                  key: "todo" as const,
+                  label: "Todo",
                   dotColor: "bg-slate-400",
                   filterFn: (i: ActionItemSummary) =>
-                    i.status === "not_started" &&
-                    !isDeadlineOverdue(i.deadline, i.status) &&
-                    i.deadline !== todayStr,
-                },
-                {
-                  key: "todo" as const,
-                  label: "To Do",
-                  dotColor: "bg-indigo-500",
-                  filterFn: (i: ActionItemSummary) =>
-                    i.status === "not_started" &&
-                    !isDeadlineOverdue(i.deadline, i.status) &&
-                    i.deadline === todayStr,
+                    i.status === "not_started" && !isDeadlineOverdue(i.deadline, i.status),
                 },
                 {
                   key: "in_progress" as const,
                   label: "In-Progress",
                   dotColor: "bg-[#1BCECE]",
                   filterFn: (i: ActionItemSummary) =>
-                    !isDeadlineOverdue(i.deadline, i.status) &&
-                    (i.status === "in_progress" || i.status === "blocked"),
-                },
-                {
-                  key: "overdue" as const,
-                  label: "Overdue",
-                  dotColor: "bg-[#F15A24]",
-                  filterFn: (i: ActionItemSummary) =>
-                    isDeadlineOverdue(i.deadline, i.status) && i.status !== "done",
+                    i.status !== "done" &&
+                    (i.status === "in_progress" || i.status === "blocked" || isDeadlineOverdue(i.deadline, i.status)),
                 },
                 {
                   key: "done" as const,
@@ -686,41 +655,30 @@ export function DashboardClient({
                       }
                     }}
                     className={cn(
-                      "w-[78vw] sm:w-[280px] xl:w-auto shrink-0 snap-center xl:shrink rounded-xl p-3 flex flex-col space-y-3 min-h-[380px] transition-all duration-150",
+                      "w-[82vw] sm:w-[320px] md:w-auto shrink-0 snap-center md:shrink rounded-xl p-3.5 flex flex-col space-y-3 min-h-[380px] transition-all duration-150",
                       isOver
                         ? "bg-[#1BCECE]/10 border-2 border-dashed border-[#1BCECE] shadow-sm scale-[1.01]"
                         : "bg-duston-bg/60 border border-duston-border"
                     )}
                   >
+                    {/* Column Header */}
                     <div className="flex items-center justify-between pb-1 border-b border-duston-border/50">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
                         <span className={cn("w-2 h-2 rounded-full", col.dotColor)} />
-                        <span className="text-xs font-medium text-duston-dark">
+                        <span className="text-xs font-semibold text-duston-dark">
                           {col.label}
                         </span>
-                        <span className="text-[10px] text-duston-muted font-medium bg-white px-1.5 py-0.2 rounded-full border border-duston-border ml-0.5">
-                          {colItems.length}
-                        </span>
                       </div>
-                      <button
-                        onClick={() => handleOpenQuickAdd(col.key)}
-                        className="p-1 rounded hover:bg-white text-duston-muted hover:text-[#023542] transition-colors border border-transparent hover:border-duston-border"
-                        title={`Add task to ${col.label}`}
-                      >
-                        <Plus size={13} strokeWidth={2} />
-                      </button>
+                      <span className="text-[10px] text-duston-muted font-medium bg-white px-2 py-0.5 rounded-full border border-duston-border">
+                        {colItems.length}
+                      </span>
                     </div>
 
+                    {/* Cards Container */}
                     <div className="space-y-2 flex-1">
                       {colItems.length === 0 ? (
-                        <div className="h-28 border border-dashed border-duston-border rounded-lg flex flex-col items-center justify-center text-duston-muted text-[11px] select-none gap-1">
-                          <span>Drop items here</span>
-                          <button
-                            onClick={() => handleOpenQuickAdd(col.key)}
-                            className="text-[10px] text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-0.5 mt-1"
-                          >
-                            <Plus size={11} /> Add to {col.label}
-                          </button>
+                        <div className="h-28 border border-dashed border-duston-border rounded-lg flex items-center justify-center text-duston-muted text-[11px] select-none">
+                          Drop items here
                         </div>
                       ) : (
                         colItems.map((item) => {
@@ -751,7 +709,7 @@ export function DashboardClient({
                               </div>
                               <div className="flex items-center justify-between text-[11px]">
                                 <span
-                                  className="px-1.5 py-0.5 rounded text-[10px] font-medium truncate max-w-[120px]"
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-medium truncate max-w-[130px]"
                                   style={{
                                     backgroundColor: `${item.entityBrandColor}15`,
                                     color: item.entityBrandColor,
@@ -775,6 +733,18 @@ export function DashboardClient({
                         })
                       )}
                     </div>
+
+                    {/* Visible curved edge around + sign at the bottom */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenQuickAdd(col.key)}
+                      className="w-full py-2.5 px-3 rounded-xl border border-dashed border-duston-border hover:border-[#1BCECE] bg-white/80 hover:bg-white text-duston-muted hover:text-[#023542] text-xs font-medium flex items-center justify-center gap-2 transition-all shadow-2xs hover:shadow-subtle cursor-pointer group mt-auto"
+                    >
+                      <span className="w-5 h-5 rounded-full border border-duston-border/80 group-hover:border-[#1BCECE] group-hover:bg-[#1BCECE]/10 flex items-center justify-center text-duston-muted group-hover:text-[#023542] transition-colors">
+                        <Plus size={12} strokeWidth={2.2} />
+                      </span>
+                      <span>Add to {col.label}</span>
+                    </button>
                   </div>
                 );
               })}
@@ -1078,18 +1048,14 @@ export function DashboardClient({
                       const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
                       const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
                       const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
-                      if (val === "todo") setQuickAddDeadline(today);
-                      else if (val === "overdue") setQuickAddDeadline(yesterday);
+                      if (val === "todo") setQuickAddDeadline(in7Days);
                       else if (val === "in_progress") setQuickAddDeadline(in3Days);
                       else if (val === "done") setQuickAddDeadline(today);
-                      else setQuickAddDeadline(in7Days);
                     }}
                     className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
                   >
-                    <option value="not_started">Not Started</option>
-                    <option value="todo">To Do (Due Today)</option>
+                    <option value="todo">Todo</option>
                     <option value="in_progress">In-Progress</option>
-                    <option value="overdue">Overdue (Yesterday)</option>
                     <option value="done">Done</option>
                   </select>
                 </div>

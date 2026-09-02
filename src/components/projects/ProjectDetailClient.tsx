@@ -399,15 +399,29 @@ export function ProjectDetailClient({
             /* Board view with interactive Drag & Drop */
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { label: "To do", status: "not_started" as const, dotColor: "bg-slate-400" },
-                { label: "In progress", status: "in_progress" as const, dotColor: "bg-[#1BCECE]" },
-                { label: "Done", status: "done" as const, dotColor: "bg-[#39B54A]" },
+                {
+                  label: "Todo",
+                  status: "not_started" as const,
+                  dotColor: "bg-slate-400",
+                  filterFn: (i: any) =>
+                    i.status === "not_started" && !isDeadlineOverdue(i.deadline, i.status),
+                },
+                {
+                  label: "In-Progress",
+                  status: "in_progress" as const,
+                  dotColor: "bg-[#1BCECE]",
+                  filterFn: (i: any) =>
+                    i.status !== "done" &&
+                    (i.status === "in_progress" || i.status === "blocked" || isDeadlineOverdue(i.deadline, i.status)),
+                },
+                {
+                  label: "Done",
+                  status: "done" as const,
+                  dotColor: "bg-[#39B54A]",
+                  filterFn: (i: any) => i.status === "done",
+                },
               ].map((col) => {
-                const colItems = itemsList.filter((i) =>
-                  col.status === "in_progress"
-                    ? i.status === "in_progress" || i.status === "blocked"
-                    : i.status === col.status
-                );
+                const colItems = itemsList.filter(col.filterFn);
                 const isOver = dragOverCol === col.status;
 
                 return (
@@ -430,16 +444,16 @@ export function ProjectDetailClient({
                       }
                     }}
                     className={cn(
-                      "rounded-xl p-3.5 flex flex-col space-y-3 min-h-[340px] transition-all duration-150",
+                      "rounded-xl p-3.5 flex flex-col space-y-3 min-h-[380px] transition-all duration-150",
                       isOver
                         ? "bg-[#1BCECE]/10 border-2 border-dashed border-[#1BCECE] shadow-sm scale-[1.01]"
                         : "bg-duston-bg/60 border border-duston-border"
                     )}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between pb-1 border-b border-duston-border/50">
                       <div className="flex items-center gap-2">
                         <span className={cn("w-2 h-2 rounded-full", col.dotColor)} />
-                        <span className="text-xs font-medium text-duston-dark">{col.label}</span>
+                        <span className="text-xs font-semibold text-duston-dark">{col.label}</span>
                       </div>
                       <span className="text-[10px] text-duston-muted bg-white px-2 py-0.5 rounded-full border border-duston-border font-medium">
                         {colItems.length}
@@ -494,6 +508,21 @@ export function ProjectDetailClient({
                         })
                       )}
                     </div>
+
+                    {/* Visible curved edge around + sign at the bottom */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewItemPriority("medium");
+                        setIsNewItemModalOpen(true);
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl border border-dashed border-duston-border hover:border-[#1BCECE] bg-white/80 hover:bg-white text-duston-muted hover:text-[#023542] text-xs font-medium flex items-center justify-center gap-2 transition-all shadow-2xs hover:shadow-subtle cursor-pointer group mt-auto"
+                    >
+                      <span className="w-5 h-5 rounded-full border border-duston-border/80 group-hover:border-[#1BCECE] group-hover:bg-[#1BCECE]/10 flex items-center justify-center text-duston-muted group-hover:text-[#023542] transition-colors">
+                        <Plus size={12} strokeWidth={2.2} />
+                      </span>
+                      <span>Add to {col.label}</span>
+                    </button>
                   </div>
                 );
               })}
