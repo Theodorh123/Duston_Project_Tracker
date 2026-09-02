@@ -79,7 +79,7 @@ export default function LoginPage() {
             <input
               type="email"
               required
-              placeholder="name@duston.com"
+              placeholder="name@dustongroup.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-white border border-duston-border rounded-xl px-3.5 py-2.5 text-xs text-duston-text outline-none focus:border-[#1BCECE] focus:ring-1 focus:ring-[#1BCECE] transition-all"
