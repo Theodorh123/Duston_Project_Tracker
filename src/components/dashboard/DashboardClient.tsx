@@ -127,35 +127,18 @@ export function DashboardClient({
   return (
     <div className="space-y-6">
       {/* Executive Overview Hero Banner */}
-      <div className="rounded-2xl bg-[#023542] text-white p-6 sm:p-7 border border-[#03446D] shadow-sm relative overflow-hidden">
+      <div className="rounded-2xl bg-[#023542] text-white p-6 sm:p-8 border border-[#03446D] shadow-sm relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-10 pointer-events-none flanelines-bg" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/10 text-[#1BCECE] text-xs font-medium mb-3">
-              <span className="w-2 h-2 rounded-full bg-[#1BCECE]" />
-              <span>Duston Group Delivery Command</span>
-            </div>
-
-            <h1 className="text-xl sm:text-2xl font-medium tracking-tight text-white mb-2">
-              Cross-Subsidiary Initiative & Delivery Tracker
+        <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-6">
+          <div className="max-w-3xl">
+            <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-white mb-3">
+              Duston Project Tracker
             </h1>
 
-            <p className="text-xs sm:text-sm text-gray-200/90 leading-relaxed">
-              Unifying capital projects, strategic deliverables, and operational action items across all <strong>Duston Group</strong> subsidiaries. Built to give executives unified visibility across concurrent workstreams so critical milestones never slip through.
+            <p className="text-sm sm:text-[15px] text-gray-200/90 leading-relaxed">
+              The internal command center for Duston Group. Track every project, action item, and meeting across MOSL, ICON Energy, Norva, Nova Mines, Duston Properties, Livon, and every other entity in the group — all in one place, so executives and their teams stay on top of every concurrent workstream.
             </p>
-
-            <div className="flex flex-wrap items-center gap-2 mt-4 text-[11px] text-gray-300">
-              <span className="px-2.5 py-1 rounded-md bg-white/10 border border-white/10">
-                13 Conglomerate Entities
-              </span>
-              <span className="px-2.5 py-1 rounded-md bg-white/10 border border-white/10">
-                Concurrent Delivery Tracking
-              </span>
-              <span className="px-2.5 py-1 rounded-md bg-white/10 border border-white/10">
-                Risk-Weighted Deadlines
-              </span>
-            </div>
           </div>
 
           <div className="shrink-0 md:text-right border-t md:border-t-0 md:border-l border-white/10 pt-4 md:pt-0 md:pl-6">
