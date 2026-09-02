@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --duston-dark: #023542;
+    --duston-accent: #1BCECE;
+    --duston-orange: #F15A24;
+    --duston-amber: #FBB03B;
+    --duston-lime: #D9E021;
+    --duston-green: #39B54A;
+    --duston-bg: #FAF9F6;
+    --duston-card: #FFFFFF;
+    --duston-border: #E8E6E0;
+    --duston-text: #2C2C2A;
+    --duston-muted: #6B6B65;
+  }
+
+  body {
+    background-color: var(--duston-bg);
+    color: var(--duston-text);
+    font-family: var(--font-maven-pro), sans-serif;
+  }
+
+  /* Quiet non-shimmer skeletons */
+  .skeleton-quiet {
+    background-color: #E8E6E0;
+    border-radius: 6px;
+  }
+}
+
+/* Duston's FlaneLines subtle diagonal stripe pattern (5% opacity, #1BCECE) */
+.flanelines-bg {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(27, 206, 206, 0.05),
+    rgba(27, 206, 206, 0.05) 1px,
+    transparent 1px,
+    transparent 16px
+  );
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E8E6E0;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6B6B65;
+}
