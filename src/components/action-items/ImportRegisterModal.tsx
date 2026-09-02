@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Calendar,
   User,
+  Users,
   Sparkles,
   ArrowRight,
   Trash2,
@@ -30,7 +31,9 @@ export interface StagingActionItem {
   title: string;
   rawResponsible: string;
   assigneeId: string;
+  coAssignees?: Array<{ id: string; name: string }>;
   isExternal: boolean;
+  needsInternalLead?: boolean;
   rawDeadline: string;
   deadline: string; // YYYY-MM-DD
   isDeadlineTBA: boolean;
@@ -85,10 +88,71 @@ export function ImportRegisterModal({
   const [uploadedDocs, setUploadedDocs] = useState<Array<{ name: string; title: string; count: number }>>([]);
   const [uploadFileCount, setUploadFileCount] = useState<number>(1);
   const [bulkExternalAssignee, setBulkExternalAssignee] = useState<string>(currentUserId);
+  const [bulkUnassignedAssignee, setBulkUnassignedAssignee] = useState<string>(currentUserId);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+
+  // Split a joint deliverable (e.g. Elton / Desmond) into separate individual items
+  const handleSplitItem = (idx: number) => {
+    const item = items[idx];
+    if (!item || !item.coAssignees || item.coAssignees.length === 0) return;
+
+    const primaryItem: StagingActionItem = {
+      ...item,
+      id: `split-${Date.now()}-0`,
+      itemNumber: `${item.itemNumber || idx + 1}.1`,
+      coAssignees: [],
+      notes: item.notes
+        ? `${item.notes} | Split deliverable (Primary Lead)`
+        : "Split deliverable (Primary Lead)",
+    };
+
+    const splitItems: StagingActionItem[] = item.coAssignees.map((co, cIdx) => ({
+      ...item,
+      id: `split-${Date.now()}-${cIdx + 1}`,
+      itemNumber: `${item.itemNumber || idx + 1}.${cIdx + 2}`,
+      assigneeId: co.id,
+      coAssignees: [],
+      notes: `Joint deliverable with ${item.rawResponsible} | Split to ${co.name}`,
+    }));
+
+    const newItems = [...items];
+    newItems.splice(idx, 1, primaryItem, ...splitItems);
+    setItems(newItems);
+  };
+
+  // Split all joint deliverables across the staging table in 1 click
+  const handleSplitAllJoint = () => {
+    const updated: StagingActionItem[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (it.coAssignees && it.coAssignees.length > 0) {
+        const primaryItem: StagingActionItem = {
+          ...it,
+          id: `split-${Date.now()}-${i}-0`,
+          itemNumber: `${it.itemNumber || i + 1}.1`,
+          coAssignees: [],
+          notes: it.notes
+            ? `${it.notes} | Split deliverable (Primary Lead)`
+            : "Split deliverable (Primary Lead)",
+        };
+        const splitItems: StagingActionItem[] = it.coAssignees.map((co, cIdx) => ({
+          ...it,
+          id: `split-${Date.now()}-${i}-${cIdx + 1}`,
+          itemNumber: `${it.itemNumber || i + 1}.${cIdx + 2}`,
+          assigneeId: co.id,
+          coAssignees: [],
+          notes: `Joint deliverable with ${it.rawResponsible} | Split to ${co.name}`,
+        }));
+        updated.push(primaryItem, ...splitItems);
+      } else {
+        updated.push(it);
+      }
+    }
+    setItems(updated);
+  };
 
   // Filter projects by selected entity
   const availableProjects = useMemo(() => {
@@ -147,7 +211,9 @@ export function ImportRegisterModal({
         title: it.title,
         rawResponsible: it.rawResponsible || "",
         assigneeId: it.matchedUserId || currentUserId,
+        coAssignees: it.coAssignees || [],
         isExternal: it.isExternal || false,
+        needsInternalLead: it.needsInternalLead || (!it.matchedUserId && !it.isExternal),
         rawDeadline: it.rawDeadline || "",
         deadline: it.parsedDeadline || new Date().toISOString().split("T")[0],
         isDeadlineTBA: it.isDeadlineTBA || false,
@@ -189,18 +255,20 @@ export function ImportRegisterModal({
       setWarnings(data.warnings || []);
 
       const stagingList: StagingActionItem[] = (data.items || []).map((it: any) => ({
-        id: it.id,
+        id: it.id || Math.random().toString(),
         selected: true,
         itemNumber: it.itemNumber,
         title: it.title,
         rawResponsible: it.rawResponsible || "",
         assigneeId: it.matchedUserId || currentUserId,
+        coAssignees: it.coAssignees || [],
         isExternal: it.isExternal || false,
+        needsInternalLead: it.needsInternalLead || (!it.matchedUserId && !it.isExternal),
         rawDeadline: it.rawDeadline || "",
-        deadline: it.parsedDeadline,
+        deadline: it.parsedDeadline || new Date().toISOString().split("T")[0],
         isDeadlineTBA: it.isDeadlineTBA || false,
         priority: it.priority || "medium",
-        status: it.status || "not_started",
+        status: "not_started",
         notes: it.notes,
       }));
 
@@ -240,12 +308,25 @@ export function ImportRegisterModal({
           deadline: it.deadline,
           priority: it.priority,
           status: it.status,
-          notes: it.isExternal
-            ? `Outsider / Counterparty Deliverable: ${it.rawResponsible}. Assigned to in-house lead to follow up.${it.rawDeadline ? ` Original deadline: ${it.rawDeadline}` : ""}`
-            : it.rawDeadline && it.rawDeadline !== it.deadline
-            ? `Original deadline: ${it.rawDeadline}`
+          notes: (() => {
+            const parts: string[] = [];
+            if (it.notes) parts.push(it.notes);
+            if (it.isExternal) {
+              parts.push(`Counterparty: ${it.rawResponsible}. In-house follow-up lead assigned.`);
+            }
+            if (it.coAssignees && it.coAssignees.length > 0) {
+              parts.push(`Co-assigned: ${it.coAssignees.map((c) => c.name).join(", ")}`);
+            }
+            if (it.rawDeadline && it.rawDeadline !== it.deadline) {
+              parts.push(`Original deadline: ${it.rawDeadline}`);
+            }
+            return parts.length > 0 ? parts.join(" | ") : undefined;
+          })(),
+          tag: it.isExternal
+            ? `Follow-up: ${it.rawResponsible}`
+            : it.coAssignees && it.coAssignees.length > 0
+            ? `Co-lead: ${it.coAssignees[0].name}`
             : undefined,
-          tag: it.isExternal ? `Follow-up: ${it.rawResponsible}` : undefined,
         })),
       });
 
@@ -530,51 +611,131 @@ export function ImportRegisterModal({
                 </div>
               )}
 
-              {/* Outsider Follow-Up Batch Helper */}
-              {items.some((i) => i.isExternal) && (
-                <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-purple-900">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-purple-200 text-purple-800 flex items-center justify-center shrink-0">
-                      <User size={13} />
+              {/* Smart Batch Helpers Toolbar */}
+              <div className="space-y-2">
+                {/* 1. Outsider Follow-Up Batch Helper */}
+                {items.some((i) => i.isExternal) && (
+                  <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-purple-900">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-purple-200 text-purple-800 flex items-center justify-center shrink-0">
+                        <User size={13} />
+                      </div>
+                      <div>
+                        <span className="font-semibold block">
+                          Outsider / Counterparty Deliverables Detected ({items.filter((i) => i.isExternal).length})
+                        </span>
+                        <p className="text-[11px] text-purple-700">
+                          Assigned to external parties (e.g. TOTSA, GRA). Assign an in-house person accountable for following up:
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <span className="font-semibold block">
-                        Outsider / Counterparty Deliverables Detected
-                      </span>
-                      <p className="text-[11px] text-purple-700">
-                        {items.filter((i) => i.isExternal).length} deliverables belong to external parties (e.g. TOTSA, Eugene). Assign an in-house person to follow up:
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                    <select
-                      value={bulkExternalAssignee}
-                      onChange={(e) => setBulkExternalAssignee(e.target.value)}
-                      className="bg-white border border-purple-300 rounded-lg px-2.5 py-1 text-xs text-duston-dark outline-none focus:border-purple-500"
-                    >
-                      {users.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setItems(
-                          items.map((it) =>
-                            it.isExternal ? { ...it, assigneeId: bulkExternalAssignee } : it
-                          )
-                        );
-                      }}
-                      className="px-2.5 py-1 bg-purple-700 hover:bg-purple-800 text-white rounded-lg text-xs font-medium transition-colors cursor-pointer"
-                    >
-                      Apply to all outsiders
-                    </button>
+                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                      <select
+                        value={bulkExternalAssignee}
+                        onChange={(e) => setBulkExternalAssignee(e.target.value)}
+                        className="bg-white border border-purple-300 rounded-lg px-2.5 py-1 text-xs text-duston-dark outline-none focus:border-purple-500 font-medium"
+                      >
+                        {users.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            Follow-up: {u.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setItems(
+                            items.map((it) =>
+                              it.isExternal ? { ...it, assigneeId: bulkExternalAssignee } : it
+                            )
+                          );
+                        }}
+                        className="px-2.5 py-1 bg-purple-700 hover:bg-purple-800 text-white rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                      >
+                        Apply to all
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+
+                {/* 2. Joint Deliverables Helper */}
+                {items.some((i) => i.coAssignees && i.coAssignees.length > 0) && (
+                  <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-blue-900">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-blue-200 text-blue-800 flex items-center justify-center shrink-0">
+                        <Users size={13} />
+                      </div>
+                      <div>
+                        <span className="font-semibold block">
+                          Joint Deliverables Detected ({items.filter((i) => i.coAssignees && i.coAssignees.length > 0).length} items)
+                        </span>
+                        <p className="text-[11px] text-blue-700">
+                          Assigned to multiple people in the minutes. Currently kept with Primary Lead + Co-lead tag, or you can split:
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleSplitAllJoint}
+                        className="px-3 py-1 bg-[#023542] hover:bg-[#034d61] text-white rounded-lg text-xs font-medium transition-colors cursor-pointer shadow-2xs"
+                      >
+                        Split all joint items into individual tasks
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Unassigned Items Helper */}
+                {items.some((i) => i.needsInternalLead && !i.isExternal) && (
+                  <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-amber-900">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-amber-200 text-amber-800 flex items-center justify-center shrink-0">
+                        <AlertCircle size={13} />
+                      </div>
+                      <div>
+                        <span className="font-semibold block">
+                          Unassigned Deliverables ({items.filter((i) => i.needsInternalLead && !i.isExternal).length} items)
+                        </span>
+                        <p className="text-[11px] text-amber-700">
+                          No explicit owner in minutes. Assign an internal accountable lead to own delivery:
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                      <select
+                        value={bulkUnassignedAssignee}
+                        onChange={(e) => setBulkUnassignedAssignee(e.target.value)}
+                        className="bg-white border border-amber-300 rounded-lg px-2.5 py-1 text-xs text-duston-dark outline-none focus:border-amber-500 font-medium"
+                      >
+                        {users.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setItems(
+                            items.map((it) =>
+                              it.needsInternalLead && !it.isExternal
+                                ? { ...it, assigneeId: bulkUnassignedAssignee, needsInternalLead: false }
+                                : it
+                            )
+                          );
+                        }}
+                        className="px-2.5 py-1 bg-amber-800 hover:bg-amber-900 text-white rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                      >
+                        Assign all
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Table Action Controls */}
               <div className="flex items-center justify-between text-xs px-1">
@@ -670,11 +831,11 @@ export function ImportRegisterModal({
                         </td>
 
                         {/* Assignee / In-House Follow-up Lead */}
-                        <td className="py-2 px-3">
+                        <td className="py-2 px-3 min-w-[210px]">
                           {item.isExternal ? (
                             <div className="space-y-1">
                               <div className="flex items-center gap-1.5 text-[10px] text-purple-700 font-medium">
-                                <span className="w-1.5 h-1.5 rounded-full bg-purple-600 shrink-0" />
+                                <Building size={11} className="shrink-0" />
                                 <span className="truncate">Outsider: <strong>{item.rawResponsible}</strong></span>
                               </div>
                               <select
@@ -694,19 +855,30 @@ export function ImportRegisterModal({
                                 ))}
                               </select>
                               <span className="text-[9px] text-purple-600 block truncate">
-                                In-house person to chase {item.rawResponsible}
+                                Internal lead accountable for follow-up
                               </span>
                             </div>
                           ) : (
-                            <div>
+                            <div className="space-y-1">
+                              {item.needsInternalLead && (
+                                <span className="inline-block text-[9px] text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded font-semibold">
+                                  Assign Internal Lead
+                                </span>
+                              )}
                               <select
                                 value={item.assigneeId}
                                 onChange={(e) => {
                                   const updated = [...items];
                                   updated[idx].assigneeId = e.target.value;
+                                  updated[idx].needsInternalLead = false;
                                   setItems(updated);
                                 }}
-                                className="w-full bg-white border border-duston-border rounded-lg px-2 py-1.5 text-xs text-duston-text outline-none focus:border-[#1BCECE]"
+                                className={cn(
+                                  "w-full rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#1BCECE]",
+                                  item.needsInternalLead
+                                    ? "bg-amber-50/40 border-amber-300 text-amber-900 font-medium"
+                                    : "bg-white border-duston-border text-duston-text"
+                                )}
                               >
                                 {users.map((u) => (
                                   <option key={u.id} value={u.id}>
@@ -714,9 +886,27 @@ export function ImportRegisterModal({
                                   </option>
                                 ))}
                               </select>
-                              {item.rawResponsible && (
-                                <span className="text-[10px] text-duston-muted block mt-0.5 truncate" title={`From minutes: ${item.rawResponsible}`}>
-                                  File: {item.rawResponsible}
+
+                              {/* Joint Assignees Badge & Split Option */}
+                              {item.coAssignees && item.coAssignees.length > 0 && (
+                                <div className="p-1.5 bg-blue-50/80 border border-blue-200 rounded-md text-[10px] text-blue-900 flex items-center justify-between gap-1">
+                                  <span className="truncate">
+                                    Co-lead: <strong>{item.coAssignees.map((c) => c.name).join(", ")}</strong>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSplitItem(idx)}
+                                    className="text-[10px] font-semibold text-[#023542] hover:text-[#1BCECE] underline shrink-0 cursor-pointer"
+                                    title="Split into individual tasks for each person"
+                                  >
+                                    Split ({item.coAssignees.length + 1})
+                                  </button>
+                                </div>
+                              )}
+
+                              {item.rawResponsible && (!item.coAssignees || item.coAssignees.length === 0) && (
+                                <span className="text-[10px] text-duston-muted block truncate" title={`From minutes: ${item.rawResponsible}`}>
+                                  From minutes: {item.rawResponsible}
                                 </span>
                               )}
                             </div>

@@ -4,11 +4,14 @@ import { format, addDays, parse, isValid } from "date-fns";
 export interface ParsedActionItem {
   id: string; // client temporary ID
   itemNumber?: number | string;
+  sourceDocument?: string;
   title: string;
   rawResponsible: string;
   matchedUserId: string | null;
   matchedUserName: string | null;
+  coAssignees?: Array<{ id: string; name: string }>;
   isExternal: boolean;
+  needsInternalLead?: boolean;
   rawDeadline: string;
   parsedDeadline: string; // YYYY-MM-DD
   isDeadlineTBA: boolean;
@@ -159,40 +162,72 @@ export function matchAssignee(
   users: UserSummary[]
 ): {
   matchedUser: UserSummary | null;
+  coAssignees: UserSummary[];
   isExternal: boolean;
+  needsInternalLead: boolean;
 } {
-  const clean = (rawName || "").trim().toLowerCase();
+  const clean = (rawName || "").trim();
   if (!clean) {
-    return { matchedUser: null, isExternal: false };
+    return { matchedUser: null, coAssignees: [], isExternal: false, needsInternalLead: true };
   }
 
-  // Check known counterparties or external entities
-  const externalKeywords = ["totsa", "bank", "ministry", "norva", "contractor", "consultant", "vendor", "external", "ecowas", "ebid", "barge"];
-  const isExplicitExternal = externalKeywords.some((kw) => clean.includes(kw));
+  const cleanLower = clean.toLowerCase();
+  const externalKeywords = [
+    "totsa", "bank", "ministry", "norva", "contractor", "consultant",
+    "vendor", "external", "ecowas", "ebid", "barge", "gra", "stanbic", "authority", "customs"
+  ];
+  const isExplicitExternal = externalKeywords.some((kw) => cleanLower.includes(kw));
 
-  // Try exact first name / last name match
-  for (const u of users) {
-    const uNameLower = (u.name || "").toLowerCase();
-    const uEmailLower = (u.email || "").toLowerCase();
+  // Split multiple names by "/", "&", " and ", ","
+  const segments = clean
+    .split(/[\/&,]|(?:\s+and\s+)/i)
+    .map((s) => s.trim())
+    .filter(Boolean);
 
-    // Check individual name parts (e.g. "Desmond" in "Desmond Ohene-Asante")
-    const parts = uNameLower.split(/\s+/);
-    if (parts.some((p) => p.length > 2 && clean.includes(p))) {
-      return { matchedUser: u, isExternal: false };
-    }
+  const matchedUsers: UserSummary[] = [];
 
-    // Check email prefix if email exists
-    if (uEmailLower) {
-      const emailPrefix = uEmailLower.split("@")[0].replace(/[._-]/g, " ");
-      if (clean.includes(emailPrefix) || emailPrefix.includes(clean)) {
-        return { matchedUser: u, isExternal: false };
+  for (const seg of segments) {
+    const segLower = seg.toLowerCase();
+    for (const u of users) {
+      if (matchedUsers.some((m) => m.id === u.id)) continue;
+
+      const uNameLower = (u.name || "").toLowerCase();
+      const uEmailLower = (u.email || "").toLowerCase();
+
+      // Check name parts (first name or surname > 2 chars)
+      const parts = uNameLower.split(/\s+/);
+      const matchesName = parts.some((p) => p.length > 2 && segLower.includes(p));
+
+      // Check email prefix if email exists
+      let matchesEmail = false;
+      if (uEmailLower) {
+        const emailPrefix = uEmailLower.split("@")[0].replace(/[._-]/g, " ");
+        matchesEmail = segLower.includes(emailPrefix) || emailPrefix.includes(segLower);
+      }
+
+      if (matchesName || matchesEmail) {
+        matchedUsers.push(u);
+        break;
       }
     }
   }
 
+  const primaryUser = matchedUsers[0] || null;
+  const coAssignees = matchedUsers.slice(1);
+  const isExternal =
+    isExplicitExternal ||
+    (!primaryUser &&
+      clean.length > 0 &&
+      !cleanLower.includes("tba") &&
+      !cleanLower.includes("team") &&
+      !cleanLower.includes("management") &&
+      !cleanLower.includes("all"));
+
   return {
-    matchedUser: null,
-    isExternal: isExplicitExternal,
+    matchedUser: primaryUser,
+    coAssignees,
+    isExternal,
+    needsInternalLead: !primaryUser,
   };
 }
 
@@ -323,7 +358,7 @@ function parseExcelBuffer(
     if (!rawItem || rawItem.length < 3) continue;
 
     // Resolve Assignee & Deadline
-    const { matchedUser, isExternal } = matchAssignee(rawResponsible, users);
+    const { matchedUser, coAssignees, isExternal, needsInternalLead } = matchAssignee(rawResponsible, users);
     const { parsedDate, rawText, isTBA } = resolveDeadline(rawDeadline, baseDate);
 
     items.push({
@@ -333,7 +368,9 @@ function parseExcelBuffer(
       rawResponsible,
       matchedUserId: matchedUser?.id || null,
       matchedUserName: matchedUser?.name || null,
+      coAssignees: coAssignees.map((c) => ({ id: c.id, name: c.name })),
       isExternal,
+      needsInternalLead,
       rawDeadline: rawText,
       parsedDeadline: parsedDate,
       isDeadlineTBA: isTBA,
@@ -598,7 +635,7 @@ function parseTextContent(
       const isHeaderWord = titleLower === "action item" || titleLower === "deliverable" || titleLower === "description";
 
       if (title && title.length > 3 && !isBlacklisted && !isHeaderWord) {
-        const { matchedUser, isExternal } = matchAssignee(responsible, users);
+        const { matchedUser, coAssignees, isExternal, needsInternalLead } = matchAssignee(responsible, users);
         const { parsedDate, rawText, isTBA } = resolveDeadline(deadline, baseDate);
 
         items.push({
@@ -608,7 +645,9 @@ function parseTextContent(
           rawResponsible: responsible,
           matchedUserId: matchedUser?.id || null,
           matchedUserName: matchedUser?.name || null,
+          coAssignees: coAssignees.map((c) => ({ id: c.id, name: c.name })),
           isExternal,
+          needsInternalLead,
           rawDeadline: rawText,
           parsedDeadline: parsedDate,
           isDeadlineTBA: isTBA,
@@ -653,7 +692,7 @@ function parseTextContent(
         const isBlacklisted = sectionHeaderBlacklist.some((b) => titleLower.includes(b));
 
         if (title && title.length > 3 && !/^\d+$/.test(title) && !isBlacklisted) {
-          const { matchedUser, isExternal } = matchAssignee(responsible, users);
+          const { matchedUser, coAssignees, isExternal, needsInternalLead } = matchAssignee(responsible, users);
           const { parsedDate, rawText, isTBA } = resolveDeadline(deadline, baseDate);
 
           items.push({
@@ -663,7 +702,9 @@ function parseTextContent(
             rawResponsible: responsible,
             matchedUserId: matchedUser?.id || null,
             matchedUserName: matchedUser?.name || null,
+            coAssignees: coAssignees.map((c) => ({ id: c.id, name: c.name })),
             isExternal,
+            needsInternalLead,
             rawDeadline: rawText,
             parsedDeadline: parsedDate,
             isDeadlineTBA: isTBA,
@@ -694,7 +735,7 @@ function parseTextContent(
           const isBlacklisted = sectionHeaderBlacklist.some((b) => titleLower.includes(b));
 
           if (title.length > 5 && !isBlacklisted) {
-            const { matchedUser, isExternal } = matchAssignee(responsible, users);
+            const { matchedUser, coAssignees, isExternal, needsInternalLead } = matchAssignee(responsible, users);
             const { parsedDate, rawText, isTBA } = resolveDeadline(deadline, baseDate);
 
             items.push({
@@ -704,7 +745,9 @@ function parseTextContent(
               rawResponsible: responsible,
               matchedUserId: matchedUser?.id || null,
               matchedUserName: matchedUser?.name || null,
+              coAssignees: coAssignees.map((c) => ({ id: c.id, name: c.name })),
               isExternal,
+              needsInternalLead,
               rawDeadline: rawText,
               parsedDeadline: parsedDate,
               isDeadlineTBA: isTBA,
