@@ -479,11 +479,8 @@ export function SettingsClient({ user, preferences, entities = [] }: SettingsCli
           <div className="bg-white border border-duston-border rounded-xl p-6 shadow-subtle space-y-4 text-xs">
             <div className="flex items-center justify-between border-b border-duston-border pb-3">
               <div>
-                <h3 className="font-semibold text-duston-dark text-sm flex items-center gap-2">
-                  <span>Outlook / iCal Feed Synchronization</span>
-                  <span className="text-[10px] font-normal bg-[#1BCECE]/15 text-[#023542] px-2 py-0.5 rounded-full border border-[#1BCECE]/30">
-                    Zero Cost • No Azure Setup
-                  </span>
+                <h3 className="font-semibold text-duston-dark text-sm">
+                  Outlook / iCal Feed Synchronization
                 </h3>
                 <p className="text-[11px] text-duston-muted mt-0.5">
                   Synchronize your meetings, location/venue, and attendees directly into the tracker
@@ -611,25 +608,21 @@ export function SettingsClient({ user, preferences, entities = [] }: SettingsCli
           <div className="bg-white border border-duston-border rounded-xl p-5 shadow-subtle space-y-3 text-xs">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-duston-dark">
-                How to Share Calendar Sync with the Executive Team
+                Connection Instructions
               </span>
               <button
                 type="button"
                 onClick={() => {
                   const guideText = `📅 *How to Connect Your Outlook Calendar to Duston Project Tracker*
 
-Follow these quick steps (takes less than 30 seconds, zero IT setup required):
-
-1. Open Outlook on the web (outlook.office.com) or Outlook desktop.
-2. Click the ⚙️ *Settings* icon (top right) > *Calendar* > *Shared calendars*.
-3. Scroll down to *Publish a calendar*:
-   - Select your *Calendar*
-   - Set permissions to *"Can view all details"*
-   - Click *Publish*
-4. Click on the *ICS link* and choose *Copy link*.
-5. Go to Duston Project Tracker (Settings > Calendar Sync), paste the link, and click *Sync Calendar Now*.
-
-Your upcoming meetings will automatically sync to the executive dashboard!`;
+1. Open Outlook on the web (https://outlook.office.com) or Outlook desktop.
+2. Click the ⚙️ Settings icon > Calendar > Shared calendars.
+3. Under Publish a calendar:
+   - Select your primary Calendar
+   - Set permissions to: "Can view all details"
+   - Click Publish
+4. Click on the ICS link and choose Copy link.
+5. In Duston Project Tracker (Settings > Calendar Sync), paste the link and click Sync Calendar Now.`;
                   navigator.clipboard.writeText(guideText);
                   setCopiedGuide(true);
                   setTimeout(() => setCopiedGuide(false), 3000);
@@ -644,7 +637,7 @@ Your upcoming meetings will automatically sync to the executive dashboard!`;
                 ) : (
                   <>
                     <Copy size={11} />
-                    <span>Copy Instructions</span>
+                    <span>Copy Setup Guide</span>
                   </>
                 )}
               </button>

@@ -70,7 +70,7 @@ export function MeetingsClient({
           <button
             onClick={() => setIsCalendarSyncOpen(true)}
             className="flex items-center gap-2 px-3.5 py-2 bg-white border border-duston-border hover:border-[#023542] text-duston-dark rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer"
-            title="Connect Outlook, Microsoft 365, or iCal calendar feed"
+            title="Synchronize Outlook or iCal calendar"
           >
             <Calendar size={14} className="text-[#1BCECE]" />
             <span>Sync Outlook / iCal</span>

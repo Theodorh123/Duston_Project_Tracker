@@ -113,18 +113,14 @@ export function CalendarSyncModal({
   const handleCopyGuide = () => {
     const guideText = `📅 *How to Connect Your Outlook Calendar to Duston Project Tracker*
 
-Follow these quick steps (takes less than 30 seconds, zero IT setup required):
-
-1. Open Outlook on the web (outlook.office.com) or Outlook desktop.
-2. Click the ⚙️ *Settings* icon (top right) > *Calendar* > *Shared calendars*.
-3. Scroll down to *Publish a calendar*:
-   - Select your *Calendar*
-   - Set permissions to *"Can view all details"*
-   - Click *Publish*
-4. Click on the *ICS link* and choose *Copy link*.
-5. Go to Duston Project Tracker (Meetings > Sync Outlook), paste the link, and click *Sync Now*.
-
-Your upcoming meetings will automatically sync to the executive dashboard!`;
+1. Open Outlook on the web (https://outlook.office.com) or Outlook desktop.
+2. Click the ⚙️ Settings icon > Calendar > Shared calendars.
+3. Under Publish a calendar:
+   - Select your primary Calendar
+   - Set permissions to: "Can view all details"
+   - Click Publish
+4. Click on the ICS link and choose Copy link.
+5. In Duston Project Tracker (Meetings > Sync Outlook / iCal), paste the link and click Sync Now.`;
 
     navigator.clipboard.writeText(guideText);
     setCopiedGuide(true);
@@ -141,14 +137,11 @@ Your upcoming meetings will automatically sync to the executive dashboard!`;
               <Calendar size={18} strokeWidth={1.75} />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-duston-dark flex items-center gap-1.5">
-                <span>Calendar Synchronization</span>
-                <span className="text-[10px] font-normal bg-[#1BCECE]/15 text-[#023542] px-2 py-0.5 rounded-full border border-[#1BCECE]/30">
-                  Zero Cost • Zero Azure Setup
-                </span>
+              <h2 className="text-sm font-semibold text-duston-dark">
+                Calendar Synchronization
               </h2>
               <p className="text-[11px] text-duston-muted">
-                Import upcoming meetings, venues, and attendees from Outlook, Teams, or Google
+                Import upcoming meetings, venues, and attendees from Outlook or iCal
               </p>
             </div>
           </div>
@@ -246,19 +239,9 @@ Your upcoming meetings will automatically sync to the executive dashboard!`;
           {/* TAB 1: Feed URL */}
           {activeTab === "feed" && (
             <form onSubmit={handleSyncFeed} className="space-y-4">
-              <div className="bg-[#023542]/5 border border-[#023542]/15 rounded-xl p-3 text-[11px] text-duston-text">
-                <div className="font-semibold text-[#023542] flex items-center gap-1 mb-1">
-                  <Sparkles size={12} className="text-[#1BCECE]" />
-                  <span>How Private Calendar Sync Works</span>
-                </div>
-                <p className="text-duston-muted leading-relaxed">
-                  Outlook provides a free, private subscription link ending in <code className="bg-white px-1 py-0.5 rounded border border-duston-border text-[#023542]">.ics</code>. Paste it below to import your meetings, venue details, and attendee lists directly into the tracker.
-                </p>
-              </div>
-
               <div>
                 <label className="block text-xs font-semibold text-duston-dark mb-1.5">
-                  Private Outlook or iCal Link *
+                  Private Outlook or iCal Subscription URL
                 </label>
                 <div className="relative">
                   <input
@@ -311,7 +294,7 @@ Your upcoming meetings will automatically sync to the executive dashboard!`;
                   className="text-xs text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-1 transition-colors"
                 >
                   <HelpCircle size={13} />
-                  <span>Where do I find this link?</span>
+                  <span>Setup instructions</span>
                 </button>
 
                 <button
@@ -408,7 +391,7 @@ Your upcoming meetings will automatically sync to the executive dashboard!`;
             <div className="space-y-4">
               <div className="flex items-center justify-between bg-duston-bg p-3 rounded-xl border border-duston-border">
                 <span className="text-xs font-semibold text-duston-dark">
-                  Share Guide with Directors & Executives
+                  Connection Instructions
                 </span>
                 <button
                   type="button"
@@ -418,12 +401,12 @@ Your upcoming meetings will automatically sync to the executive dashboard!`;
                   {copiedGuide ? (
                     <>
                       <Check size={12} className="text-[#39B54A]" />
-                      <span>Copied to Clipboard!</span>
+                      <span>Copied!</span>
                     </>
                   ) : (
                     <>
                       <Copy size={12} />
-                      <span>Copy Instructions</span>
+                      <span>Copy Setup Guide</span>
                     </>
                   )}
                 </button>

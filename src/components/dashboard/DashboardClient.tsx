@@ -333,17 +333,18 @@ export function DashboardClient({
   return (
     <div className="space-y-6">
       {/* Executive Overview Hero Banner */}
-      <div className="rounded-2xl bg-[#023542] text-white p-6 sm:p-8 border border-[#03446D] shadow-sm relative overflow-hidden">
+      <div className="rounded-2xl bg-[#023542] text-white p-5 sm:p-6 border border-[#03446D] shadow-sm relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-10 pointer-events-none flanelines-bg" />
 
-        <div className="relative z-10 max-w-3xl">
-          <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-white mb-3">
-            Duston Project Tracker
-          </h1>
-
-          <p className="text-sm sm:text-[15px] text-gray-200/90 leading-relaxed">
-            The internal command center for Duston Group. Track every project, action item, and meeting across MOSL, ICON Energy, Norva, Nova Mines, Duston Properties, Livon, and every other entity in the group — all in one place, so executives and their teams stay on top of every concurrent workstream.
-          </p>
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-medium tracking-tight text-white">
+              Duston Project Tracker
+            </h1>
+            <p className="text-xs text-gray-300 mt-0.5">
+              Welcome back, {firstName} • {new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", year: "numeric" })}
+            </p>
+          </div>
         </div>
       </div>
 

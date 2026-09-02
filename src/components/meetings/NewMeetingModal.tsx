@@ -201,22 +201,19 @@ export function NewMeetingModal({
             </div>
           </div>
 
-          {/* Critical Feature: Paste Action Register */}
+          {/* Action Register */}
           <div className="pt-2 border-t border-duston-border">
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1.5">
               <label className="block text-duston-dark font-medium">
-                Paste action register (Bulk import)
+                Action items register
               </label>
-              <span className="text-[10px] text-[#1BCECE] font-medium">Pipe or tab delimited</span>
+              <span className="text-[10px] text-duston-muted">Format: Item | Responsible | Deadline</span>
             </div>
-            <p className="text-[11px] text-duston-muted mb-2">
-              Paste action items from meeting notes to generate action items automatically.
-            </p>
             <textarea
-              rows={4}
+              rows={3}
               value={rawActionRegister}
               onChange={(e) => setRawActionRegister(e.target.value)}
-              placeholder="Item | Responsible Party | Deadline (YYYY-MM-DD)&#10;Submit draft term sheet to Stanbic | Theophilus | 2026-09-08&#10;Audit bunker barge safety certificates | md@duston.com | 2026-09-12"
+              placeholder="Submit draft term sheet to Stanbic | Theophilus | 2026-09-08&#10;Audit bunker barge safety certificates | William | 2026-09-12"
               className="w-full bg-white border border-duston-border rounded-xl p-3 text-duston-text outline-none focus:border-[#1BCECE] font-mono text-[11px] leading-relaxed resize-none"
             />
           </div>
