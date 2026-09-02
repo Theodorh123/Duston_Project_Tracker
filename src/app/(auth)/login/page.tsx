@@ -46,11 +46,14 @@ export default function LoginPage() {
     <div className="min-h-screen bg-duston-bg flanelines-bg flex flex-col items-center justify-center p-4 relative">
       <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl shadow-subtle p-8 z-10">
         {/* Duston Logotype */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-medium tracking-tight text-[#023542]">
-            Duston
-          </h1>
-          <p className="text-xs text-duston-muted mt-2">
+        <div className="text-center mb-8 flex flex-col items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-duston-group.png"
+            alt="Duston Group"
+            className="h-10 w-auto object-contain mx-auto mb-3"
+          />
+          <p className="text-xs text-duston-muted">
             Project & Action Tracker — Executive Command
           </p>
         </div>

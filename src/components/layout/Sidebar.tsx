@@ -90,11 +90,14 @@ export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile 
         )}
       >
         {/* Duston Logotype Header */}
-        <div className="p-6 flex items-center justify-between border-b border-duston-border/50">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl font-semibold tracking-tight text-[#023542]">
-              Duston
-            </span>
+        <div className="px-5 py-4 flex items-center justify-between border-b border-duston-border/50">
+          <Link href="/" className="flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-duston.png"
+              alt="Duston"
+              className="h-8 w-auto object-contain"
+            />
           </Link>
           <button
             onClick={onCloseMobile}

@@ -12,6 +12,9 @@ const mavenPro = Maven_Pro({
 export const metadata: Metadata = {
   title: "Duston Project Tracker",
   description: "Enterprise project, action item, and cross-subsidiary tracking for Duston Group",
+  icons: {
+    icon: "/logo-duston.png",
+  },
 };
 
 export default function RootLayout({
