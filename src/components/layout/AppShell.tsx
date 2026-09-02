@@ -61,7 +61,7 @@ export function AppShell({ children, user, entities }: AppShellProps) {
         />
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 lg:pl-[240px]">
+        <div className="flex-1 flex flex-col min-w-0 lg:pl-[260px] xl:pl-[280px] 2xl:pl-[300px] transition-all duration-200">
           <TopBar
             entities={entities}
             selectedEntityId={selectedEntityId}

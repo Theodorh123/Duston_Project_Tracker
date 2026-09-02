@@ -85,23 +85,27 @@ export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile 
       {/* Sidebar Container */}
       <aside
         className={cn(
-          "fixed top-0 left-0 bottom-0 w-[240px] bg-white border-r border-duston-border z-50 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0",
+          "fixed top-0 left-0 bottom-0 w-[260px] xl:w-[280px] 2xl:w-[300px] bg-white border-r border-duston-border z-50 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0",
           isOpenMobile ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Duston Logotype Header */}
-        <div className="px-5 py-4 flex items-center justify-between border-b border-duston-border/50">
-          <Link href="/" className="flex items-center py-1 hover:opacity-85 transition-opacity" title="Duston Group — Return to Dashboard">
+        <div className="px-5 py-3.5 sm:py-4 lg:py-5 flex items-center justify-between border-b border-duston-border/50 bg-white">
+          <Link
+            href="/"
+            className="flex items-center hover:opacity-85 transition-opacity w-full"
+            title="Duston Project Tracker — Return to Dashboard"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-duston-group.png"
               alt="Duston Group"
-              className="h-11 sm:h-12 w-auto max-w-[185px] object-contain"
+              className="h-12 sm:h-14 lg:h-16 xl:h-20 w-auto max-w-[210px] xl:max-w-[230px] 2xl:max-w-[250px] object-contain transition-all duration-200"
             />
           </Link>
           <button
             onClick={onCloseMobile}
-            className="p-1 rounded text-duston-muted hover:text-duston-dark lg:hidden"
+            className="p-1 rounded text-duston-muted hover:text-duston-dark lg:hidden shrink-0 ml-2"
             aria-label="Close sidebar"
           >
             <X size={20} strokeWidth={1.5} />
