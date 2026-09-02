@@ -20,7 +20,7 @@ export interface ProjectListItem {
   status: string;
   priority: string;
   targetDate: string;
-  openItemsCount: number;
+  openItemsCount?: number;
 }
 
 interface ProjectsClientProps {
@@ -212,7 +212,6 @@ export function ProjectsClient({
                   <th className="py-3 px-4">Responsible Party</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Target date</th>
-                  <th className="py-3 px-4 text-right">Open items</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-duston-border">
@@ -252,9 +251,6 @@ export function ProjectsClient({
                     <td className="py-3 px-4 text-duston-muted">
                       {formatDate(project.targetDate)}
                     </td>
-                    <td className="py-3 px-4 text-right font-medium text-duston-dark">
-                      {project.openItemsCount}
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -291,9 +287,6 @@ export function ProjectsClient({
 
                 <div className="flex items-center justify-between text-[11px] border-t border-duston-border pt-2 text-duston-muted">
                   <span>Target: {formatDate(project.targetDate)}</span>
-                  <span className="font-medium text-duston-dark">
-                    {project.openItemsCount} open items
-                  </span>
                 </div>
               </div>
             ))}
