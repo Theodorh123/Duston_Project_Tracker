@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Calendar, Users, ExternalLink, CalendarDays } from "lucide-react";
+import { Plus, Calendar, Users, MapPin, Video, CalendarDays } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { NewMeetingModal } from "./NewMeetingModal";
 import { useAppShell } from "../layout/AppShell";
@@ -15,6 +14,8 @@ export interface MeetingListItem {
   entityName: string;
   entityBrandColor: string;
   meetingDate: string;
+  venue?: string | null;
+  isVirtual?: boolean | null;
   minutesDocUrl?: string | null;
   attendees: Array<{ id: string; name: string }>;
   actionItemsProducedCount: number;
@@ -55,9 +56,10 @@ export function MeetingsClient({
             Meetings
           </h1>
           <p className="text-xs text-duston-muted mt-1">
-            Track executive proceedings, attendee registers, and action items produced
+            Track executive proceedings, venues, attendee registers, and action items produced
           </p>
         </div>
+
         <button
           onClick={() => setIsNewMeetingOpen(true)}
           className="flex items-center gap-2 px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors shadow-subtle self-start sm:self-auto"
@@ -70,11 +72,11 @@ export function MeetingsClient({
       {/* Filter Strip */}
       <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle flex flex-wrap items-center gap-4 text-xs">
         <div className="flex items-center gap-2">
-          <span className="text-duston-muted font-medium">Filter attendee:</span>
+          <span className="text-duston-muted font-medium">Filter by attendee:</span>
           <select
             value={selectedAttendee}
             onChange={(e) => setSelectedAttendee(e.target.value)}
-            className="bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
+            className="bg-white border border-duston-border rounded-lg px-2.5 py-1 text-duston-text outline-none focus:border-[#1BCECE]"
           >
             <option value="all">All attendees</option>
             {users.map((u) => (
@@ -95,11 +97,12 @@ export function MeetingsClient({
         </div>
       ) : (
         <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left border-collapse text-xs">
+          <table className="w-full min-w-[700px] text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
                 <th className="py-3 px-4">Subject</th>
-                <th className="py-3 px-4">Entity</th>
+                <th className="py-3 px-4">Subsidiary</th>
+                <th className="py-3 px-4">Format & Venue</th>
                 <th className="py-3 px-4">Date</th>
                 <th className="py-3 px-4">Attendees</th>
                 <th className="py-3 px-4 text-right">Action items produced</th>
@@ -129,6 +132,24 @@ export function MeetingsClient({
                       />
                       <span>{meeting.entityName}</span>
                     </span>
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="flex flex-col gap-0.5">
+                      <span className={cn(
+                        "inline-flex items-center gap-1 w-fit px-2 py-0.5 rounded-md text-[10px] font-medium",
+                        meeting.isVirtual
+                          ? "bg-purple-50 text-purple-700 border border-purple-200"
+                          : "bg-blue-50 text-blue-700 border border-blue-200"
+                      )}>
+                        {meeting.isVirtual ? <Video size={10} /> : <MapPin size={10} />}
+                        <span>{meeting.isVirtual ? "Virtual" : "In-person"}</span>
+                      </span>
+                      {meeting.venue && (
+                        <span className="text-[11px] text-duston-muted truncate max-w-[200px]" title={meeting.venue}>
+                          {meeting.venue}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3.5 px-4 text-duston-muted">
                     {formatDate(meeting.meetingDate)}

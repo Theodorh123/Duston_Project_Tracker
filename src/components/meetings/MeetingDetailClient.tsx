@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Calendar, Users, ExternalLink, CheckCircle2 } from "lucide-react";
+import { ChevronRight, ExternalLink, MapPin, Video } from "lucide-react";
 import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
 import { useAppShell } from "../layout/AppShell";
 
@@ -10,6 +10,8 @@ interface MeetingDetailClientProps {
     id: string;
     subject: string;
     meetingDate: string;
+    venue?: string | null;
+    isVirtual?: boolean | null;
     minutesDocUrl?: string | null;
     entityName: string;
     entityBrandColor: string;
@@ -39,14 +41,14 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
         <ChevronRight size={12} strokeWidth={1.5} />
         <span>{meeting.entityName}</span>
         <ChevronRight size={12} strokeWidth={1.5} />
-        <span className="text-duston-dark font-medium">{meeting.subject}</span>
+        <span className="text-duston-dark font-medium truncate">{meeting.subject}</span>
       </nav>
 
       {/* Header Block */}
-      <div className="bg-white border border-duston-border rounded-xl p-6 shadow-subtle space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
+      <div className="bg-white border border-duston-border rounded-2xl p-6 shadow-subtle space-y-4">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
               <span
                 className="w-2.5 h-2.5 rounded-full"
                 style={{ backgroundColor: meeting.entityBrandColor }}
@@ -54,12 +56,33 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
               <span className="text-xs font-medium text-duston-muted">
                 {meeting.entityName}
               </span>
+              <span className="text-duston-border">•</span>
+              <span className={cn(
+                "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium",
+                meeting.isVirtual
+                  ? "bg-purple-50 text-purple-700 border border-purple-200"
+                  : "bg-blue-50 text-blue-700 border border-blue-200"
+              )}>
+                {meeting.isVirtual ? <Video size={10} /> : <MapPin size={10} />}
+                <span>{meeting.isVirtual ? "Virtual" : "In-person"}</span>
+              </span>
             </div>
+
             <h1 className="text-2xl font-medium text-[#023542] tracking-tight">
               {meeting.subject}
             </h1>
-            <div className="text-xs text-duston-muted mt-1 flex items-center gap-3">
+
+            <div className="text-xs text-duston-muted flex flex-wrap items-center gap-3">
               <span>Date: {formatDate(meeting.meetingDate)}</span>
+              {meeting.venue && (
+                <>
+                  <span>•</span>
+                  <span className="inline-flex items-center gap-1 text-duston-dark">
+                    <MapPin size={12} className="text-duston-muted" />
+                    <span>Venue: {meeting.venue}</span>
+                  </span>
+                </>
+              )}
               <span>•</span>
               <span>{meeting.attendees.length} Attendees</span>
             </div>
@@ -70,7 +93,7 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
               href={meeting.minutesDocUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 border border-duston-border bg-duston-bg hover:bg-white text-duston-dark rounded-xl text-xs font-medium transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 border border-duston-border bg-duston-bg hover:bg-white text-duston-dark rounded-xl text-xs font-medium transition-colors shrink-0"
             >
               <span>Minutes document</span>
               <ExternalLink size={14} strokeWidth={1.5} />
@@ -113,13 +136,13 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
             </p>
           </div>
         ) : (
-          <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">
-            <table className="w-full text-left border-collapse text-xs">
+          <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-x-auto">
+            <table className="w-full min-w-[650px] text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
                   <th className="py-3 px-4">Title</th>
                   <th className="py-3 px-4">Project</th>
-                  <th className="py-3 px-4">Assignee</th>
+                  <th className="py-3 px-4">Responsible Party</th>
                   <th className="py-3 px-4">Deadline</th>
                   <th className="py-3 px-4">Status</th>
                 </tr>
@@ -140,20 +163,18 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
                     <td className="py-3 px-4 text-duston-dark">
                       {item.assigneeName}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 text-duston-muted">
                       <span
                         className={cn(
-                          "px-2 py-0.5 rounded text-[11px] font-medium",
-                          isDeadlineOverdue(item.deadline, item.status)
-                            ? "bg-duston-orange/10 text-duston-orange"
-                            : "text-duston-muted"
+                          isDeadlineOverdue(item.deadline, item.status) &&
+                            "text-duston-orange font-medium"
                         )}
                       >
                         {formatDate(item.deadline)}
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="capitalize px-2 py-0.5 rounded bg-duston-bg border border-duston-border text-[11px] text-duston-text">
+                      <span className="capitalize px-2 py-0.5 rounded-full text-[10px] font-medium bg-duston-bg border border-duston-border text-duston-text">
                         {item.status.replace("_", " ")}
                       </span>
                     </td>

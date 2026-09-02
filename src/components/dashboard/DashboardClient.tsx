@@ -13,6 +13,8 @@ import {
   Calendar,
   ChevronRight,
   ExternalLink,
+  MapPin,
+  Video,
 } from "lucide-react";
 import { cn, formatDate, formatShortDate, isDeadlineOverdue } from "@/lib/utils";
 import Link from "next/link";
@@ -39,6 +41,8 @@ export interface MeetingSummary {
   entityName: string;
   meetingDate: string;
   attendeeCount: number;
+  venue?: string | null;
+  isVirtual?: boolean | null;
 }
 
 export interface ActivitySummary {
@@ -130,28 +134,14 @@ export function DashboardClient({
       <div className="rounded-2xl bg-[#023542] text-white p-6 sm:p-8 border border-[#03446D] shadow-sm relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-10 pointer-events-none flanelines-bg" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-6">
-          <div className="max-w-3xl">
-            <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-white mb-3">
-              Duston Project Tracker
-            </h1>
+        <div className="relative z-10 max-w-3xl">
+          <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-white mb-3">
+            Duston Project Tracker
+          </h1>
 
-            <p className="text-sm sm:text-[15px] text-gray-200/90 leading-relaxed">
-              The internal command center for Duston Group. Track every project, action item, and meeting across MOSL, ICON Energy, Norva, Nova Mines, Duston Properties, Livon, and every other entity in the group — all in one place, so executives and their teams stay on top of every concurrent workstream.
-            </p>
-          </div>
-
-          <div className="shrink-0 md:text-right border-t md:border-t-0 md:border-l border-white/10 pt-4 md:pt-0 md:pl-6">
-            <div className="text-[11px] uppercase tracking-wider text-[#1BCECE] font-medium">
-              Signed In As
-            </div>
-            <div className="text-base font-medium text-white mt-0.5">
-              {userName}
-            </div>
-            <div className="text-xs text-gray-300 mt-1">
-              {openCount} active deliverable{openCount === 1 ? "" : "s"}
-            </div>
-          </div>
+          <p className="text-sm sm:text-[15px] text-gray-200/90 leading-relaxed">
+            The internal command center for Duston Group. Track every project, action item, and meeting across MOSL, ICON Energy, Norva, Nova Mines, Duston Properties, Livon, and every other entity in the group — all in one place, so executives and their teams stay on top of every concurrent workstream.
+          </p>
         </div>
       </div>
 
@@ -163,7 +153,7 @@ export function DashboardClient({
           <div className="text-2xl sm:text-3xl font-medium text-[#023542] mt-1.5 sm:mt-2">
             {openCount}
           </div>
-          <div className="text-[10px] sm:text-[11px] text-duston-muted mt-1 truncate">Assigned to you</div>
+          <div className="text-[10px] sm:text-[11px] text-duston-muted mt-1 truncate">Your responsibility</div>
         </div>
 
         {/* Overdue */}
@@ -589,13 +579,28 @@ export function DashboardClient({
                     href={`/meetings/${m.id}`}
                     className="block p-3 rounded-xl border border-duston-border hover:border-[#1BCECE] hover:bg-duston-bg transition-colors"
                   >
-                    <div className="text-xs font-medium text-duston-dark line-clamp-1">
-                      {m.subject}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="text-xs font-medium text-duston-dark line-clamp-1 flex-1">
+                        {m.subject}
+                      </div>
+                      <span className={cn(
+                        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0",
+                        m.isVirtual ? "bg-purple-50 text-purple-700 border border-purple-200" : "bg-blue-50 text-blue-700 border border-blue-200"
+                      )}>
+                        {m.isVirtual ? <Video size={10} /> : <MapPin size={10} />}
+                        <span>{m.isVirtual ? "Virtual" : "In-person"}</span>
+                      </span>
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-duston-muted mt-1.5">
                       <span>{m.entityName}</span>
                       <span>{formatShortDate(m.meetingDate)}</span>
                     </div>
+                    {m.venue && (
+                      <div className="text-[10px] text-duston-muted mt-1 flex items-center gap-1 truncate" title={m.venue}>
+                        <MapPin size={10} className="shrink-0 text-duston-muted" />
+                        <span className="truncate">{m.venue}</span>
+                      </div>
+                    )}
                   </Link>
                 ))}
               </div>

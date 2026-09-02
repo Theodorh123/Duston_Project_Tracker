@@ -131,7 +131,7 @@ export function CeoViewClient({
               Group health heatmap
             </h2>
             <p className="text-xs text-duston-muted">
-              Entities vs. Categories. Color coded by overdue ratio. Cell shows open deliverables count.
+              Subsidiaries vs. Categories. Color coded by overdue ratio. Cell shows open deliverables count.
             </p>
           </div>
 
@@ -155,7 +155,7 @@ export function CeoViewClient({
           <table className="w-full min-w-[640px] text-center border-collapse text-xs">
             <thead>
               <tr className="border-b border-duston-border text-duston-muted font-medium">
-                <th className="sticky left-0 bg-white z-10 py-2.5 px-3 text-left font-medium shadow-[2px_0_4px_rgba(0,0,0,0.03)]">Subsidiary entity</th>
+                <th className="sticky left-0 bg-white z-10 py-2.5 px-3 text-left font-medium shadow-[2px_0_4px_rgba(0,0,0,0.03)]">Subsidiary</th>
                 {categories.map((cat) => (
                   <th key={cat} className="py-2.5 px-3 uppercase tracking-wider text-[10px]">
                     {cat}

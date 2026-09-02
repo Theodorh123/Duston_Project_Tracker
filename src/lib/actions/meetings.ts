@@ -11,6 +11,8 @@ export interface CreateMeetingInput {
   projectId?: string;
   subject: string;
   meetingDate: string;
+  venue?: string;
+  isVirtual?: boolean;
   minutesDocUrl?: string;
   attendeeUserIds: string[];
   createdBy: string;
@@ -26,6 +28,8 @@ export async function createMeeting(data: CreateMeetingInput) {
         entityId: data.entityId,
         subject: data.subject,
         meetingDate: data.meetingDate,
+        venue: data.venue,
+        isVirtual: data.isVirtual ?? false,
         minutesDocUrl: data.minutesDocUrl,
         createdBy: data.createdBy,
       })

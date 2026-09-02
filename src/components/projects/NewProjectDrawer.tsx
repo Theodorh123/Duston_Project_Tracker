@@ -77,7 +77,7 @@ export function NewProjectDrawer({
           )}
 
           <div>
-            <label className="block text-duston-muted mb-1 font-medium">Entity *</label>
+            <label className="block text-duston-muted mb-1 font-medium">Subsidiary *</label>
             <select
               value={formData.entityId}
               onChange={(e) => setFormData({ ...formData, entityId: e.target.value })}
@@ -138,7 +138,7 @@ export function NewProjectDrawer({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-duston-muted mb-1 font-medium">Project owner *</label>
+              <label className="block text-duston-muted mb-1 font-medium">Responsible Party *</label>
               <select
                 value={formData.ownerId}
                 onChange={(e) => setFormData({ ...formData, ownerId: e.target.value })}

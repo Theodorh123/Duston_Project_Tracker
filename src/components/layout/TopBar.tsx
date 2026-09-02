@@ -57,7 +57,7 @@ export function TopBar({
             : "bg-white border border-duston-border text-duston-text hover:border-[#1BCECE]"
         )}
       >
-        All entities
+        All subsidiaries
       </button>
       {entities.map((entity) => {
         const isSelected = selectedEntityId === entity.id;

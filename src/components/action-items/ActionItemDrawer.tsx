@@ -266,6 +266,17 @@ export function ActionItemDrawer({
 
             {/* Editable Fields Grid */}
             <div className="grid grid-cols-2 gap-4 p-4 rounded-xl border border-duston-border bg-duston-bg/40 text-xs">
+              {/* Responsible Party */}
+              <div className="col-span-2">
+                <label className="block text-duston-muted mb-1 font-medium">Responsible Party</label>
+                <div className="bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-dark font-medium flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-[#023542] text-white flex items-center justify-center text-[9px]">
+                    {(item.assigneeName || "RP").slice(0, 2).toUpperCase()}
+                  </div>
+                  <span className="truncate">{item.assigneeName || "Unassigned"}</span>
+                </div>
+              </div>
+
               {/* Status */}
               <div>
                 <label className="block text-duston-muted mb-1 font-medium">Status</label>

@@ -229,6 +229,8 @@ export const meetings = pgTable("meetings", {
     .references(() => entities.id, { onDelete: "cascade" }),
   subject: text("subject").notNull(),
   meetingDate: date("meeting_date").notNull(),
+  venue: text("venue"),
+  isVirtual: boolean("is_virtual").default(false),
   minutesDocUrl: text("minutes_doc_url"),
   createdBy: uuid("created_by")
     .notNull()

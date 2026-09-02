@@ -46,6 +46,8 @@ export default async function MeetingsPage() {
       entityName: m.entity.name,
       entityBrandColor: m.entity.brandPrimaryColor,
       meetingDate: m.meetingDate,
+      venue: m.venue,
+      isVirtual: m.isVirtual,
       minutesDocUrl: m.minutesDocUrl,
       attendees: m.attendees.map((a) => ({
         id: a.user.id,

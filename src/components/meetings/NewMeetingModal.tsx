@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Calendar, Users, FileText } from "lucide-react";
+import { X, MapPin, Video } from "lucide-react";
 import { createMeeting } from "@/lib/actions/meetings";
 
 interface NewMeetingModalProps {
@@ -24,6 +24,8 @@ export function NewMeetingModal({
   const [meetingDate, setMeetingDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const [isVirtual, setIsVirtual] = useState(false);
+  const [venue, setVenue] = useState("");
   const [minutesDocUrl, setMinutesDocUrl] = useState("");
   const [selectedAttendees, setSelectedAttendees] = useState<string[]>([currentUserId]);
   const [rawActionRegister, setRawActionRegister] = useState("");
@@ -47,6 +49,8 @@ export function NewMeetingModal({
       entityId,
       subject: subject.trim(),
       meetingDate,
+      venue: venue.trim() || undefined,
+      isVirtual,
       minutesDocUrl: minutesDocUrl.trim() || undefined,
       attendeeUserIds: selectedAttendees,
       createdBy: currentUserId,
@@ -85,7 +89,7 @@ export function NewMeetingModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-duston-muted mb-1 font-medium">Entity *</label>
+              <label className="block text-duston-muted mb-1 font-medium">Subsidiary *</label>
               <select
                 value={entityId}
                 onChange={(e) => setEntityId(e.target.value)}
@@ -119,6 +123,46 @@ export function NewMeetingModal({
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+            />
+          </div>
+
+          {/* Meeting Format & Venue */}
+          <div className="space-y-2 pt-1">
+            <label className="block text-duston-muted font-medium">Meeting format & venue</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setIsVirtual(false)}
+                className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 transition-all ${
+                  !isVirtual
+                    ? "bg-[#023542] text-white border-[#023542]"
+                    : "bg-white border-duston-border text-duston-text hover:bg-duston-bg"
+                }`}
+              >
+                <MapPin size={14} strokeWidth={1.5} />
+                <span className="font-medium">In-person</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsVirtual(true)}
+                className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 transition-all ${
+                  isVirtual
+                    ? "bg-[#023542] text-white border-[#023542]"
+                    : "bg-white border-duston-border text-duston-text hover:bg-duston-bg"
+                }`}
+              >
+                <Video size={14} strokeWidth={1.5} />
+                <span className="font-medium">Virtual</span>
+              </button>
+            </div>
+
+            <input
+              type="text"
+              placeholder={isVirtual ? "e.g. Microsoft Teams / Zoom link" : "e.g. MOSL Boardroom, Airport City HQ"}
+              value={venue}
+              onChange={(e) => setVenue(e.target.value)}
+              className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE] mt-1"
             />
           </div>
 
@@ -172,7 +216,7 @@ export function NewMeetingModal({
               rows={4}
               value={rawActionRegister}
               onChange={(e) => setRawActionRegister(e.target.value)}
-              placeholder="Item | Responsible party | Deadline (YYYY-MM-DD)&#10;Submit draft term sheet to Stanbic | Theophilus | 2026-09-08&#10;Audit bunker barge safety certificates | md@duston.com | 2026-09-12"
+              placeholder="Item | Responsible Party | Deadline (YYYY-MM-DD)&#10;Submit draft term sheet to Stanbic | Theophilus | 2026-09-08&#10;Audit bunker barge safety certificates | md@duston.com | 2026-09-12"
               className="w-full bg-white border border-duston-border rounded-xl p-3 text-duston-text outline-none focus:border-[#1BCECE] font-mono text-[11px] leading-relaxed resize-none"
             />
           </div>

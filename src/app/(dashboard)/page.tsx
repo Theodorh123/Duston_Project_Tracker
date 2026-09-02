@@ -84,6 +84,8 @@ export default async function DashboardPage() {
       subject: m.subject,
       entityName: m.entity.name,
       meetingDate: m.meetingDate,
+      venue: m.venue,
+      isVirtual: m.isVirtual,
       attendeeCount: m.attendees.length,
     }));
 

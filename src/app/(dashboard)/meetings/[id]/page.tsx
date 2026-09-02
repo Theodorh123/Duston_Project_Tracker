@@ -58,6 +58,8 @@ export default async function MeetingDetailPage({
         id: meeting.id,
         subject: meeting.subject,
         meetingDate: meeting.meetingDate,
+        venue: meeting.venue,
+        isVirtual: meeting.isVirtual,
         minutesDocUrl: meeting.minutesDocUrl,
         entityName: meeting.entity.name,
         entityBrandColor: meeting.entity.brandPrimaryColor,

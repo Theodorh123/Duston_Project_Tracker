@@ -217,7 +217,7 @@ export function AdminClient({
             )}
           >
             <Building2 size={14} strokeWidth={1.5} />
-            <span>Entities ({entitiesList.length})</span>
+            <span>Subsidiaries ({entitiesList.length})</span>
           </button>
 
           <button
@@ -337,14 +337,14 @@ export function AdminClient({
         </div>
       )}
 
-      {/* 2. Entities Tab */}
+      {/* 2. Subsidiaries Tab */}
       {activeTab === "entities" && (
-        <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">
-          <table className="w-full text-left border-collapse text-xs">
+        <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-x-auto">
+          <table className="w-full min-w-[650px] text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
                 <th className="py-3 px-4">Name</th>
-                <th className="py-3 px-4">Parent entity</th>
+                <th className="py-3 px-4">Parent subsidiary</th>
                 <th className="py-3 px-4">Brand color</th>
                 <th className="py-3 px-4">Slug</th>
                 <th className="py-3 px-4">Status</th>

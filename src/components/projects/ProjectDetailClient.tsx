@@ -175,7 +175,7 @@ export function ProjectDetailClient({
               </span>
 
               <span>•</span>
-              <span>Owner: <strong className="font-medium text-duston-dark">{project.ownerName}</strong></span>
+              <span>Responsible Party: <strong className="font-medium text-duston-dark">{project.ownerName}</strong></span>
               {project.sponsorName && (
                 <>
                   <span>•</span>
@@ -308,12 +308,12 @@ export function ProjectDetailClient({
               </button>
             </div>
           ) : actionItemsView === "list" ? (
-            <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">
-              <table className="w-full text-left border-collapse text-xs">
+            <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-x-auto">
+              <table className="w-full min-w-[650px] text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
                     <th className="py-3 px-4">Title</th>
-                    <th className="py-3 px-4">Assignee</th>
+                    <th className="py-3 px-4">Responsible Party</th>
                     <th className="py-3 px-4">Deadline</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4">Priority</th>
@@ -525,7 +525,7 @@ export function ProjectDetailClient({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-duston-muted mb-1 font-medium">Project owner</label>
+              <label className="block text-duston-muted mb-1 font-medium">Responsible Party</label>
               <select
                 value={details.ownerId}
                 onChange={(e) => {
@@ -593,7 +593,7 @@ export function ProjectDetailClient({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-duston-muted mb-1 font-medium">Assignee</label>
+                  <label className="block text-duston-muted mb-1 font-medium">Responsible Party</label>
                   <select
                     value={newItemAssignee}
                     onChange={(e) => setNewItemAssignee(e.target.value)}

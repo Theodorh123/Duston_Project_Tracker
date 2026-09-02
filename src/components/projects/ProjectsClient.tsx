@@ -144,15 +144,15 @@ export function ProjectsClient({
             </select>
           </div>
 
-          {/* Owner Filter */}
+          {/* Responsible Party Filter */}
           <div>
-            <label className="block text-duston-muted mb-1 font-medium">Owner</label>
+            <label className="block text-duston-muted mb-1 font-medium">Responsible Party</label>
             <select
               value={selectedOwner}
               onChange={(e) => setSelectedOwner(e.target.value)}
               className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
             >
-              <option value="all">All owners</option>
+              <option value="all">All responsible parties</option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
@@ -207,9 +207,9 @@ export function ProjectsClient({
               <thead>
                 <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
                   <th className="py-3 px-4">Project name</th>
-                  <th className="py-3 px-4">Entity</th>
+                  <th className="py-3 px-4">Subsidiary</th>
                   <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Owner</th>
+                  <th className="py-3 px-4">Responsible Party</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Target date</th>
                   <th className="py-3 px-4 text-right">Open items</th>
