@@ -58,6 +58,16 @@ export function TopBar({
           <Menu size={18} strokeWidth={1.5} />
         </button>
 
+        {/* Mobile Duston Group Logo */}
+        <Link href="/" className="lg:hidden flex items-center shrink-0 mr-1" title="Duston Group — Return to Dashboard">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-duston-group.png"
+            alt="Duston Group"
+            className="h-7 w-auto object-contain"
+          />
+        </Link>
+
         {/* Search trigger button */}
         <button
           onClick={onOpenSearch}

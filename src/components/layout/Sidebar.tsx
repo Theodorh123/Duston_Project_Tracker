@@ -91,12 +91,12 @@ export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile 
       >
         {/* Duston Logotype Header */}
         <div className="px-5 py-4 flex items-center justify-between border-b border-duston-border/50">
-          <Link href="/" className="flex items-center">
+          <Link href="/" className="flex items-center py-1 hover:opacity-85 transition-opacity" title="Duston Group — Return to Dashboard">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-duston-group.png"
               alt="Duston Group"
-              className="h-9 sm:h-10 w-auto object-contain"
+              className="h-11 sm:h-12 w-auto max-w-[185px] object-contain"
             />
           </Link>
           <button

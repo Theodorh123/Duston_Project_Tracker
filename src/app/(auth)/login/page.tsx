@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowRight, CheckCircle2, ShieldCheck, Zap } from "lucide-react";
 
 export default function LoginPage() {
@@ -54,12 +55,14 @@ export default function LoginPage() {
           <div className="relative z-10">
             {/* Prominent Large Duston Group Logo */}
             <div className="mb-8">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/logo-duston-group.png"
-                alt="Duston Group"
-                className="h-14 sm:h-16 w-auto object-contain bg-white/95 rounded-xl px-4 py-2"
-              />
+              <Link href="/" className="inline-block hover:opacity-90 transition-opacity" title="Duston Group — Return to Dashboard">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo-duston-group.png"
+                  alt="Duston Group"
+                  className="h-20 sm:h-24 max-w-[320px] w-auto object-contain bg-white/95 rounded-2xl px-6 py-4 shadow-md"
+                />
+              </Link>
             </div>
 
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#1BCECE] text-xs font-medium mb-4">
