@@ -35,6 +35,7 @@ export interface ActionItemSummary {
   priority: "low" | "medium" | "high" | "critical";
   assigneeId: string;
   assigneeName: string;
+  tag?: string | null;
 }
 
 export interface MeetingSummary {
@@ -639,6 +640,14 @@ export function DashboardClient({
                               <span>{item.entityName}</span>
                               <span>•</span>
                               <span>{item.projectName}</span>
+                              {item.tag && (
+                                <>
+                                  <span>•</span>
+                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                                    {item.tag}
+                                  </span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -685,6 +694,14 @@ export function DashboardClient({
                               <span>{item.entityName}</span>
                               <span>•</span>
                               <span>{item.projectName}</span>
+                              {item.tag && (
+                                <>
+                                  <span>•</span>
+                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                                    {item.tag}
+                                  </span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -733,6 +750,14 @@ export function DashboardClient({
                               <span>{item.entityName}</span>
                               <span>•</span>
                               <span>{item.projectName}</span>
+                              {item.tag && (
+                                <>
+                                  <span>•</span>
+                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                                    {item.tag}
+                                  </span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -777,6 +802,14 @@ export function DashboardClient({
                               <span>{item.entityName}</span>
                               <span>•</span>
                               <span>{item.projectName}</span>
+                              {item.tag && (
+                                <>
+                                  <span>•</span>
+                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                                    {item.tag}
+                                  </span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -972,16 +1005,23 @@ export function DashboardClient({
                               <div className="text-xs font-medium text-duston-dark line-clamp-2">
                                 {item.title}
                               </div>
-                              <div className="flex items-center justify-between text-[11px]">
-                                <span
-                                  className="px-1.5 py-0.5 rounded text-[10px] font-medium truncate max-w-[130px]"
-                                  style={{
-                                    backgroundColor: `${item.entityBrandColor}15`,
-                                    color: item.entityBrandColor,
-                                  }}
-                                >
-                                  {item.entityName}
-                                </span>
+                              <div className="flex items-center justify-between text-[11px] gap-1">
+                                <div className="flex items-center gap-1.5 truncate max-w-[170px]">
+                                  <span
+                                    className="px-1.5 py-0.5 rounded text-[10px] font-medium truncate"
+                                    style={{
+                                      backgroundColor: `${item.entityBrandColor}15`,
+                                      color: item.entityBrandColor,
+                                    }}
+                                  >
+                                    {item.entityName}
+                                  </span>
+                                  {item.tag && (
+                                    <span className="px-1.5 py-0.2 rounded text-[9px] font-medium bg-purple-50 text-purple-700 border border-purple-200 truncate">
+                                      {item.tag}
+                                    </span>
+                                  )}
+                                </div>
                                 <span
                                   className={cn(
                                     "text-[10px]",

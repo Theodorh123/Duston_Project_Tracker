@@ -81,6 +81,7 @@ export function ImportRegisterModal({
 
   // Staging items
   const [items, setItems] = useState<StagingActionItem[]>([]);
+  const [bulkExternalAssignee, setBulkExternalAssignee] = useState<string>(currentUserId);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
@@ -226,11 +227,11 @@ export function ImportRegisterModal({
           priority: it.priority,
           status: it.status,
           notes: it.isExternal
-            ? `Counterparty: ${it.rawResponsible}${it.rawDeadline ? ` (Original deadline: ${it.rawDeadline})` : ""}`
+            ? `Outsider / Counterparty Deliverable: ${it.rawResponsible}. Assigned to in-house lead to follow up.${it.rawDeadline ? ` Original deadline: ${it.rawDeadline}` : ""}`
             : it.rawDeadline && it.rawDeadline !== it.deadline
             ? `Original deadline: ${it.rawDeadline}`
             : undefined,
-          tag: it.isExternal ? "Counterparty" : undefined,
+          tag: it.isExternal ? `Follow-up: ${it.rawResponsible}` : undefined,
         })),
       });
 
@@ -513,6 +514,52 @@ export function ImportRegisterModal({
                 </div>
               </div>
 
+              {/* Outsider Follow-Up Batch Helper */}
+              {items.some((i) => i.isExternal) && (
+                <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-purple-900">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-purple-200 text-purple-800 flex items-center justify-center shrink-0">
+                      <User size={13} />
+                    </div>
+                    <div>
+                      <span className="font-semibold block">
+                        Outsider / Counterparty Deliverables Detected
+                      </span>
+                      <p className="text-[11px] text-purple-700">
+                        {items.filter((i) => i.isExternal).length} deliverables belong to external parties (e.g. TOTSA, Eugene). Assign an in-house person to follow up:
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                    <select
+                      value={bulkExternalAssignee}
+                      onChange={(e) => setBulkExternalAssignee(e.target.value)}
+                      className="bg-white border border-purple-300 rounded-lg px-2.5 py-1 text-xs text-duston-dark outline-none focus:border-purple-500"
+                    >
+                      {users.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setItems(
+                          items.map((it) =>
+                            it.isExternal ? { ...it, assigneeId: bulkExternalAssignee } : it
+                          )
+                        );
+                      }}
+                      className="px-2.5 py-1 bg-purple-700 hover:bg-purple-800 text-white rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                    >
+                      Apply to all outsiders
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Table Action Controls */}
               <div className="flex items-center justify-between text-xs px-1">
                 <div className="flex items-center gap-2">
@@ -544,7 +591,7 @@ export function ImportRegisterModal({
                       <th className="py-2.5 px-3 w-8 text-center"></th>
                       <th className="py-2.5 px-2 w-10 text-center">#</th>
                       <th className="py-2.5 px-3">Action Item Description</th>
-                      <th className="py-2.5 px-3 w-48">Responsible Party</th>
+                      <th className="py-2.5 px-3 w-56">Responsible / Follow-Up Lead</th>
                       <th className="py-2.5 px-3 w-36">Deadline</th>
                       <th className="py-2.5 px-3 w-28">Priority</th>
                       <th className="py-2.5 px-2 w-8"></th>
@@ -599,27 +646,57 @@ export function ImportRegisterModal({
                           )}
                         </td>
 
-                        {/* Assignee Dropdown */}
+                        {/* Assignee / In-House Follow-up Lead */}
                         <td className="py-2 px-3">
-                          <select
-                            value={item.assigneeId}
-                            onChange={(e) => {
-                              const updated = [...items];
-                              updated[idx].assigneeId = e.target.value;
-                              setItems(updated);
-                            }}
-                            className="w-full bg-white border border-duston-border rounded-lg px-2 py-1.5 text-xs text-duston-text outline-none focus:border-[#1BCECE]"
-                          >
-                            {users.map((u) => (
-                              <option key={u.id} value={u.id}>
-                                {u.name}
-                              </option>
-                            ))}
-                          </select>
-                          {item.rawResponsible && (
-                            <span className="text-[10px] text-duston-muted block mt-0.5 truncate" title={`From minutes: ${item.rawResponsible}`}>
-                              File: {item.rawResponsible}
-                            </span>
+                          {item.isExternal ? (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5 text-[10px] text-purple-700 font-medium">
+                                <span className="w-1.5 h-1.5 rounded-full bg-purple-600 shrink-0" />
+                                <span className="truncate">Outsider: <strong>{item.rawResponsible}</strong></span>
+                              </div>
+                              <select
+                                value={item.assigneeId}
+                                onChange={(e) => {
+                                  const updated = [...items];
+                                  updated[idx].assigneeId = e.target.value;
+                                  setItems(updated);
+                                }}
+                                className="w-full bg-purple-50/70 border border-purple-200 rounded-lg px-2 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE]"
+                                title={`Assign in-house follower for ${item.rawResponsible}`}
+                              >
+                                {users.map((u) => (
+                                  <option key={u.id} value={u.id}>
+                                    Follow-up: {u.name}
+                                  </option>
+                                ))}
+                              </select>
+                              <span className="text-[9px] text-purple-600 block truncate">
+                                In-house person to chase {item.rawResponsible}
+                              </span>
+                            </div>
+                          ) : (
+                            <div>
+                              <select
+                                value={item.assigneeId}
+                                onChange={(e) => {
+                                  const updated = [...items];
+                                  updated[idx].assigneeId = e.target.value;
+                                  setItems(updated);
+                                }}
+                                className="w-full bg-white border border-duston-border rounded-lg px-2 py-1.5 text-xs text-duston-text outline-none focus:border-[#1BCECE]"
+                              >
+                                {users.map((u) => (
+                                  <option key={u.id} value={u.id}>
+                                    {u.name}
+                                  </option>
+                                ))}
+                              </select>
+                              {item.rawResponsible && (
+                                <span className="text-[10px] text-duston-muted block mt-0.5 truncate" title={`From minutes: ${item.rawResponsible}`}>
+                                  File: {item.rawResponsible}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </td>
 

@@ -88,6 +88,7 @@ export default async function DashboardPage({
     priority: item.priority as any,
     assigneeId: item.assigneeId,
     assigneeName: item.assignee.name,
+    tag: item.tag,
   }));
 
   // Filter items by allowed entities if restricted
