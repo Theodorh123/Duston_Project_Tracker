@@ -31,7 +31,6 @@ export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile 
 
   const mainNav = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Action Register", href: "/action-items", icon: ClipboardList },
     { name: "Projects", href: "/projects", icon: FolderKanban },
     { name: "Meetings", href: "/meetings", icon: CalendarDays },
   ];
@@ -39,6 +38,7 @@ export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile 
   const viewsNav = [
     ...(isEa ? [{ name: "EA view", href: "/ea-view", icon: ShieldAlert }] : []),
     ...(isCeo ? [{ name: "CEO view", href: "/ceo-view", icon: BarChart3 }] : []),
+    { name: "Action register", href: "/action-items", icon: ClipboardList },
   ];
 
   const settingsNav = [

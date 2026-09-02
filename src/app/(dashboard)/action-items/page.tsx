@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { actionItems, entities, users, projects, userEntityAccess } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { Suspense } from "react";
 import { ActionRegisterClient, RegisterItem } from "@/components/action-items/ActionRegisterClient";
 
 export default async function ActionRegisterPage() {
@@ -84,14 +85,16 @@ export default async function ActionRegisterPage() {
     }));
 
   return (
-    <ActionRegisterClient
-      items={mappedItems}
-      entities={scopedEntities}
-      projects={scopedProjects}
-      users={scopedUsers}
-      currentUserId={userId}
-      currentUserName={currentUser?.name || "User"}
-      userRole={currentUser?.role}
-    />
+    <Suspense fallback={null}>
+      <ActionRegisterClient
+        items={mappedItems}
+        entities={scopedEntities}
+        projects={scopedProjects}
+        users={scopedUsers}
+        currentUserId={userId}
+        currentUserName={currentUser?.name || "User"}
+        userRole={currentUser?.role}
+      />
+    </Suspense>
   );
 }

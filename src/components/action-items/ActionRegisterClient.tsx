@@ -18,7 +18,7 @@ import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
 import { ImportRegisterModal } from "./ImportRegisterModal";
 import { useAppShell } from "../layout/AppShell";
 import { updateActionItemField } from "@/lib/actions/action-items";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export interface RegisterItem {
   id: string;
@@ -69,7 +69,9 @@ export function ActionRegisterClient({
   }, [initialItems]);
 
   // Primary Scope: "my" (My Action Items) vs "global" (All Action Items)
-  const [scope, setScope] = useState<"my" | "global">("my");
+  const searchParams = useSearchParams();
+  const initialScope = searchParams.get("scope") === "global" ? "global" : "my";
+  const [scope, setScope] = useState<"my" | "global">(initialScope);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
