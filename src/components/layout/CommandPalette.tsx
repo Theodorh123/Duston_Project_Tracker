@@ -4,6 +4,14 @@ import { useState, useEffect, useRef } from "react";
 import { Search, X, FolderKanban, CheckSquare, CalendarDays } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+interface SearchResult {
+  type: "project" | "action" | "meeting";
+  id: string;
+  title: string;
+  entity: string;
+  href?: string;
+}
+
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
@@ -12,6 +20,8 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ isOpen, onClose, onSelectActionItem }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -20,6 +30,7 @@ export function CommandPalette({ isOpen, onClose, onSelectActionItem }: CommandP
       setTimeout(() => inputRef.current?.focus(), 50);
     } else {
       setQuery("");
+      setResults([]);
     }
   }, [isOpen]);
 
@@ -29,8 +40,6 @@ export function CommandPalette({ isOpen, onClose, onSelectActionItem }: CommandP
         e.preventDefault();
         if (isOpen) {
           onClose();
-        } else {
-          // Open handled by caller or state
         }
       }
       if (e.key === "Escape" && isOpen) {
@@ -41,21 +50,26 @@ export function CommandPalette({ isOpen, onClose, onSelectActionItem }: CommandP
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Debounced search query
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setLoading(true);
+      fetch(`/api/search?q=${encodeURIComponent(query)}`)
+        .then((res) => (res.ok ? res.json() : { results: [] }))
+        .then((data) => setResults(data.results || []))
+        .catch(() => setResults([]))
+        .finally(() => setLoading(false));
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
   if (!isOpen) return null;
-
-  // Mock static search results for instant response
-  const sampleItems = [
-    { type: "project", title: "EBID Trade Finance Facility (USD 50M)", entity: "MOSL Ltd", href: "/projects" },
-    { type: "project", title: "Glencore Retail CAPEX Loan (USD 20M)", entity: "ICON Energy", href: "/projects" },
-    { type: "action", title: "Submit draft term sheet to Stanbic", entity: "MOSL Ltd", id: "ai-1" },
-    { type: "action", title: "Review BELA legal opinion on covenant package", entity: "MOSL Ltd", id: "ai-2" },
-    { type: "meeting", title: "MOSL Board & Financing Committee Review", entity: "MOSL Ltd", href: "/meetings" },
-  ];
-
-  const filtered = sampleItems.filter((i) =>
-    i.title.toLowerCase().includes(query.toLowerCase()) ||
-    i.entity.toLowerCase().includes(query.toLowerCase())
-  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/40 backdrop-blur-sm">
@@ -84,18 +98,24 @@ export function CommandPalette({ isOpen, onClose, onSelectActionItem }: CommandP
 
         {/* Results list */}
         <div className="max-h-80 overflow-y-auto p-2">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="py-6 text-center text-xs text-duston-muted">Searching...</div>
+          ) : query.trim() && results.length === 0 ? (
             <div className="py-8 text-center text-xs text-duston-muted">
               No results found for &ldquo;{query}&rdquo;
             </div>
+          ) : !query.trim() ? (
+            <div className="py-8 text-center text-xs text-duston-muted">
+              Type keywords to search across projects, action items, and meetings.
+            </div>
           ) : (
             <div className="space-y-1">
-              {filtered.map((item, idx) => {
+              {results.map((item) => {
                 const isProject = item.type === "project";
                 const isMeeting = item.type === "meeting";
                 return (
                   <div
-                    key={idx}
+                    key={item.id}
                     onClick={() => {
                       onClose();
                       if (item.type === "action" && onSelectActionItem && item.id) {

@@ -66,9 +66,9 @@ export default async function AdminPage() {
 
   const mappedActivities: AdminActivityLog[] = allActivities.map((a) => ({
     id: a.id,
-    actorName: a.actor.name,
-    actionItemTitle: a.actionItem.title,
-    entityName: a.actionItem.project.entity.name,
+    actorName: a.actor?.name || "System",
+    actionItemTitle: a.actionItem?.title || "Action item",
+    entityName: a.actionItem?.project?.entity?.name || "General",
     eventType: a.eventType,
     fromValue: a.fromValue,
     toValue: a.toValue,

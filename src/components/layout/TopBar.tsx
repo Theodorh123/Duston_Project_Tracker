@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Bell, Menu, Search } from "lucide-react";
 import Link from "next/link";
+import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
 export interface EntityFilter {
@@ -186,12 +187,12 @@ export function TopBar({
               >
                 Account settings
               </Link>
-              <Link
-                href="/api/auth/signout"
-                className="block px-4 py-2 text-xs text-duston-orange hover:bg-duston-bg"
+              <button
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="w-full text-left block px-4 py-2 text-xs text-duston-orange hover:bg-duston-bg"
               >
                 Sign out
-              </Link>
+              </button>
             </div>
           )}
         </div>

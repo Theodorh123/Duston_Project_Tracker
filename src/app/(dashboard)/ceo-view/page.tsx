@@ -42,7 +42,7 @@ export default async function CeoViewPage() {
       const catProjects = allProjects.filter(
         (p) => p.entityId === ent.id && p.category === cat
       );
-      const catItems = catProjects.flatMap((p) => p.actionItems);
+      const catItems = catProjects.flatMap((p) => p.actionItems || []);
       const openItems = catItems.filter((i) => i.status !== "done");
       const overdueItems = openItems.filter((i) => isDeadlineOverdue(i.deadline, i.status));
 
@@ -92,17 +92,17 @@ export default async function CeoViewPage() {
   });
 
   const topRisks: RiskItem[] = blockedItems
-    .filter((it) => it.priority === "critical" || (it.project.sponsorId && it.project.sponsorId === ceoUserId))
+    .filter((it) => it.priority === "critical" || (it.project?.sponsorId && it.project.sponsorId === ceoUserId))
     .map((it) => {
       const daysBlocked = Math.max(1, getDaysOverdue(it.updatedAt));
-      const blockerComment = it.comments[0]?.body || it.description || it.activityLogs[0]?.note || "Awaiting external contractor milestone sign-off";
+      const blockerComment = it.comments?.[0]?.body || it.description || it.activityLogs?.[0]?.note || "Awaiting external contractor milestone sign-off";
 
       return {
         id: it.id,
         title: it.title,
-        projectName: it.project.name,
-        entityName: it.project.entity.name,
-        entityBrandColor: it.project.entity.brandPrimaryColor,
+        projectName: it.project?.name || "Initiative",
+        entityName: it.project?.entity?.name || "Subsidiary",
+        entityBrandColor: it.project?.entity?.brandPrimaryColor || "#023542",
         blockerReason: blockerComment,
         daysBlocked,
         priority: it.priority,

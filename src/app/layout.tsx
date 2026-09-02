@@ -20,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={mavenPro.variable}>
-      <body className="bg-duston-bg text-duston-text font-sans antialiased min-h-screen">
+    <html lang="en" className={mavenPro.variable} suppressHydrationWarning>
+      <body className="bg-duston-bg text-duston-text font-sans antialiased min-h-screen" suppressHydrationWarning>
         {children}
       </body>
     </html>

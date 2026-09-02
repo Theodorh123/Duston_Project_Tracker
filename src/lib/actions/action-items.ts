@@ -6,7 +6,13 @@ import { eq, sql, desc, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { sendWhatsApp } from "../services/whatsapp";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getActionItemById(id: string) {
+  if (!id || !UUID_REGEX.test(id)) {
+    return null;
+  }
+
   try {
     const item = await db.query.actionItems.findFirst({
       where: eq(actionItems.id, id),
@@ -38,13 +44,13 @@ export async function getActionItemById(id: string) {
     return {
       id: item.id,
       projectId: item.projectId,
-      projectName: item.project?.name,
-      entityName: item.project?.entity?.name,
-      entityBrandColor: item.project?.entity?.brandPrimaryColor,
+      projectName: item.project?.name || "Project",
+      entityName: item.project?.entity?.name || "Entity",
+      entityBrandColor: item.project?.entity?.brandPrimaryColor || "#023542",
       title: item.title,
       description: item.description,
       assigneeId: item.assigneeId,
-      assigneeName: item.assignee?.name,
+      assigneeName: item.assignee?.name || "Assignee",
       deadline: item.deadline,
       status: item.status,
       priority: item.priority,
@@ -53,13 +59,13 @@ export async function getActionItemById(id: string) {
       sourceMeetingSubject: item.sourceMeeting?.subject,
       comments: item.comments?.map((c) => ({
         id: c.id,
-        userName: c.user.name,
+        userName: c.user?.name || "User",
         body: c.body,
         createdAt: c.createdAt.toISOString(),
       })),
       activityLogs: item.activityLogs?.map((a) => ({
         id: a.id,
-        actorName: a.actor.name,
+        actorName: a.actor?.name || "Team Member",
         eventType: a.eventType,
         fromValue: a.fromValue,
         toValue: a.toValue,
@@ -77,8 +83,12 @@ export async function updateActionItemField(
   id: string,
   field: string,
   value: any,
-  actorId: string = "00000000-0000-0000-0000-000000000000"
+  actorId?: string
 ) {
+  if (!id || !UUID_REGEX.test(id)) {
+    return { success: false, error: "Invalid ID" };
+  }
+
   try {
     const current = await db.query.actionItems.findFirst({
       where: eq(actionItems.id, id),
@@ -96,17 +106,23 @@ export async function updateActionItemField(
 
     await db.update(actionItems).set(updateData).where(eq(actionItems.id, id));
 
+    // Ensure actorId is a valid user in the database or fallback to current.assigneeId
+    const safeActorId =
+      actorId && UUID_REGEX.test(actorId) && actorId !== "00000000-0000-0000-0000-000000000000"
+        ? actorId
+        : current.assigneeId;
+
     // Log activity
     await db.insert(activityLog).values({
       actionItemId: id,
-      actorId: actorId === "00000000-0000-0000-0000-000000000000" ? current.assigneeId : actorId,
+      actorId: safeActorId,
       eventType: field === "status" ? "status_change" : field === "assigneeId" ? "reassign" : "status_change",
       fromValue: String((current as any)[field] ?? ""),
       toValue: String(value),
       note: `Updated ${field} to ${value}`,
     });
 
-    // WhatsApp nudge / notification if status changed to blocked or critical
+    // WhatsApp nudge / notification if status changed to blocked
     if (field === "status" && value === "blocked") {
       await sendWhatsApp(
         current.assigneeId,
