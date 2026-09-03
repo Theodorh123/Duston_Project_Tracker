@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ShieldAlert, BarChart3, ArrowRight, Flame, CheckCircle2, AlertTriangle } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { useAppShell } from "../layout/AppShell";
+import { PriorityFlag } from "@/components/ui/PriorityFlag";
 
 export interface HeatmapCell {
   entityId: string;
@@ -220,6 +221,7 @@ export function CeoViewClient({
               <thead>
                 <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
                   <th className="py-2.5 px-3">Item</th>
+                  <th className="py-2.5 px-3">Priority</th>
                   <th className="py-2.5 px-3">Project</th>
                   <th className="py-2.5 px-3">Entity</th>
                   <th className="py-2.5 px-3">Attention notes</th>
@@ -235,6 +237,9 @@ export function CeoViewClient({
                   >
                     <td className="py-3 px-3 font-medium text-duston-dark max-w-xs truncate">
                       {risk.title}
+                    </td>
+                    <td className="py-3 px-3">
+                      <PriorityFlag priority={risk.priority} />
                     </td>
                     <td className="py-3 px-3 text-duston-muted max-w-[160px] truncate">
                       {risk.projectName}

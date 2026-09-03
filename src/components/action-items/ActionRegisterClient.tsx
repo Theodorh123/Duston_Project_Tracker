@@ -13,12 +13,14 @@ import {
   Calendar,
   X,
   ChevronRight,
+  Flag,
 } from "lucide-react";
 import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
 import { ImportRegisterModal } from "./ImportRegisterModal";
 import { useAppShell } from "../layout/AppShell";
 import { updateActionItemField } from "@/lib/actions/action-items";
 import { useRouter, useSearchParams } from "next/navigation";
+import { PriorityFlag } from "@/components/ui/PriorityFlag";
 
 export interface RegisterItem {
   id: string;
@@ -81,6 +83,7 @@ export function ActionRegisterClient({
   const [selectedAssignee, setSelectedAssignee] = useState<string>("all");
   const [selectedDeliverableType, setSelectedDeliverableType] = useState<"all" | "in_house" | "outsider">("all");
   const [selectedPriority, setSelectedPriority] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"table" | "priority">("table");
 
   // Import Modal
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -91,44 +94,73 @@ export function ActionRegisterClient({
     return projects.filter((p) => p.entityId === selectedEntity);
   }, [projects, selectedEntity]);
 
-  // Combined filtering logic
+  // Filter items based on active criteria
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      // Global AppShell entity selector
-      if (selectedEntityId && item.entityId !== selectedEntityId) return false;
-
-      // 1. Primary Scope Filter
-      if (scope === "my") {
-        if (item.assigneeId !== currentUserId) return false;
+      // 1. Primary Scope: "my" items vs "global"
+      if (scope === "my" && item.assigneeId !== currentUserId) {
+        return false;
       }
 
-      // 2. Subsidiary Filter
-      if (selectedEntity !== "all" && item.entityId !== selectedEntity) return false;
-
-      // 3. Project Filter
-      if (selectedProject !== "all" && item.projectId !== selectedProject) return false;
-
-      // 4. Status Filter
-      if (selectedStatus === "open") {
-        if (item.status === "done") return false;
-      } else if (selectedStatus === "overdue") {
-        if (!isDeadlineOverdue(item.deadline, item.status)) return false;
-      } else if (selectedStatus !== "all") {
-        if (item.status !== selectedStatus) return false;
+      // 2. Global Entity Filter (AppShell TopBar)
+      if (selectedEntityId && item.entityId !== selectedEntityId) {
+        return false;
       }
 
-      // 5. Assignee Filter
-      if (selectedAssignee !== "all" && item.assigneeId !== selectedAssignee) return false;
+      // 3. Subsidiary Filter (in-page dropdown)
+      if (selectedEntity !== "all" && item.entityId !== selectedEntity) {
+        return false;
+      }
 
-      // 6. Deliverable Type Filter (In-house vs Outsider)
-      const isOutsider = !!item.tag && (item.tag.toLowerCase().includes("follow-up") || item.tag.toLowerCase().includes("external") || item.tag.toLowerCase().includes("counterparty"));
-      if (selectedDeliverableType === "outsider" && !isOutsider) return false;
-      if (selectedDeliverableType === "in_house" && isOutsider) return false;
+      // 4. Project Filter
+      if (selectedProject !== "all" && item.projectId !== selectedProject) {
+        return false;
+      }
 
-      // 7. Priority Filter
-      if (selectedPriority !== "all" && item.priority !== selectedPriority) return false;
+      // 5. Status Filter
+      if (selectedStatus === "open" && item.status === "done") {
+        return false;
+      }
+      if (selectedStatus === "in_progress" && item.status !== "in_progress") {
+        return false;
+      }
+      if (selectedStatus === "done" && item.status !== "done") {
+        return false;
+      }
+      if (selectedStatus === "overdue") {
+        if (item.status === "done" || !isDeadlineOverdue(item.deadline, item.status)) {
+          return false;
+        }
+      }
 
-      // 8. Search query
+      // 6. Assignee Filter
+      if (selectedAssignee !== "all" && item.assigneeId !== selectedAssignee) {
+        return false;
+      }
+
+      // 7. Deliverable Type Filter (Internal vs External/Counterparty)
+      if (selectedDeliverableType === "in_house") {
+        const isOutsider =
+          item.tag &&
+          (item.tag.toLowerCase().includes("follow-up") ||
+            item.tag.toLowerCase().includes("external") ||
+            item.tag.toLowerCase().includes("counterparty"));
+        if (isOutsider) return false;
+      } else if (selectedDeliverableType === "outsider") {
+        const isOutsider =
+          item.tag &&
+          (item.tag.toLowerCase().includes("follow-up") ||
+            item.tag.toLowerCase().includes("external") ||
+            item.tag.toLowerCase().includes("counterparty"));
+        if (!isOutsider) return false;
+      }
+
+      // 8. Priority Filter
+      if (selectedPriority !== "all" && item.priority !== selectedPriority) {
+        return false;
+      }
+
+      // 9. Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesTitle = item.title.toLowerCase().includes(q);
@@ -177,8 +209,21 @@ export function ActionRegisterClient({
     const inProgress = scopedAll.filter((i) => i.status === "in_progress").length;
     const done = scopedAll.filter((i) => i.status === "done").length;
     const overdue = scopedAll.filter((i) => isDeadlineOverdue(i.deadline, i.status)).length;
-    return { total, open, inProgress, done, overdue };
+    const critical = scopedAll.filter((i) => i.priority === "critical" && i.status !== "done").length;
+    const high = scopedAll.filter((i) => i.priority === "high" && i.status !== "done").length;
+    const medium = scopedAll.filter((i) => i.priority === "medium" && i.status !== "done").length;
+    const low = scopedAll.filter((i) => i.priority === "low" && i.status !== "done").length;
+    return { total, open, inProgress, done, overdue, critical, high, medium, low };
   }, [scopedAll]);
+
+  const groupedByPriority = useMemo(() => {
+    return {
+      critical: filteredItems.filter((i) => i.priority === "critical"),
+      high: filteredItems.filter((i) => i.priority === "high"),
+      medium: filteredItems.filter((i) => i.priority === "medium"),
+      low: filteredItems.filter((i) => i.priority === "low"),
+    };
+  }, [filteredItems]);
 
   // Quick toggle item status (Done <-> In Progress)
   const handleToggleStatus = async (item: RegisterItem) => {
@@ -256,6 +301,166 @@ export function ActionRegisterClient({
     selectedAssignee !== "all" ||
     selectedDeliverableType !== "all" ||
     selectedPriority !== "all";
+
+  const renderRegisterRow = (item: RegisterItem, idx: number) => {
+    const isOverdue = isDeadlineOverdue(item.deadline, item.status);
+    const isOutsider =
+      !!item.tag &&
+      (item.tag.toLowerCase().includes("follow-up") ||
+        item.tag.toLowerCase().includes("external") ||
+        item.tag.toLowerCase().includes("counterparty"));
+
+    return (
+      <tr
+        key={item.id}
+        onClick={() => openActionItem(item.id)}
+        className={cn(
+          "hover:bg-duston-bg/50 transition-colors cursor-pointer group",
+          item.status === "done" && "opacity-60 bg-duston-bg/15"
+        )}
+      >
+        {/* 1. Item No. */}
+        <td className="py-3 px-3 text-center text-duston-muted font-mono text-[11px]">
+          {idx + 1}
+        </td>
+
+        {/* 2. Action Item Description */}
+        <td className="py-3 px-4">
+          <div className="space-y-1">
+            <div className="font-medium text-duston-dark group-hover:text-[#023542] transition-colors line-clamp-2">
+              {item.title}
+            </div>
+
+            {item.description && (
+              <p className="text-[11px] text-duston-muted line-clamp-1">
+                {item.description}
+              </p>
+            )}
+
+            {item.sourceMeetingSubject && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-duston-muted font-medium bg-duston-bg px-2 py-0.5 rounded border border-duston-border/60">
+                <Calendar size={10} />
+                <span className="truncate max-w-[200px]">
+                  Minutes: {item.sourceMeetingSubject}
+                </span>
+              </span>
+            )}
+          </div>
+        </td>
+
+        {/* 3. Priority Flag */}
+        <td className="py-3 px-3">
+          <PriorityFlag priority={item.priority} />
+        </td>
+
+        {/* 4. Responsible Party / Follow-up Lead */}
+        <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+          {isOutsider ? (
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-800 border border-purple-200">
+                  {item.tag}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] text-duston-dark font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
+                <span className="truncate">Lead: {item.assigneeName}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-[#023542]/10 text-[#023542] text-[10px] font-semibold flex items-center justify-center shrink-0">
+                {item.assigneeName
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </div>
+              <span className="font-medium text-duston-dark truncate">
+                {item.assigneeName}
+              </span>
+            </div>
+          )}
+        </td>
+
+        {/* 5. Deadline */}
+        <td className="py-3 px-4">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded font-medium",
+              isOverdue
+                ? "bg-duston-orange/10 text-duston-orange border border-duston-orange/20"
+                : item.status === "done"
+                ? "text-duston-muted"
+                : "bg-duston-bg text-duston-dark border border-duston-border/70"
+            )}
+          >
+            <Clock size={11} />
+            <span>{formatDate(item.deadline)}</span>
+          </span>
+        </td>
+
+        {/* 6. Status with Inline Quick Toggle */}
+        <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => handleToggleStatus(item)}
+            className={cn(
+              "px-2.5 py-1 rounded-full text-[10px] font-medium inline-flex items-center gap-1.5 transition-all cursor-pointer",
+              item.status === "done"
+                ? "bg-[#39B54A]/15 text-[#39B54A] hover:bg-[#39B54A]/25"
+                : item.status === "in_progress"
+                ? "bg-[#1BCECE]/15 text-[#023542] hover:bg-[#1BCECE]/25"
+                : "bg-duston-bg text-duston-muted border border-duston-border hover:bg-duston-border/50"
+            )}
+            title="Toggle status"
+          >
+            <span
+              className={cn(
+                "w-1.5 h-1.5 rounded-full",
+                item.status === "done"
+                  ? "bg-[#39B54A]"
+                  : item.status === "in_progress"
+                  ? "bg-[#1BCECE]"
+                  : "bg-duston-muted"
+              )}
+            />
+            <span>
+              {item.status === "done"
+                ? "Done"
+                : item.status === "in_progress"
+                ? "In progress"
+                : "Not started"}
+            </span>
+          </button>
+        </td>
+
+        {/* 7. Project & Subsidiary */}
+        <td className="py-3 px-4">
+          <div className="space-y-0.5">
+            <span
+              className="px-1.5 py-0.2 rounded text-[9px] font-medium inline-block truncate max-w-[130px]"
+              style={{
+                backgroundColor: `${item.entityBrandColor}15`,
+                color: item.entityBrandColor,
+              }}
+            >
+              {item.entityName}
+            </span>
+            <p className="text-[11px] text-duston-dark font-medium truncate max-w-[150px]">
+              {item.projectName}
+            </p>
+          </div>
+        </td>
+
+        {/* 8. Action Arrow */}
+        <td className="py-3 px-3 text-center text-duston-muted group-hover:text-[#023542]">
+          <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -427,6 +632,100 @@ export function ActionRegisterClient({
             <span className="text-lg font-semibold text-[#39B54A]">{stats.done}</span>
           </div>
         </div>
+
+        {/* Interactive Priority Distribution Summary & View Mode Switcher */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-duston-border/60">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-semibold text-duston-muted flex items-center gap-1 mr-1">
+              <Flag size={11} className="text-[#023542]" /> Priority breakdown:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedPriority(selectedPriority === "critical" ? "all" : "critical")}
+              className={cn(
+                "px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all cursor-pointer",
+                selectedPriority === "critical"
+                  ? "bg-rose-600 text-white border-rose-600 shadow-xs"
+                  : "bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100"
+              )}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+              <span>Critical:</span>
+              <span className="font-bold">{stats.critical}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPriority(selectedPriority === "high" ? "all" : "high")}
+              className={cn(
+                "px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all cursor-pointer",
+                selectedPriority === "high"
+                  ? "bg-amber-600 text-white border-amber-600 shadow-xs"
+                  : "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
+              )}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span>High:</span>
+              <span className="font-bold">{stats.high}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPriority(selectedPriority === "medium" ? "all" : "medium")}
+              className={cn(
+                "px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all cursor-pointer",
+                selectedPriority === "medium"
+                  ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                  : "bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100"
+              )}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <span>Medium:</span>
+              <span className="font-bold">{stats.medium}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPriority(selectedPriority === "low" ? "all" : "low")}
+              className={cn(
+                "px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all cursor-pointer",
+                selectedPriority === "low"
+                  ? "bg-slate-700 text-white border-slate-700 shadow-xs"
+                  : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+              )}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+              <span>Low:</span>
+              <span className="font-bold">{stats.low}</span>
+            </button>
+          </div>
+
+          {/* Table View vs Group by Priority View Toggle */}
+          <div className="flex items-center bg-duston-bg p-0.5 rounded-lg border border-duston-border">
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={cn(
+                "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer",
+                viewMode === "table"
+                  ? "bg-white text-duston-dark shadow-2xs font-semibold"
+                  : "text-duston-muted hover:text-duston-dark"
+              )}
+            >
+              Table View
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("priority")}
+              className={cn(
+                "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1",
+                viewMode === "priority"
+                  ? "bg-white text-[#023542] shadow-2xs font-semibold"
+                  : "text-duston-muted hover:text-duston-dark"
+              )}
+            >
+              <Flag size={11} className="text-[#023542]" />
+              <span>Group by Priority</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Filter Toolbar */}
@@ -546,14 +845,15 @@ export function ActionRegisterClient({
             </button>
           )}
         </div>
-      ) : (
+      ) : viewMode === "table" ? (
         <div className="bg-white border border-duston-border rounded-2xl shadow-subtle overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[840px] text-left border-collapse text-xs">
+            <table className="w-full min-w-[900px] text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-duston-border bg-duston-bg/70 text-duston-muted font-medium text-[11px]">
                   <th className="py-3 px-3 w-12 text-center">No.</th>
-                  <th className="py-3 px-4 min-w-[280px]">Action Item</th>
+                  <th className="py-3 px-4 min-w-[260px]">Action Item</th>
+                  <th className="py-3 px-3 w-28">Priority</th>
                   <th className="py-3 px-4 w-52">Responsible Party / Follow-up</th>
                   <th className="py-3 px-4 w-36">Deadline</th>
                   <th className="py-3 px-4 w-32">Status</th>
@@ -562,160 +862,7 @@ export function ActionRegisterClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-duston-border/60">
-                {filteredItems.map((item, idx) => {
-                  const isOverdue = isDeadlineOverdue(item.deadline, item.status);
-                  const isOutsider =
-                    !!item.tag &&
-                    (item.tag.toLowerCase().includes("follow-up") ||
-                      item.tag.toLowerCase().includes("external") ||
-                      item.tag.toLowerCase().includes("counterparty"));
-
-                  return (
-                    <tr
-                      key={item.id}
-                      onClick={() => openActionItem(item.id)}
-                      className={cn(
-                        "hover:bg-duston-bg/50 transition-colors cursor-pointer group",
-                        item.status === "done" && "opacity-60 bg-duston-bg/15"
-                      )}
-                    >
-                      {/* 1. Item No. */}
-                      <td className="py-3 px-3 text-center text-duston-muted font-mono text-[11px]">
-                        {idx + 1}
-                      </td>
-
-                      {/* 2. Action Item Description */}
-                      <td className="py-3 px-4">
-                        <div className="space-y-1">
-                          <div className="font-medium text-duston-dark group-hover:text-[#023542] transition-colors line-clamp-2">
-                            {item.title}
-                          </div>
-
-                          {item.description && (
-                            <p className="text-[11px] text-duston-muted line-clamp-1">
-                              {item.description}
-                            </p>
-                          )}
-
-                          {item.sourceMeetingSubject && (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-duston-muted font-medium bg-duston-bg px-2 py-0.5 rounded border border-duston-border/60">
-                              <Calendar size={10} />
-                              <span className="truncate max-w-[200px]">
-                                Minutes: {item.sourceMeetingSubject}
-                              </span>
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* 3. Responsible Party / Follow-up Lead */}
-                      <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                        {isOutsider ? (
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-800 border border-purple-200">
-                                {item.tag}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-duston-dark font-medium">
-                              <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
-                              <span className="truncate">Lead: {item.assigneeName}</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-[#023542]/10 text-[#023542] text-[10px] font-semibold flex items-center justify-center shrink-0">
-                              {item.assigneeName
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .slice(0, 2)
-                                .toUpperCase()}
-                            </div>
-                            <span className="font-medium text-duston-dark truncate">
-                              {item.assigneeName}
-                            </span>
-                          </div>
-                        )}
-                      </td>
-
-                      {/* 4. Deadline */}
-                      <td className="py-3 px-4">
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded font-medium",
-                            isOverdue
-                              ? "bg-duston-orange/10 text-duston-orange border border-duston-orange/20"
-                              : item.status === "done"
-                              ? "text-duston-muted"
-                              : "bg-duston-bg text-duston-dark border border-duston-border/70"
-                          )}
-                        >
-                          <Clock size={11} />
-                          <span>{formatDate(item.deadline)}</span>
-                        </span>
-                      </td>
-
-                      {/* 5. Status with Inline Quick Toggle */}
-                      <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStatus(item)}
-                          className={cn(
-                            "px-2.5 py-1 rounded-full text-[10px] font-medium inline-flex items-center gap-1.5 transition-all cursor-pointer",
-                            item.status === "done"
-                              ? "bg-[#39B54A]/15 text-[#39B54A] hover:bg-[#39B54A]/25"
-                              : item.status === "in_progress"
-                              ? "bg-[#1BCECE]/15 text-[#023542] hover:bg-[#1BCECE]/25"
-                              : "bg-duston-bg text-duston-muted border border-duston-border hover:bg-duston-border/50"
-                          )}
-                          title="Toggle status"
-                        >
-                          <span
-                            className={cn(
-                              "w-1.5 h-1.5 rounded-full",
-                              item.status === "done"
-                                ? "bg-[#39B54A]"
-                                : item.status === "in_progress"
-                                ? "bg-[#1BCECE]"
-                                : "bg-duston-muted"
-                            )}
-                          />
-                          <span>
-                            {item.status === "done"
-                              ? "Done"
-                              : item.status === "in_progress"
-                              ? "In progress"
-                              : "Not started"}
-                          </span>
-                        </button>
-                      </td>
-
-                      {/* 6. Project & Subsidiary */}
-                      <td className="py-3 px-4">
-                        <div className="space-y-0.5">
-                          <span
-                            className="px-1.5 py-0.2 rounded text-[9px] font-medium inline-block truncate max-w-[130px]"
-                            style={{
-                              backgroundColor: `${item.entityBrandColor}15`,
-                              color: item.entityBrandColor,
-                            }}
-                          >
-                            {item.entityName}
-                          </span>
-                          <p className="text-[11px] text-duston-dark font-medium truncate max-w-[150px]">
-                            {item.projectName}
-                          </p>
-                        </div>
-                      </td>
-
-                      {/* 7. Action Arrow */}
-                      <td className="py-3 px-3 text-center text-duston-muted group-hover:text-[#023542]">
-                        <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-                      </td>
-                    </tr>
-                  );
-                })}
+                {filteredItems.map(renderRegisterRow)}
               </tbody>
             </table>
           </div>
@@ -726,6 +873,90 @@ export function ActionRegisterClient({
               Showing {filteredItems.length} {filteredItems.length === 1 ? "row" : "rows"} in {scope === "my" ? "Personal Register" : "Global Group Register"}
             </span>
           </div>
+        </div>
+      ) : (
+        /* Grouped by Priority View */
+        <div className="space-y-6">
+          {[
+            {
+              level: "critical" as const,
+              title: "Critical Priority",
+              subtitle: "Immediate executive attention required",
+              items: groupedByPriority.critical,
+              headerBg: "bg-rose-50/80 border-rose-200 text-rose-900",
+              dotColor: "bg-rose-500",
+              countBadge: "bg-rose-100 text-rose-800 border-rose-300",
+            },
+            {
+              level: "high" as const,
+              title: "High Priority",
+              subtitle: "Urgent milestone deliverables",
+              items: groupedByPriority.high,
+              headerBg: "bg-amber-50/80 border-amber-200 text-amber-900",
+              dotColor: "bg-amber-500",
+              countBadge: "bg-amber-100 text-amber-800 border-amber-300",
+            },
+            {
+              level: "medium" as const,
+              title: "Medium Priority",
+              subtitle: "Standard operational deliverables",
+              items: groupedByPriority.medium,
+              headerBg: "bg-blue-50/70 border-blue-200 text-blue-900",
+              dotColor: "bg-blue-500",
+              countBadge: "bg-blue-100 text-blue-800 border-blue-300",
+            },
+            {
+              level: "low" as const,
+              title: "Low Priority",
+              subtitle: "Routine and backlog items",
+              items: groupedByPriority.low,
+              headerBg: "bg-slate-50/80 border-slate-200 text-slate-900",
+              dotColor: "bg-slate-400",
+              countBadge: "bg-slate-100 text-slate-700 border-slate-300",
+            },
+          ].map((group) => (
+            <div
+              key={group.level}
+              className="bg-white border border-duston-border rounded-2xl shadow-subtle overflow-hidden"
+            >
+              <div className={cn("p-4 border-b flex items-center justify-between", group.headerBg)}>
+                <div className="flex items-center gap-2">
+                  <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", group.dotColor)} />
+                  <h3 className="text-xs font-semibold">{group.title}</h3>
+                  <span className="text-[11px] opacity-75 hidden sm:inline">• {group.subtitle}</span>
+                </div>
+                <span className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-bold border", group.countBadge)}>
+                  {group.items.length} {group.items.length === 1 ? "deliverable" : "deliverables"}
+                </span>
+              </div>
+
+              {group.items.length === 0 ? (
+                <div className="p-6 text-center text-xs text-duston-muted italic">
+                  No {group.title.toLowerCase()} deliverables match the active filters.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[900px] text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-duston-border bg-duston-bg/70 text-duston-muted font-medium text-[11px]">
+                        <th className="py-3 px-3 w-12 text-center">No.</th>
+                        <th className="py-3 px-4 min-w-[260px]">Action Item</th>
+                        <th className="py-3 px-3 w-28">Priority</th>
+                        <th className="py-3 px-4 w-52">Responsible Party / Follow-up</th>
+                        <th className="py-3 px-4 w-36">Deadline</th>
+                        <th className="py-3 px-4 w-32">Status</th>
+                        <th className="py-3 px-4 w-44">Project & Subsidiary</th>
+                        <th className="py-3 px-3 w-10 text-center"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-duston-border/60">
+                      {group.items.map(renderRegisterRow)}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 

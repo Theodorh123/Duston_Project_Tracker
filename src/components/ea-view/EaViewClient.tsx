@@ -15,10 +15,12 @@ import {
   X,
   FileText,
   AlertTriangle,
+  Flag,
 } from "lucide-react";
 import { cn, formatDate, formatShortDate, getDaysOverdue, getPriorityWeight } from "@/lib/utils";
 import { useAppShell } from "../layout/AppShell";
 import { updateActionItemField } from "@/lib/actions/action-items";
+import { PriorityFlag } from "@/components/ui/PriorityFlag";
 
 export interface QueueItem {
   id: string;
@@ -80,6 +82,19 @@ export function EaViewClient({
   const [selectedEntityForBrief, setSelectedEntityForBrief] = useState(entities[0]?.id || "");
   const [generatedBrief, setGeneratedBrief] = useState<string | null>(null);
   const [nudgeStatus, setNudgeStatus] = useState<Record<string, string>>({});
+  const [overduePriorityFilter, setOverduePriorityFilter] = useState<string>("all");
+
+  const overduePriorityCounts = {
+    critical: overdueQueue.filter((i) => i.priority === "critical").length,
+    high: overdueQueue.filter((i) => i.priority === "high").length,
+    medium: overdueQueue.filter((i) => i.priority === "medium").length,
+    low: overdueQueue.filter((i) => i.priority === "low").length,
+  };
+
+  const displayedOverdueQueue = overdueQueue.filter((i) => {
+    if (overduePriorityFilter !== "all" && i.priority !== overduePriorityFilter) return false;
+    return true;
+  });
 
   const handleNudgeWhatsApp = async (e: React.MouseEvent, item: QueueItem) => {
     e.stopPropagation();
@@ -160,9 +175,68 @@ export function EaViewClient({
           </span>
         </div>
 
+        {/* Priority Filter Bar for Overdue Queue */}
+        {overdueQueue.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-duston-bg/40 border border-duston-border/70 rounded-xl px-3 py-2 text-xs">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-duston-muted flex items-center gap-1 shrink-0 mr-1">
+                <Flag size={12} className="text-[#023542]" /> Priority filter:
+              </span>
+              {[
+                { id: "all", label: "All", count: overdueQueue.length },
+                { id: "critical", label: "Critical", count: overduePriorityCounts.critical, dot: "bg-rose-500" },
+                { id: "high", label: "High", count: overduePriorityCounts.high, dot: "bg-amber-500" },
+                { id: "medium", label: "Medium", count: overduePriorityCounts.medium, dot: "bg-blue-500" },
+                { id: "low", label: "Low", count: overduePriorityCounts.low, dot: "bg-slate-400" },
+              ].map((p) => {
+                const isSelected = overduePriorityFilter === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setOverduePriorityFilter(p.id)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border cursor-pointer",
+                      isSelected
+                        ? "bg-[#023542] text-white border-[#023542] shadow-xs"
+                        : "bg-white border-duston-border text-duston-text hover:border-[#1BCECE]"
+                    )}
+                  >
+                    {p.dot && <span className={cn("w-2 h-2 rounded-full shrink-0", p.dot)} />}
+                    <span>{p.label}</span>
+                    {p.count !== undefined && (
+                      <span
+                        className={cn(
+                          "px-1.5 py-0.2 rounded text-[10px] font-semibold",
+                          isSelected ? "bg-white/20 text-white" : "bg-duston-bg text-duston-muted"
+                        )}
+                      >
+                        {p.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {overduePriorityFilter !== "all" && (
+              <button
+                type="button"
+                onClick={() => setOverduePriorityFilter("all")}
+                className="text-[11px] text-duston-muted hover:text-duston-dark underline cursor-pointer"
+              >
+                Reset filter
+              </button>
+            )}
+          </div>
+        )}
+
         {overdueQueue.length === 0 ? (
           <p className="text-xs text-[#39B54A] font-medium py-3 text-center">
             No overdue items across active subsidiaries.
+          </p>
+        ) : displayedOverdueQueue.length === 0 ? (
+          <p className="text-xs text-duston-muted italic py-3 text-center">
+            No {overduePriorityFilter} priority overdue items.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -179,7 +253,7 @@ export function EaViewClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-duston-border">
-                {overdueQueue.map((item) => (
+                {displayedOverdueQueue.map((item) => (
                   <tr
                     key={item.id}
                     onClick={() => openActionItem(item.id)}
@@ -208,8 +282,8 @@ export function EaViewClient({
                     <td className="py-3 px-3 font-medium text-duston-orange">
                       +{item.daysOverdue} days
                     </td>
-                    <td className="py-3 px-3 capitalize font-medium text-duston-orange">
-                      {item.priority}
+                    <td className="py-3 px-3">
+                      <PriorityFlag priority={item.priority} />
                     </td>
                     <td className="py-3 px-3 text-right">
                       <div className="flex items-center justify-end gap-1.5 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity">
@@ -266,6 +340,7 @@ export function EaViewClient({
                   <th className="py-2.5 px-3">Subsidiary</th>
                   <th className="py-2.5 px-3">Responsible Party</th>
                   <th className="py-2.5 px-3">Deadline</th>
+                  <th className="py-2.5 px-3">Priority</th>
                   <th className="py-2.5 px-3 text-right">Quick action</th>
                 </tr>
               </thead>
@@ -298,6 +373,9 @@ export function EaViewClient({
                     </td>
                     <td className="py-3 px-3 text-duston-amber font-medium">
                       {formatShortDate(item.deadline)}
+                    </td>
+                    <td className="py-3 px-3">
+                      <PriorityFlag priority={item.priority} />
                     </td>
                     <td className="py-3 px-3 text-right">
                       <button

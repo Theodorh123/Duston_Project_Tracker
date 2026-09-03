@@ -15,12 +15,14 @@ import {
   Plus,
   X,
   FileSpreadsheet,
+  Flag,
 } from "lucide-react";
 import { cn, formatDate, formatShortDate, isDeadlineOverdue } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createActionItem } from "@/lib/actions/action-items";
 import { ImportRegisterModal } from "@/components/action-items/ImportRegisterModal";
+import { PriorityFlag } from "@/components/ui/PriorityFlag";
 
 export interface ActionItemSummary {
   id: string;
@@ -61,7 +63,7 @@ interface DashboardClientProps {
   initialItems: ActionItemSummary[];
   upcomingMeetings?: MeetingSummary[];
   recentActivities: ActivitySummary[];
-  defaultView?: "todo" | "kanban" | "planner";
+  defaultView?: "todo" | "priority" | "kanban" | "planner";
   kanbanColumns?: string[];
   projects?: Array<{ id: string; name: string; entityName: string; entityBrandColor?: string; entityId?: string }>;
   entities?: Array<{ id: string; name: string; brandPrimaryColor?: string }>;
@@ -84,7 +86,8 @@ export function DashboardClient({
   initialFilter = "all",
 }: DashboardClientProps) {
   const { selectedEntityId, openActionItem } = useAppShell();
-  const [currentView, setCurrentView] = useState<"todo" | "kanban" | "planner">(defaultView);
+  const [currentView, setCurrentView] = useState<"todo" | "priority" | "kanban" | "planner">(defaultView as any);
+  const [priorityFilter, setPriorityFilter] = useState<"all" | "critical" | "high" | "medium" | "low">("all");
   const [items, setItems] = useState<ActionItemSummary[]>(initialItems);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const router = useRouter();
@@ -298,8 +301,17 @@ export function DashboardClient({
     }
   };
 
-  // Filter items based on active metric filter
+  // Priority metrics across all entity-filtered items
+  const priorityCounts = {
+    critical: filteredItems.filter((i) => i.priority === "critical" && i.status !== "done").length,
+    high: filteredItems.filter((i) => i.priority === "high" && i.status !== "done").length,
+    medium: filteredItems.filter((i) => i.priority === "medium" && i.status !== "done").length,
+    low: filteredItems.filter((i) => i.priority === "low" && i.status !== "done").length,
+  };
+
+  // Filter items based on active metric filter AND active priority filter
   const displayedItems = filteredItems.filter((i) => {
+    if (priorityFilter !== "all" && i.priority !== priorityFilter) return false;
     if (metricFilter === "open") return i.status !== "done";
     if (metricFilter === "overdue") return isDeadlineOverdue(i.deadline, i.status) && i.status !== "done";
     if (metricFilter === "due_this_week") {
@@ -311,6 +323,14 @@ export function DashboardClient({
     if (metricFilter === "completed") return i.status === "done";
     return true;
   });
+
+  // Group items by priority for summary view
+  const groupedByPriority = {
+    critical: displayedItems.filter((i) => i.priority === "critical"),
+    high: displayedItems.filter((i) => i.priority === "high"),
+    medium: displayedItems.filter((i) => i.priority === "medium"),
+    low: displayedItems.filter((i) => i.priority === "low"),
+  };
 
   // Group items for Todo view: Overdue, Today, This Week, Later, Completed
   const groupedTodo = {
@@ -331,6 +351,76 @@ export function DashboardClient({
     completed: displayedItems.filter((i) => i.status === "done"),
   };
 
+  const renderTaskItemRow = (item: ActionItemSummary) => (
+    <div
+      key={item.id}
+      onClick={() => openActionItem(item.id)}
+      className="py-2.5 flex items-center justify-between hover:bg-duston-bg px-2 rounded-lg cursor-pointer transition-colors"
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <input
+          type="checkbox"
+          checked={item.status === "done"}
+          onChange={(e) => handleToggleDone(e, item.id, item.status)}
+          onClick={(e) => e.stopPropagation()}
+          className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer shrink-0"
+        />
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={cn(
+                "text-xs font-medium text-duston-dark",
+                item.status === "done" && "line-through text-duston-muted"
+              )}
+            >
+              {item.title}
+            </span>
+            <PriorityFlag priority={item.priority} />
+          </div>
+          <div className="text-[11px] text-duston-muted flex items-center gap-2 mt-0.5 flex-wrap">
+            {item.entityBrandColor && (
+              <span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: item.entityBrandColor }}
+              />
+            )}
+            <span>{item.entityName}</span>
+            <span>•</span>
+            <span className="truncate max-w-[180px]">{item.projectName}</span>
+            {item.assigneeName && (
+              <>
+                <span>•</span>
+                <span>{item.assigneeName}</span>
+              </>
+            )}
+            {item.tag && (
+              <>
+                <span>•</span>
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                  {item.tag}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="text-right shrink-0 ml-2">
+        <span
+          className={cn(
+            "text-[11px] font-medium px-2 py-0.5 rounded",
+            isDeadlineOverdue(item.deadline, item.status)
+              ? "text-duston-orange bg-duston-orange/10"
+              : item.deadline === todayStr
+              ? "text-duston-dark bg-duston-bg border border-duston-border"
+              : "text-duston-muted"
+          )}
+        >
+          {item.deadline === todayStr ? "Today" : formatShortDate(item.deadline)}
+        </span>
+      </div>
+    </div>
+  );
+
   const firstName = userName.split(" ")[0] || "User";
 
   return (
@@ -347,6 +437,61 @@ export function DashboardClient({
             <p className="text-xs text-gray-300 mt-0.5">
               Welcome back, {firstName} • {new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", year: "numeric" })}
             </p>
+          </div>
+
+          {/* Executive Priority Summary Bar */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1 sm:pt-0">
+            <span className="text-[11px] text-white/70 font-medium mr-1 flex items-center gap-1">
+              <Flag size={11} className="text-white/80" /> Priorities:
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setPriorityFilter("critical");
+                setCurrentView("priority");
+              }}
+              className="px-2 py-1 rounded-full text-[11px] font-medium bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-400/30 flex items-center gap-1 transition-colors cursor-pointer"
+              title="View Critical deliverables"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+              <span>Critical: {priorityCounts.critical}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPriorityFilter("high");
+                setCurrentView("priority");
+              }}
+              className="px-2 py-1 rounded-full text-[11px] font-medium bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/30 flex items-center gap-1 transition-colors cursor-pointer"
+              title="View High priority deliverables"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <span>High: {priorityCounts.high}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPriorityFilter("medium");
+                setCurrentView("priority");
+              }}
+              className="px-2 py-1 rounded-full text-[11px] font-medium bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border border-blue-400/30 flex items-center gap-1 transition-colors cursor-pointer"
+              title="View Medium priority deliverables"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+              <span>Medium: {priorityCounts.medium}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPriorityFilter("low");
+                setCurrentView("priority");
+              }}
+              className="px-2 py-1 rounded-full text-[11px] font-medium bg-slate-500/20 hover:bg-slate-500/30 text-slate-200 border border-slate-400/30 flex items-center gap-1 transition-colors cursor-pointer"
+              title="View Low priority deliverables"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+              <span>Low: {priorityCounts.low}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -540,7 +685,7 @@ export function DashboardClient({
               <button
                 onClick={() => setCurrentView("todo")}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
                   currentView === "todo"
                     ? "bg-[#023542] text-white"
                     : "text-duston-muted hover:text-duston-dark hover:bg-duston-bg"
@@ -550,9 +695,21 @@ export function DashboardClient({
                 <span>Todo</span>
               </button>
               <button
+                onClick={() => setCurrentView("priority")}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
+                  currentView === "priority"
+                    ? "bg-[#023542] text-white"
+                    : "text-duston-muted hover:text-duston-dark hover:bg-duston-bg"
+                )}
+              >
+                <Flag size={14} strokeWidth={1.5} />
+                <span>By Priority</span>
+              </button>
+              <button
                 onClick={() => setCurrentView("kanban")}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
                   currentView === "kanban"
                     ? "bg-[#023542] text-white"
                     : "text-duston-muted hover:text-duston-dark hover:bg-duston-bg"
@@ -564,7 +721,7 @@ export function DashboardClient({
               <button
                 onClick={() => setCurrentView("planner")}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
                   currentView === "planner"
                     ? "bg-[#023542] text-white"
                     : "text-duston-muted hover:text-duston-dark hover:bg-duston-bg"
@@ -594,6 +751,59 @@ export function DashboardClient({
             </div>
           </div>
 
+          {/* Priority Quick Filter Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-white border border-duston-border rounded-xl px-3 py-2 text-xs shadow-2xs">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-duston-muted flex items-center gap-1 shrink-0 mr-1">
+                <Flag size={12} className="text-[#023542]" /> Priority filter:
+              </span>
+              {[
+                { id: "all" as const, label: "All Priorities" },
+                { id: "critical" as const, label: "Critical", count: priorityCounts.critical, dot: "bg-rose-500" },
+                { id: "high" as const, label: "High", count: priorityCounts.high, dot: "bg-amber-500" },
+                { id: "medium" as const, label: "Medium", count: priorityCounts.medium, dot: "bg-blue-500" },
+                { id: "low" as const, label: "Low", count: priorityCounts.low, dot: "bg-slate-400" },
+              ].map((p) => {
+                const isSelected = priorityFilter === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setPriorityFilter(p.id)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border cursor-pointer",
+                      isSelected
+                        ? "bg-[#023542] text-white border-[#023542] shadow-xs"
+                        : "bg-white border-duston-border text-duston-text hover:border-[#1BCECE]"
+                    )}
+                  >
+                    {p.dot && <span className={cn("w-2 h-2 rounded-full shrink-0", p.dot)} />}
+                    <span>{p.label}</span>
+                    {p.count !== undefined && (
+                      <span
+                        className={cn(
+                          "px-1.5 py-0.2 rounded text-[10px] font-semibold",
+                          isSelected ? "bg-white/20 text-white" : "bg-duston-bg text-duston-muted"
+                        )}
+                      >
+                        {p.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {priorityFilter !== "all" && (
+              <button
+                type="button"
+                onClick={() => setPriorityFilter("all")}
+                className="text-[11px] text-duston-muted hover:text-duston-dark underline cursor-pointer"
+              >
+                Reset priority filter
+              </button>
+            )}
+          </div>
+
           {/* View Contents */}
           {currentView === "todo" && (
             <div className="space-y-4">
@@ -607,50 +817,7 @@ export function DashboardClient({
                     </span>
                   </div>
                   <div className="divide-y divide-duston-border">
-                    {groupedTodo.overdue.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={() => openActionItem(item.id)}
-                        className="py-2.5 flex items-center justify-between hover:bg-duston-bg px-2 rounded-lg cursor-pointer transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={item.status === "done"}
-                            onChange={(e) => handleToggleDone(e, item.id, item.status)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer"
-                          />
-                          <div>
-                            <div className="text-xs font-medium text-duston-dark">
-                              {item.title}
-                            </div>
-                            <div className="text-[11px] text-duston-muted flex items-center gap-2 mt-0.5">
-                              <span
-                                className="w-1.5 h-1.5 rounded-full"
-                                style={{ backgroundColor: item.entityBrandColor }}
-                              />
-                              <span>{item.entityName}</span>
-                              <span>•</span>
-                              <span>{item.projectName}</span>
-                              {item.tag && (
-                                <>
-                                  <span>•</span>
-                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
-                                    {item.tag}
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-[11px] font-medium text-duston-orange bg-duston-orange/10 px-2 py-0.5 rounded">
-                            {formatShortDate(item.deadline)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                    {groupedTodo.overdue.map(renderTaskItemRow)}
                   </div>
                 </div>
               )}
@@ -665,44 +832,7 @@ export function DashboardClient({
                     </span>
                   </div>
                   <div className="divide-y divide-duston-border">
-                    {groupedTodo.today.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={() => openActionItem(item.id)}
-                        className="py-2.5 flex items-center justify-between hover:bg-duston-bg px-2 rounded-lg cursor-pointer transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={item.status === "done"}
-                            onChange={(e) => handleToggleDone(e, item.id, item.status)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer"
-                          />
-                          <div>
-                            <div className="text-xs font-medium text-duston-dark">
-                              {item.title}
-                            </div>
-                            <div className="text-[11px] text-duston-muted flex items-center gap-2 mt-0.5">
-                              <span>{item.entityName}</span>
-                              <span>•</span>
-                              <span>{item.projectName}</span>
-                              {item.tag && (
-                                <>
-                                  <span>•</span>
-                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
-                                    {item.tag}
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <span className="text-[11px] text-duston-dark font-medium px-2 py-0.5 rounded bg-duston-bg border border-duston-border">
-                          Today
-                        </span>
-                      </div>
-                    ))}
+                    {groupedTodo.today.map(renderTaskItemRow)}
                   </div>
                 </div>
               )}
@@ -721,44 +851,7 @@ export function DashboardClient({
                   </p>
                 ) : (
                   <div className="divide-y divide-duston-border">
-                    {groupedTodo.thisWeek.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={() => openActionItem(item.id)}
-                        className="py-2.5 flex items-center justify-between hover:bg-duston-bg px-2 rounded-lg cursor-pointer transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={item.status === "done"}
-                            onChange={(e) => handleToggleDone(e, item.id, item.status)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer"
-                          />
-                          <div>
-                            <div className="text-xs font-medium text-duston-dark">
-                              {item.title}
-                            </div>
-                            <div className="text-[11px] text-duston-muted flex items-center gap-2 mt-0.5">
-                              <span>{item.entityName}</span>
-                              <span>•</span>
-                              <span>{item.projectName}</span>
-                              {item.tag && (
-                                <>
-                                  <span>•</span>
-                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
-                                    {item.tag}
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <span className="text-[11px] text-duston-muted">
-                          {formatShortDate(item.deadline)}
-                        </span>
-                      </div>
-                    ))}
+                    {groupedTodo.thisWeek.map(renderTaskItemRow)}
                   </div>
                 )}
               </div>
@@ -773,44 +866,7 @@ export function DashboardClient({
                     </span>
                   </div>
                   <div className="divide-y divide-duston-border">
-                    {groupedTodo.later.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={() => openActionItem(item.id)}
-                        className="py-2.5 flex items-center justify-between hover:bg-duston-bg px-2 rounded-lg cursor-pointer transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={item.status === "done"}
-                            onChange={(e) => handleToggleDone(e, item.id, item.status)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer"
-                          />
-                          <div>
-                            <div className="text-xs font-medium text-duston-dark">
-                              {item.title}
-                            </div>
-                            <div className="text-[11px] text-duston-muted flex items-center gap-2 mt-0.5">
-                              <span>{item.entityName}</span>
-                              <span>•</span>
-                              <span>{item.projectName}</span>
-                              {item.tag && (
-                                <>
-                                  <span>•</span>
-                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
-                                    {item.tag}
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <span className="text-[11px] text-duston-muted">
-                          {formatShortDate(item.deadline)}
-                        </span>
-                      </div>
-                    ))}
+                    {groupedTodo.later.map(renderTaskItemRow)}
                   </div>
                 </div>
               )}
@@ -825,45 +881,7 @@ export function DashboardClient({
                     </span>
                   </div>
                   <div className="divide-y divide-duston-border">
-                    {groupedTodo.completed.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={() => openActionItem(item.id)}
-                        className="py-2.5 flex items-center justify-between hover:bg-duston-bg px-2 rounded-lg cursor-pointer transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={true}
-                            onChange={(e) => handleToggleDone(e, item.id, item.status)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer"
-                          />
-                          <div>
-                            <div className="text-xs font-medium text-duston-dark line-through opacity-75">
-                              {item.title}
-                            </div>
-                            <div className="text-[11px] text-duston-muted flex items-center gap-2 mt-0.5">
-                              <span
-                                className="px-1.5 py-0.2 rounded text-[10px] font-medium truncate max-w-[120px]"
-                                style={{
-                                  backgroundColor: `${item.entityBrandColor}15`,
-                                  color: item.entityBrandColor,
-                                }}
-                              >
-                                {item.entityName}
-                              </span>
-                              <span>•</span>
-                              <span>{item.projectName}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <span className="text-[11px] text-[#39B54A] font-medium flex items-center gap-1">
-                          <CheckCircle2 size={13} />
-                          <span>Done</span>
-                        </span>
-                      </div>
-                    ))}
+                    {groupedTodo.completed.map(renderTaskItemRow)}
                   </div>
                 </div>
               )}
@@ -878,22 +896,95 @@ export function DashboardClient({
                     No matching action items
                   </div>
                   <p className="text-xs text-duston-muted max-w-sm mx-auto">
-                    {metricFilter !== "all"
-                      ? `There are no action items matching the "${metricFilter.replace('_', ' ')}" filter.`
+                    {metricFilter !== "all" || priorityFilter !== "all"
+                      ? "There are no action items matching your active filter criteria."
                       : "You have no action items recorded."}
                   </p>
-                  {metricFilter !== "all" && (
+                  {(metricFilter !== "all" || priorityFilter !== "all") && (
                     <button
                       type="button"
-                      onClick={() => setMetricFilter("all")}
+                      onClick={() => {
+                        setMetricFilter("all");
+                        setPriorityFilter("all");
+                      }}
                       className="px-3 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-lg text-xs font-medium transition-colors shadow-2xs cursor-pointer inline-flex items-center gap-1.5"
                     >
                       <X size={12} />
-                      <span>Clear filter and view all</span>
+                      <span>Clear all filters</span>
                     </button>
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* By Priority Grouped Summary View */}
+          {currentView === "priority" && (
+            <div className="space-y-4">
+              {[
+                {
+                  level: "critical" as const,
+                  title: "Critical Priority",
+                  subtitle: "Immediate executive attention required",
+                  items: groupedByPriority.critical,
+                  headerBg: "bg-rose-50/80 border-rose-200 text-rose-900",
+                  dotColor: "bg-rose-500",
+                  countBadge: "bg-rose-100 text-rose-800 border-rose-300",
+                },
+                {
+                  level: "high" as const,
+                  title: "High Priority",
+                  subtitle: "Urgent milestone deliverables",
+                  items: groupedByPriority.high,
+                  headerBg: "bg-amber-50/80 border-amber-200 text-amber-900",
+                  dotColor: "bg-amber-500",
+                  countBadge: "bg-amber-100 text-amber-800 border-amber-300",
+                },
+                {
+                  level: "medium" as const,
+                  title: "Medium Priority",
+                  subtitle: "Standard operational deliverables",
+                  items: groupedByPriority.medium,
+                  headerBg: "bg-blue-50/70 border-blue-200 text-blue-900",
+                  dotColor: "bg-blue-500",
+                  countBadge: "bg-blue-100 text-blue-800 border-blue-300",
+                },
+                {
+                  level: "low" as const,
+                  title: "Low Priority",
+                  subtitle: "Routine and backlog items",
+                  items: groupedByPriority.low,
+                  headerBg: "bg-slate-50/80 border-slate-200 text-slate-900",
+                  dotColor: "bg-slate-400",
+                  countBadge: "bg-slate-100 text-slate-700 border-slate-300",
+                },
+              ].map((group) => (
+                <div
+                  key={group.level}
+                  className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden"
+                >
+                  <div className={cn("p-3.5 border-b flex items-center justify-between", group.headerBg)}>
+                    <div className="flex items-center gap-2">
+                      <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", group.dotColor)} />
+                      <h3 className="text-xs font-semibold">{group.title}</h3>
+                      <span className="text-[11px] opacity-75 hidden sm:inline">• {group.subtitle}</span>
+                    </div>
+                    <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold border", group.countBadge)}>
+                      {group.items.length} {group.items.length === 1 ? "item" : "items"}
+                    </span>
+                  </div>
+
+                  {group.items.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-duston-muted italic">
+                      No {group.title.toLowerCase()} action items.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-duston-border p-1">
+                      {group.items.map(renderTaskItemRow)}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
 
@@ -995,8 +1086,11 @@ export function DashboardClient({
                                   : "border-duston-border hover:shadow"
                               )}
                             >
-                              <div className="text-xs font-medium text-duston-dark line-clamp-2">
-                                {item.title}
+                              <div className="flex items-start justify-between gap-1.5">
+                                <div className="text-xs font-medium text-duston-dark line-clamp-2">
+                                  {item.title}
+                                </div>
+                                <PriorityFlag priority={item.priority} showLabel={false} />
                               </div>
                               <div className="flex items-center justify-between text-[11px] gap-1">
                                 <div className="flex items-center gap-1.5 truncate max-w-[170px]">
@@ -1137,8 +1231,11 @@ export function DashboardClient({
                                   )}
                                   title={`${it.title} (${it.entityName})`}
                                 >
-                                  <div className="font-medium text-duston-dark line-clamp-2 leading-tight">
-                                    {it.title}
+                                  <div className="flex items-start justify-between gap-1">
+                                    <div className="font-medium text-duston-dark line-clamp-2 leading-tight">
+                                      {it.title}
+                                    </div>
+                                    <PriorityFlag priority={it.priority} size={9} showLabel={false} />
                                   </div>
                                   <div className="text-[9px] text-duston-muted truncate">
                                     {it.entityName}
