@@ -1,9 +1,10 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { meetings, entities, users, meetingAttendees, actionItems, userEntityAccess } from "@/lib/db/schema";
+import { meetings, actionItems } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { MeetingDetailClient } from "@/components/meetings/MeetingDetailClient";
+import { getUserScopeCached } from "@/lib/db/cache";
 
 export default async function MeetingDetailPage({
   params,
@@ -14,42 +15,38 @@ export default async function MeetingDetailPage({
   const userId = session?.user?.id!;
   const { id } = await params;
 
-  const currentUser = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-  });
-
-  const meeting = await db.query.meetings.findFirst({
-    where: eq(meetings.id, id),
-    with: {
-      entity: true,
-      attendees: {
-        with: {
-          user: true,
+  const [
+    { allowedEntityIds },
+    meeting,
+  ] = await Promise.all([
+    getUserScopeCached(userId),
+    db.query.meetings.findFirst({
+      where: eq(meetings.id, id),
+      with: {
+        entity: true,
+        attendees: {
+          with: {
+            user: true,
+          },
+        },
+        actionItems: {
+          with: {
+            project: true,
+            assignee: true,
+          },
+          orderBy: [desc(actionItems.deadline)],
         },
       },
-      actionItems: {
-        with: {
-          project: true,
-          assignee: true,
-        },
-        orderBy: [desc(actionItems.deadline)],
-      },
-    },
-  });
+    }),
+  ]);
 
   if (!meeting) {
     notFound();
   }
 
   // Scoping check
-  if (!currentUser?.hasGlobalAccess) {
-    const grants = await db.query.userEntityAccess.findMany({
-      where: eq(userEntityAccess.userId, userId),
-    });
-    const allowedEntityIds = grants.map((g) => g.entityId);
-    if (!allowedEntityIds.includes(meeting.entityId)) {
-      redirect("/meetings");
-    }
+  if (!allowedEntityIds.includes(meeting.entityId)) {
+    redirect("/meetings");
   }
 
   return (

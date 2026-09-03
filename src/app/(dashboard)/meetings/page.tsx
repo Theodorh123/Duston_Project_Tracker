@@ -2,53 +2,48 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import {
   meetings,
-  entities,
-  users,
-  meetingAttendees,
-  actionItems,
-  userEntityAccess,
   userPreferences,
   projects,
 } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { MeetingsClient, MeetingListItem } from "@/components/meetings/MeetingsClient";
+import { getUserScopeCached, getActiveEntitiesCached, getActiveUsersCached } from "@/lib/db/cache";
 
 export default async function MeetingsPage() {
   const session = await auth();
   const userId = session?.user?.id!;
 
-  // Fetch data in parallel
-  const [currentUser, preferences, allEnt, grants, allMeetings, allUsers, allProjects] = await Promise.all([
-    db.query.users.findFirst({ where: eq(users.id, userId) }),
-    db.query.userPreferences.findFirst({ where: eq(userPreferences.userId, userId) }),
-    db.query.entities.findMany({ where: eq(entities.isActive, true) }),
-    db.query.userEntityAccess.findMany({ where: eq(userEntityAccess.userId, userId) }),
-    db.query.meetings.findMany({
-      with: {
-        entity: true,
-        attendees: {
-          with: {
-            user: true,
+  // Fetch cached references + page data in parallel
+  const [
+    { allowedEntityIds },
+    allEnt,
+    allUsers,
+    [preferences, allMeetings, allProjects],
+  ] = await Promise.all([
+    getUserScopeCached(userId),
+    getActiveEntitiesCached(),
+    getActiveUsersCached(),
+    Promise.all([
+      db.query.userPreferences.findFirst({ where: eq(userPreferences.userId, userId) }),
+      db.query.meetings.findMany({
+        with: {
+          entity: true,
+          attendees: {
+            with: {
+              user: true,
+            },
           },
+          actionItems: true,
         },
-        actionItems: true,
-      },
-      orderBy: [desc(meetings.meetingDate)],
-    }),
-    db.query.users.findMany({
-      where: eq(users.isActive, true),
-    }),
-    db.query.projects.findMany({
-      with: {
-        entity: true,
-      },
-    }),
+        orderBy: [desc(meetings.meetingDate)],
+      }),
+      db.query.projects.findMany({
+        with: {
+          entity: true,
+        },
+      }),
+    ]),
   ]);
-
-  // Entity scoping
-  const allowedEntityIds = currentUser?.hasGlobalAccess
-    ? allEnt.map((e) => e.id)
-    : grants.map((g) => g.entityId);
 
   const scopedProjects = allProjects
     .filter((p) => allowedEntityIds.includes(p.entityId))

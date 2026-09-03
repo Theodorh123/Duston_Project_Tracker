@@ -1,9 +1,10 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { projects, entities, users, actionItems, meetings, activityLog, userEntityAccess } from "@/lib/db/schema";
+import { projects, actionItems, meetings, activityLog } from "@/lib/db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { ProjectDetailClient } from "@/components/projects/ProjectDetailClient";
+import { getUserScopeCached, getActiveUsersCached } from "@/lib/db/cache";
 
 export default async function ProjectDetailPage({
   params,
@@ -14,77 +15,69 @@ export default async function ProjectDetailPage({
   const userId = session?.user?.id!;
   const { id } = await params;
 
-  const currentUser = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-  });
-
-  const project = await db.query.projects.findFirst({
-    where: eq(projects.id, id),
-    with: {
-      entity: true,
-      owner: true,
-      sponsor: true,
-    },
-  });
+  // Run user scope, active users, and project lookup in parallel
+  const [
+    { allowedEntityIds },
+    allUsers,
+    project,
+    items,
+  ] = await Promise.all([
+    getUserScopeCached(userId),
+    getActiveUsersCached(),
+    db.query.projects.findFirst({
+      where: eq(projects.id, id),
+      with: {
+        entity: true,
+        owner: true,
+        sponsor: true,
+      },
+    }),
+    db.query.actionItems.findMany({
+      where: eq(actionItems.projectId, id),
+      with: {
+        assignee: true,
+      },
+      orderBy: [desc(actionItems.deadline)],
+    }),
+  ]);
 
   if (!project) {
     notFound();
   }
 
   // Scoping check
-  if (!currentUser?.hasGlobalAccess) {
-    const grants = await db.query.userEntityAccess.findMany({
-      where: eq(userEntityAccess.userId, userId),
-    });
-    const allowedEntityIds = grants.map((g) => g.entityId);
-    if (!allowedEntityIds.includes(project.entityId)) {
-      redirect("/projects");
-    }
+  if (!allowedEntityIds.includes(project.entityId)) {
+    redirect("/projects");
   }
 
-  // Fetch action items
-  const items = await db.query.actionItems.findMany({
-    where: eq(actionItems.projectId, project.id),
-    with: {
-      assignee: true,
-    },
-    orderBy: [desc(actionItems.deadline)],
-  });
-
-  // Fetch meetings linked through action items
+  // Fetch meetings and activity logs concurrently based on items
   const meetingIds = items
     .map((it) => it.sourceMeetingId)
     .filter((mid): mid is string => Boolean(mid));
-
-  let projectMeetings: any[] = [];
-  if (meetingIds.length > 0) {
-    projectMeetings = await db.query.meetings.findMany({
-      where: inArray(meetings.id, meetingIds),
-      with: {
-        attendees: true,
-      },
-      orderBy: [desc(meetings.meetingDate)],
-    });
-  }
-
-  // Fetch activity logs for this project's action items
   const itemIds = items.map((it) => it.id);
-  let projectActivityLogs: any[] = [];
-  if (itemIds.length > 0) {
-    projectActivityLogs = await db.query.activityLog.findMany({
-      where: inArray(activityLog.actionItemId, itemIds),
-      with: {
-        actor: true,
-        actionItem: true,
-      },
-      orderBy: [desc(activityLog.createdAt)],
-      limit: 20,
-    });
-  }
 
-  const allUsers = await db.query.users.findMany({
-    where: eq(users.isActive, true),
-  });
+  const [projectMeetings, projectActivityLogs] = await Promise.all([
+    meetingIds.length > 0
+      ? db.query.meetings.findMany({
+          where: inArray(meetings.id, meetingIds),
+          with: {
+            attendees: true,
+          },
+          orderBy: [desc(meetings.meetingDate)],
+        })
+      : Promise.resolve([]),
+    itemIds.length > 0
+      ? db.query.activityLog.findMany({
+          where: inArray(activityLog.actionItemId, itemIds),
+          with: {
+            actor: true,
+            actionItem: true,
+          },
+          orderBy: [desc(activityLog.createdAt)],
+          limit: 20,
+        })
+      : Promise.resolve([]),
+  ]);
 
   return (
     <ProjectDetailClient
@@ -115,6 +108,7 @@ export default async function ProjectDetailPage({
         status: it.status,
         priority: it.priority,
         tag: it.tag,
+        comments: it.description || null,
       }))}
       meetings={projectMeetings.map((m) => ({
         id: m.id,

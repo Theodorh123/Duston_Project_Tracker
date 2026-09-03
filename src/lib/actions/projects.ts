@@ -4,6 +4,7 @@ import { db } from "../db";
 import { projects } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { invalidateMetadataCache } from "../db/cache";
 
 export interface CreateProjectInput {
   entityId: string;
@@ -38,6 +39,7 @@ export async function createProject(data: CreateProjectInput) {
       })
       .returning();
 
+    invalidateMetadataCache();
     revalidatePath("/projects");
     revalidatePath("/");
     return { success: true, project };
@@ -57,6 +59,7 @@ export async function updateProject(id: string, data: Partial<CreateProjectInput
       })
       .where(eq(projects.id, id));
 
+    invalidateMetadataCache();
     revalidatePath("/projects");
     revalidatePath(`/projects/${id}`);
     revalidatePath("/");

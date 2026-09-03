@@ -1,55 +1,41 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { actionItems, entities, users, projects, userEntityAccess } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { actionItems, projects } from "@/lib/db/schema";
+import { desc } from "drizzle-orm";
 import { Suspense } from "react";
 import { ActionRegisterClient, RegisterItem } from "@/components/action-items/ActionRegisterClient";
+import { getUserScopeCached, getActiveEntitiesCached, getActiveUsersCached } from "@/lib/db/cache";
 
 export default async function ActionRegisterPage() {
   const session = await auth();
   const userId = session?.user?.id!;
 
-  const currentUser = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-  });
-
-  // Entity scoping
-  let allowedEntityIds: string[] = [];
-  if (currentUser?.hasGlobalAccess) {
-    const allEnt = await db.query.entities.findMany({ where: eq(entities.isActive, true) });
-    allowedEntityIds = allEnt.map((e) => e.id);
-  } else {
-    const grants = await db.query.userEntityAccess.findMany({
-      where: eq(userEntityAccess.userId, userId),
-    });
-    allowedEntityIds = grants.map((g) => g.entityId);
-  }
-
-  // Fetch all action items with relations
-  const [allItems, allEnt, allProj, allUsers] = await Promise.all([
-    db.query.actionItems.findMany({
-      with: {
-        project: {
-          with: {
-            entity: true,
+  const [
+    { user: currentUser, allowedEntityIds },
+    allEnt,
+    allUsers,
+    [allItems, allProj],
+  ] = await Promise.all([
+    getUserScopeCached(userId),
+    getActiveEntitiesCached(),
+    getActiveUsersCached(),
+    Promise.all([
+      db.query.actionItems.findMany({
+        with: {
+          project: {
+            with: {
+              entity: true,
+            },
           },
+          assignee: true,
+          sourceMeeting: true,
         },
-        assignee: true,
-        sourceMeeting: true,
-      },
-      orderBy: [actionItems.deadline],
-    }),
-    db.query.entities.findMany({
-      where: eq(entities.isActive, true),
-      orderBy: [entities.name],
-    }),
-    db.query.projects.findMany({
-      orderBy: [desc(projects.targetDate)],
-    }),
-    db.query.users.findMany({
-      where: eq(users.isActive, true),
-      orderBy: [users.name],
-    }),
+        orderBy: [actionItems.deadline],
+      }),
+      db.query.projects.findMany({
+        orderBy: [desc(projects.targetDate)],
+      }),
+    ]),
   ]);
 
   const scopedEntities = allEnt

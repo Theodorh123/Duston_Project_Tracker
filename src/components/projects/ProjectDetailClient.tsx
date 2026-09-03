@@ -16,11 +16,14 @@ import {
   ChevronRight,
   FileSpreadsheet,
   Flag,
+  UserPlus,
+  X,
 } from "lucide-react";
 import { cn, formatDate, formatShortDate, isDeadlineOverdue } from "@/lib/utils";
 import { useAppShell } from "../layout/AppShell";
 import { updateProject } from "@/lib/actions/projects";
 import { createActionItem } from "@/lib/actions/action-items";
+import { quickCreateUser } from "@/lib/actions/admin";
 import { ImportRegisterModal } from "../action-items/ImportRegisterModal";
 import { PriorityFlag } from "@/components/ui/PriorityFlag";
 
@@ -52,6 +55,7 @@ interface ProjectDetailProps {
     status: "not_started" | "in_progress" | "blocked" | "done" | "postponed";
     priority: "low" | "medium" | "high" | "critical";
     tag?: string | null;
+    comments?: string | null;
   }>;
   meetings: Array<{
     id: string;
@@ -132,6 +136,13 @@ export function ProjectDetailClient({
     }
   };
 
+  // User list with support for inline adding
+  const [usersList, setUsersList] = useState(users);
+  const [isAddingUser, setIsAddingUser] = useState(false);
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [isSavingUser, setIsSavingUser] = useState(false);
+
   // New action item state
   const [newItemTitle, setNewItemTitle] = useState("");
   const [newItemAssignee, setNewItemAssignee] = useState(currentUserId);
@@ -139,6 +150,55 @@ export function ProjectDetailClient({
     new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]
   );
   const [newItemPriority, setNewItemPriority] = useState<"low" | "medium" | "high" | "critical">("medium");
+  const [newItemComments, setNewItemComments] = useState("");
+
+  // Variance note editing state (for table cell inline editing / modal)
+  const [editingVarianceItem, setEditingVarianceItem] = useState<{ id: string; title: string; comments: string } | null>(null);
+  const [varianceText, setVarianceText] = useState("");
+  const [isSavingVariance, setIsSavingVariance] = useState(false);
+
+  const handleSaveVariance = async () => {
+    if (!editingVarianceItem) return;
+    setIsSavingVariance(true);
+    try {
+      await fetch(`/api/action-items/${editingVarianceItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: varianceText }),
+      });
+      setItemsList((prev) =>
+        prev.map((it) => (it.id === editingVarianceItem.id ? { ...it, comments: varianceText } : it))
+      );
+      setEditingVarianceItem(null);
+    } catch (err) {
+      console.error("Failed to update variance note:", err);
+    } finally {
+      setIsSavingVariance(false);
+    }
+  };
+
+  const handleSaveNewUser = async () => {
+    if (!newUserName.trim()) return;
+    setIsSavingUser(true);
+    try {
+      const res = await quickCreateUser({
+        name: newUserName.trim(),
+        email: newUserEmail.trim() || undefined,
+        entityId: project.entityId,
+      });
+      if (res.success && res.user) {
+        setUsersList((prev) => [...prev, { id: res.user!.id, name: res.user!.name }]);
+        setNewItemAssignee(res.user.id);
+        setNewUserName("");
+        setNewUserEmail("");
+        setIsAddingUser(false);
+      }
+    } catch (err) {
+      console.error("Failed to create user:", err);
+    } finally {
+      setIsSavingUser(false);
+    }
+  };
 
   // Editable details state
   const [details, setDetails] = useState({
@@ -162,6 +222,7 @@ export function ProjectDetailClient({
     const res = await createActionItem({
       projectId: project.id,
       title: newItemTitle.trim(),
+      description: newItemComments.trim() || undefined,
       assigneeId: newItemAssignee,
       deadline: newItemDeadline,
       priority: newItemPriority,
@@ -169,7 +230,7 @@ export function ProjectDetailClient({
     });
 
     if (res.success && res.item) {
-      const assignedUser = users.find((u) => u.id === newItemAssignee);
+      const assignedUser = usersList.find((u) => u.id === newItemAssignee);
       setItemsList((prev) => [
         {
           id: res.item.id,
@@ -180,10 +241,12 @@ export function ProjectDetailClient({
           status: res.item.status as any,
           priority: res.item.priority as any,
           tag: res.item.tag,
+          comments: res.item.description || newItemComments.trim() || null,
         },
         ...prev,
       ]);
       setNewItemTitle("");
+      setNewItemComments("");
       setIsNewItemModalOpen(false);
     }
   };
@@ -434,30 +497,55 @@ export function ProjectDetailClient({
             </div>
           ) : actionItemsView === "list" ? (
             <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-x-auto">
-              <table className="w-full min-w-[650px] text-left border-collapse text-xs">
+              <table className="w-full min-w-[880px] text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
-                    <th className="py-3 px-4">Title</th>
+                    <th className="py-3 px-4">Subsidiary</th>
+                    <th className="py-3 px-4">Project</th>
+                    <th className="py-3 px-4">Action item</th>
                     <th className="py-3 px-4">Responsible Party</th>
-                    <th className="py-3 px-4">Deadline</th>
                     <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Deadline</th>
                     <th className="py-3 px-4">Priority</th>
+                    <th className="py-3 px-4">Comments (variance notes)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-duston-border">
                   {displayedProjectItems.map((item) => (
                     <tr
                       key={item.id}
-                      onClick={() => openActionItem(item.id)}
-                      className="hover:bg-duston-bg cursor-pointer transition-colors"
+                      className="hover:bg-duston-bg/80 transition-colors group"
                     >
-                      <td className="py-3 px-4 font-medium text-duston-dark">
+                      <td className="py-3 px-4">
+                        <span
+                          className="px-2 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap"
+                          style={{
+                            backgroundColor: `${project.entityBrandColor}15`,
+                            color: project.entityBrandColor,
+                            borderColor: `${project.entityBrandColor}30`,
+                          }}
+                        >
+                          {project.entityName}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-medium text-duston-dark whitespace-nowrap">
+                        {project.name}
+                      </td>
+                      <td
+                        onClick={() => openActionItem(item.id)}
+                        className="py-3 px-4 font-medium text-duston-dark hover:text-[#1BCECE] cursor-pointer"
+                      >
                         {item.title}
                       </td>
-                      <td className="py-3 px-4 text-duston-dark">
+                      <td className="py-3 px-4 text-duston-dark whitespace-nowrap">
                         {item.assigneeName}
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className="capitalize px-2 py-0.5 rounded bg-duston-bg border border-duston-border text-[11px] text-duston-text">
+                          {item.status.replace("_", " ")}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <span
                           className={cn(
                             "px-2 py-0.5 rounded text-[11px] font-medium",
@@ -469,13 +557,34 @@ export function ProjectDetailClient({
                           {formatDate(item.deadline)}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className="capitalize px-2 py-0.5 rounded bg-duston-bg border border-duston-border text-[11px] text-duston-text">
-                          {item.status.replace("_", " ")}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <PriorityFlag priority={item.priority} />
+                      </td>
+                      <td className="py-3 px-4 text-duston-muted max-w-xs">
+                        {item.comments ? (
+                          <div
+                            onClick={() => {
+                              setEditingVarianceItem({ id: item.id, title: item.title, comments: item.comments || "" });
+                              setVarianceText(item.comments || "");
+                            }}
+                            className="flex items-center gap-1.5 cursor-pointer hover:text-duston-dark"
+                            title="Click to edit variance note"
+                          >
+                            <span className="line-clamp-1 text-[11px] text-duston-dark/90 italic">{item.comments}</span>
+                            <span className="text-[10px] text-[#1BCECE] opacity-0 group-hover:opacity-100 font-medium">Edit</span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingVarianceItem({ id: item.id, title: item.title, comments: "" });
+                              setVarianceText("");
+                            }}
+                            className="text-[11px] text-duston-muted hover:text-[#023542] flex items-center gap-1 cursor-pointer transition-colors"
+                          >
+                            <span className="text-xs">+</span> Add comment
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -544,26 +653,55 @@ export function ProjectDetailClient({
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full min-w-[650px] text-left border-collapse text-xs">
+                      <table className="w-full min-w-[880px] text-left border-collapse text-xs">
                         <thead>
                           <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
-                            <th className="py-3 px-4">Title</th>
+                            <th className="py-3 px-4">Subsidiary</th>
+                            <th className="py-3 px-4">Project</th>
+                            <th className="py-3 px-4">Action item</th>
                             <th className="py-3 px-4">Responsible Party</th>
-                            <th className="py-3 px-4">Deadline</th>
                             <th className="py-3 px-4">Status</th>
+                            <th className="py-3 px-4">Deadline</th>
                             <th className="py-3 px-4">Priority</th>
+                            <th className="py-3 px-4">Comments (variance notes)</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-duston-border">
                           {group.items.map((item) => (
                             <tr
                               key={item.id}
-                              onClick={() => openActionItem(item.id)}
-                              className="hover:bg-duston-bg cursor-pointer transition-colors"
+                              className="hover:bg-duston-bg/80 transition-colors group"
                             >
-                              <td className="py-3 px-4 font-medium text-duston-dark">{item.title}</td>
-                              <td className="py-3 px-4 text-duston-dark">{item.assigneeName}</td>
                               <td className="py-3 px-4">
+                                <span
+                                  className="px-2 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap"
+                                  style={{
+                                    backgroundColor: `${project.entityBrandColor}15`,
+                                    color: project.entityBrandColor,
+                                    borderColor: `${project.entityBrandColor}30`,
+                                  }}
+                                >
+                                  {project.entityName}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 font-medium text-duston-dark whitespace-nowrap">
+                                {project.name}
+                              </td>
+                              <td
+                                onClick={() => openActionItem(item.id)}
+                                className="py-3 px-4 font-medium text-duston-dark hover:text-[#1BCECE] cursor-pointer"
+                              >
+                                {item.title}
+                              </td>
+                              <td className="py-3 px-4 text-duston-dark whitespace-nowrap">
+                                {item.assigneeName}
+                              </td>
+                              <td className="py-3 px-4 whitespace-nowrap">
+                                <span className="capitalize px-2 py-0.5 rounded bg-duston-bg border border-duston-border text-[11px] text-duston-text">
+                                  {item.status.replace("_", " ")}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 whitespace-nowrap">
                                 <span
                                   className={cn(
                                     "px-2 py-0.5 rounded text-[11px] font-medium",
@@ -575,13 +713,34 @@ export function ProjectDetailClient({
                                   {formatDate(item.deadline)}
                                 </span>
                               </td>
-                              <td className="py-3 px-4">
-                                <span className="capitalize px-2 py-0.5 rounded bg-duston-bg border border-duston-border text-[11px] text-duston-text">
-                                  {item.status.replace("_", " ")}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4">
+                              <td className="py-3 px-4 whitespace-nowrap">
                                 <PriorityFlag priority={item.priority} />
+                              </td>
+                              <td className="py-3 px-4 text-duston-muted max-w-xs">
+                                {item.comments ? (
+                                  <div
+                                    onClick={() => {
+                                      setEditingVarianceItem({ id: item.id, title: item.title, comments: item.comments || "" });
+                                      setVarianceText(item.comments || "");
+                                    }}
+                                    className="flex items-center gap-1.5 cursor-pointer hover:text-duston-dark"
+                                    title="Click to edit variance note"
+                                  >
+                                    <span className="line-clamp-1 text-[11px] text-duston-dark/90 italic">{item.comments}</span>
+                                    <span className="text-[10px] text-[#1BCECE] opacity-0 group-hover:opacity-100 font-medium">Edit</span>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingVarianceItem({ id: item.id, title: item.title, comments: "" });
+                                      setVarianceText("");
+                                    }}
+                                    className="text-[11px] text-duston-muted hover:text-[#023542] flex items-center gap-1 cursor-pointer transition-colors"
+                                  >
+                                    <span className="text-xs">+</span> Add comment
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -885,12 +1044,12 @@ export function ProjectDetailClient({
       {isNewItemModalOpen && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl shadow-2xl p-6">
-            <h3 className="text-sm font-medium text-duston-dark mb-4">
+            <h3 className="text-sm font-semibold text-duston-dark mb-4">
               Create action item
             </h3>
             <form onSubmit={handleCreateActionItem} className="space-y-4 text-xs">
               <div>
-                <label className="block text-duston-muted mb-1 font-medium">Title *</label>
+                <label className="block text-duston-muted mb-1 font-medium">Action item *</label>
                 <input
                   type="text"
                   required
@@ -901,19 +1060,68 @@ export function ProjectDetailClient({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-duston-muted mb-1 font-medium">Responsible Party</label>
+              {/* Responsible Party + inline Add */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-duston-muted font-medium">Responsible Party *</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingUser(!isAddingUser)}
+                    className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <UserPlus size={12} />
+                    {isAddingUser ? "Cancel" : "+ Add person"}
+                  </button>
+                </div>
+
+                {isAddingUser ? (
+                  <div className="p-3 bg-duston-bg/80 border border-duston-border rounded-lg space-y-2 mb-2">
+                    <input
+                      type="text"
+                      placeholder="Full name *"
+                      value={newUserName}
+                      onChange={(e) => setNewUserName(e.target.value)}
+                      className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email (optional)"
+                      value={newUserEmail}
+                      onChange={(e) => setNewUserEmail(e.target.value)}
+                      className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
+                    />
+                    <div className="flex justify-end gap-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingUser(false)}
+                        className="px-2.5 py-1 text-[11px] text-duston-muted hover:text-duston-dark rounded cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveNewUser}
+                        disabled={isSavingUser || !newUserName.trim()}
+                        className="px-3 py-1 text-[11px] bg-[#023542] hover:bg-[#1BCECE] text-white rounded font-medium disabled:opacity-50 cursor-pointer"
+                      >
+                        {isSavingUser ? "Saving..." : "Save & Select"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                   <select
                     value={newItemAssignee}
                     onChange={(e) => setNewItemAssignee(e.target.value)}
                     className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
                   >
-                    {users.map((u) => (
+                    {usersList.map((u) => (
                       <option key={u.id} value={u.id}>{u.name}</option>
                     ))}
                   </select>
-                </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-duston-muted mb-1 font-medium">Priority</label>
                   <select
@@ -927,16 +1135,26 @@ export function ProjectDetailClient({
                     <option value="critical">Critical</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-duston-muted mb-1 font-medium">Deadline</label>
+                  <input
+                    type="date"
+                    required
+                    value={newItemDeadline}
+                    onChange={(e) => setNewItemDeadline(e.target.value)}
+                    className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-duston-muted mb-1 font-medium">Deadline</label>
-                <input
-                  type="date"
-                  required
-                  value={newItemDeadline}
-                  onChange={(e) => setNewItemDeadline(e.target.value)}
-                  className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+                <label className="block text-duston-muted mb-1 font-medium">Comments / Variance note (optional)</label>
+                <textarea
+                  rows={2}
+                  value={newItemComments}
+                  onChange={(e) => setNewItemComments(e.target.value)}
+                  placeholder="Explain any scope variances, milestone context, or operational notes..."
+                  className="w-full bg-white border border-duston-border rounded-lg p-2.5 text-duston-text outline-none focus:border-[#1BCECE] resize-none"
                 />
               </div>
 
@@ -944,18 +1162,65 @@ export function ProjectDetailClient({
                 <button
                   type="button"
                   onClick={() => setIsNewItemModalOpen(false)}
-                  className="px-3 py-1.5 rounded-lg border border-duston-border text-duston-text hover:bg-duston-bg"
+                  className="px-3 py-1.5 rounded-lg border border-duston-border text-duston-text hover:bg-duston-bg cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 rounded-lg bg-[#023542] hover:bg-[#1BCECE] text-white font-medium transition-colors"
+                  className="px-3 py-1.5 rounded-lg bg-[#023542] hover:bg-[#1BCECE] text-white font-medium transition-colors cursor-pointer"
                 >
-                  Add item
+                  Create action item
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Variance Note Edit Modal */}
+      {editingVarianceItem && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl shadow-2xl p-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-duston-dark">
+                Variance Explanation / Comments
+              </h3>
+              <button
+                onClick={() => setEditingVarianceItem(null)}
+                className="p-1 rounded-md text-duston-muted hover:text-duston-dark cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <p className="text-xs text-duston-muted mb-3">
+              Action item: <span className="font-medium text-duston-dark">{editingVarianceItem.title}</span>
+            </p>
+            <textarea
+              rows={4}
+              value={varianceText}
+              onChange={(e) => setVarianceText(e.target.value)}
+              placeholder="Explain any schedule/budget variances, bottlenecks, or delivery notes..."
+              className="w-full bg-white border border-duston-border rounded-lg p-3 text-xs text-duston-text outline-none focus:border-[#1BCECE] resize-none"
+              autoFocus
+            />
+            <div className="flex items-center justify-end gap-2 mt-4">
+              <button
+                type="button"
+                onClick={() => setEditingVarianceItem(null)}
+                className="px-3 py-1.5 rounded-lg border border-duston-border text-xs text-duston-text hover:bg-duston-bg cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveVariance}
+                disabled={isSavingVariance}
+                className="px-4 py-1.5 rounded-lg bg-[#023542] hover:bg-[#1BCECE] text-white text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {isSavingVariance ? "Saving..." : "Save comment"}
+              </button>
+            </div>
           </div>
         </div>
       )}

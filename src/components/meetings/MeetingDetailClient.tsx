@@ -285,7 +285,7 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
             <table className="w-full min-w-[700px] text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
-                  <th className="py-3 px-4">Title</th>
+                  <th className="py-3 px-4">Action item</th>
                   <th className="py-3 px-3 w-28">Priority</th>
                   <th className="py-3 px-4">Project</th>
                   <th className="py-3 px-4">Responsible Party</th>
@@ -363,7 +363,7 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
                     <table className="w-full min-w-[700px] text-left border-collapse text-xs">
                       <thead>
                         <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
-                          <th className="py-3 px-4">Title</th>
+                          <th className="py-3 px-4">Action item</th>
                           <th className="py-3 px-3 w-28">Priority</th>
                           <th className="py-3 px-4">Project</th>
                           <th className="py-3 px-4">Responsible Party</th>

@@ -339,14 +339,14 @@ export function ActionItemDrawer({
             {/* Description Textarea (auto-save on blur) */}
             <div>
               <label className="block text-xs font-medium text-duston-muted mb-1.5">
-                Description
+                Description / Variance notes
               </label>
               <textarea
                 rows={4}
                 value={item.description || ""}
                 onChange={(e) => setItem({ ...item, description: e.target.value })}
                 onBlur={() => handleFieldChange("description", item.description)}
-                placeholder="Add contextual details or notes..."
+                placeholder="Add contextual details, variance explanations, or operational notes..."
                 className="w-full bg-white border border-duston-border rounded-xl p-3 text-xs text-duston-text outline-none focus:border-[#1BCECE] resize-none"
               />
             </div>

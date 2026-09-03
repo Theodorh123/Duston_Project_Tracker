@@ -4,6 +4,8 @@ import { actionItems, activityLog, userPreferences, users, projects, entities, u
 import { eq, desc } from "drizzle-orm";
 import { DashboardClient, ActionItemSummary, ActivitySummary } from "@/components/dashboard/DashboardClient";
 
+import { getUserScopeCached, getActiveEntitiesCached, getActiveUsersCached } from "@/lib/db/cache";
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -14,69 +16,52 @@ export default async function DashboardPage({
   const session = await auth();
   const userId = session?.user?.id!;
 
-  // Fetch all dashboard data concurrently in parallel
+  // Fetch scope and entities from cache (0ms if loaded by layout)
   const [
-    user,
-    preferences,
-    grants,
+    { user, allowedEntityIds },
     allEnt,
-    items,
-    recentLogs,
-    allProjects,
     allUsers,
+    [preferences, items, recentLogs, allProjects],
   ] = await Promise.all([
-    db.query.users.findFirst({
-      where: eq(users.id, userId),
-    }),
-    db.query.userPreferences.findFirst({
-      where: eq(userPreferences.userId, userId),
-    }),
-    db.query.userEntityAccess.findMany({
-      where: eq(userEntityAccess.userId, userId),
-    }),
-    db.query.entities.findMany({
-      where: eq(entities.isActive, true),
-    }),
-    db.query.actionItems.findMany({
-      where: eq(actionItems.assigneeId, userId),
-      with: {
-        project: {
-          with: {
-            entity: true,
+    getUserScopeCached(userId),
+    getActiveEntitiesCached(),
+    getActiveUsersCached(),
+    Promise.all([
+      db.query.userPreferences.findFirst({
+        where: eq(userPreferences.userId, userId),
+      }),
+      db.query.actionItems.findMany({
+        where: eq(actionItems.assigneeId, userId),
+        with: {
+          project: {
+            with: {
+              entity: true,
+            },
+          },
+          assignee: true,
+        },
+        orderBy: [actionItems.deadline],
+      }),
+      db.query.activityLog.findMany({
+        with: {
+          actor: true,
+          actionItem: {
+            with: {
+              project: true,
+            },
           },
         },
-        assignee: true,
-      },
-      orderBy: [actionItems.deadline],
-    }),
-    db.query.activityLog.findMany({
-      with: {
-        actor: true,
-        actionItem: {
-          with: {
-            project: true,
-          },
+        orderBy: [desc(activityLog.createdAt)],
+        limit: 20,
+      }),
+      db.query.projects.findMany({
+        with: {
+          entity: true,
         },
-      },
-      orderBy: [desc(activityLog.createdAt)],
-      limit: 20,
-    }),
-    db.query.projects.findMany({
-      with: {
-        entity: true,
-      },
-      orderBy: [desc(projects.createdAt)],
-    }),
-    db.query.users.findMany({
-      where: eq(users.isActive, true),
-      orderBy: [users.name],
-    }),
+        orderBy: [desc(projects.createdAt)],
+      }),
+    ]),
   ]);
-
-  // Allowed entity IDs for scoping
-  const allowedEntityIds = user?.hasGlobalAccess
-    ? allEnt.map((e) => e.id)
-    : grants.map((g) => g.entityId);
 
   // Map action items for client
   const mappedItems: ActionItemSummary[] = items.map((item) => ({
