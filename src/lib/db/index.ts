@@ -5,7 +5,9 @@ import * as dotenv from "dotenv";
 
 dotenv.config({ path: ".env.local" });
 
-const rawConnectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/duston_db";
+const rawConnectionString =
+  process.env.DATABASE_URL ||
+  "postgresql://neondb_owner:npg_E4nC9DSguaZJ@ep-raspy-mode-za8p2eep-pooler.c-2.eu-west-2.aws.neon.tech/neondb?sslmode=require";
 
 // Use direct endpoint for HTTP serverless (Neon recommends direct for HTTP proxying)
 const connectionString = rawConnectionString.replace("-pooler.", ".");

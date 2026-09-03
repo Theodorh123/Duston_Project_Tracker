@@ -8,6 +8,8 @@ import bcrypt from "bcryptjs";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  trustHost: true,
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "duston_super_secret_auth_key_2026_ghana_conglomerate_secure_token",
   providers: [
     Credentials({
       async authorize(credentials) {

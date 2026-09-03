@@ -1,8 +1,10 @@
 import type { NextAuthConfig } from "next-auth";
 
 export const authConfig = {
+  trustHost: true,
   pages: {
     signIn: "/login",
+    error: "/login",
   },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
@@ -64,5 +66,5 @@ export const authConfig = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.AUTH_SECRET || "duston_super_secret_auth_key_2026_ghana_conglomerate_secure_token",
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "duston_super_secret_auth_key_2026_ghana_conglomerate_secure_token",
 } satisfies NextAuthConfig;
