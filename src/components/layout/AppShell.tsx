@@ -92,6 +92,8 @@ export function AppShell({ children, user, entities }: AppShellProps) {
           itemId={activeActionItemId}
           isOpen={!!activeActionItemId}
           onClose={closeActionItem}
+          currentUserId={user.id}
+          currentUserRole={user.role || undefined}
         />
       </div>
     </AppShellContext.Provider>

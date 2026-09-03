@@ -57,6 +57,7 @@ export async function getActionItemById(id: string) {
       tag: item.tag,
       sourceMeetingId: item.sourceMeetingId,
       sourceMeetingSubject: item.sourceMeeting?.subject,
+      createdBy: item.createdBy,
       comments: item.comments?.map((c) => ({
         id: c.id,
         userName: c.user?.name || "User",
@@ -94,6 +95,23 @@ export async function updateActionItemField(
       where: eq(actionItems.id, id),
     });
     if (!current) return { success: false, error: "Not found" };
+
+    // Authorization check: Only EA, Admin, CEO can edit any action item.
+    // All other users can only edit action items that originate from them.
+    if (actorId && UUID_REGEX.test(actorId) && actorId !== "00000000-0000-0000-0000-000000000000") {
+      const actor = await db.query.users.findFirst({
+        where: eq(users.id, actorId),
+      });
+      const isPrivileged = actor && ["admin", "ceo", "ea"].includes(actor.role);
+      const isOriginator = current.createdBy === actorId;
+
+      if (!isPrivileged && !isOriginator) {
+        return {
+          success: false,
+          error: "Permission denied: Only EA, Admin, CEO or the creator of this action item can amend it.",
+        };
+      }
+    }
 
     const updateData: any = {
       [field]: value,
@@ -141,6 +159,46 @@ export async function updateActionItemField(
   } catch (err: any) {
     console.error("updateActionItemField error:", err);
     return { success: false, error: err.message };
+  }
+}
+
+export async function deleteActionItem(id: string, actorId: string) {
+  if (!id || !UUID_REGEX.test(id)) {
+    return { success: false, error: "Invalid ID" };
+  }
+
+  try {
+    if (!actorId || !UUID_REGEX.test(actorId)) {
+      return { success: false, error: "Authentication required to delete action items" };
+    }
+
+    const actor = await db.query.users.findFirst({
+      where: eq(users.id, actorId),
+    });
+
+    if (!actor || !["admin", "ceo", "ea"].includes(actor.role)) {
+      return {
+        success: false,
+        error: "Permission denied: Only EA, Admin, or CEO can delete action items.",
+      };
+    }
+
+    // Explicitly remove linked rows in cascading order
+    await db.delete(comments).where(eq(comments.actionItemId, id));
+    await db.delete(activityLog).where(eq(activityLog.actionItemId, id));
+    await db.delete(actionItems).where(eq(actionItems.id, id));
+
+    revalidatePath("/");
+    revalidatePath("/action-items");
+    revalidatePath("/projects");
+    revalidatePath("/meetings");
+    revalidatePath("/ea-view");
+    revalidatePath("/ceo-view");
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("deleteActionItem error:", err);
+    return { success: false, error: err.message || "Failed to delete action item" };
   }
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Calendar, Clock, CheckCircle2, AlertCircle, ChevronDown, ChevronUp, MessageSquare, Send } from "lucide-react";
+import { X, Calendar, Clock, CheckCircle2, AlertCircle, ChevronDown, ChevronUp, MessageSquare, Send, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
 
@@ -21,6 +21,7 @@ export interface ActionItemDetail {
   tag?: string | null;
   sourceMeetingId?: string | null;
   sourceMeetingSubject?: string | null;
+  createdBy?: string;
   comments?: Array<{
     id: string;
     userName: string;
@@ -43,6 +44,9 @@ interface ActionItemDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdate?: (updatedItem: Partial<ActionItemDetail>) => void;
+  onDelete?: (deletedItemId: string) => void;
+  currentUserId?: string;
+  currentUserRole?: string;
 }
 
 export function ActionItemDrawer({
@@ -50,13 +54,23 @@ export function ActionItemDrawer({
   isOpen,
   onClose,
   onUpdate,
+  onDelete,
+  currentUserId,
+  currentUserRole,
 }: ActionItemDrawerProps) {
   const [item, setItem] = useState<ActionItemDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [isActivityOpen, setIsActivityOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+
+  const isPrivileged = ["admin", "ceo", "ea"].includes(currentUserRole || "");
+  const canDelete = isPrivileged;
+  const canEdit = isPrivileged || (Boolean(item?.createdBy) && item?.createdBy === currentUserId);
 
   // Close on Escape key
   useEffect(() => {
@@ -135,17 +149,58 @@ export function ActionItemDrawer({
       .finally(() => setLoading(false));
   }, [itemId, isOpen]);
 
-  const handleFieldChange = (field: keyof ActionItemDetail, value: any) => {
+  const handleFieldChange = async (field: keyof ActionItemDetail, value: any) => {
     if (!item) return;
+    if (!canEdit) {
+      setErrorMessage("Permission denied: Only EA, Admin, CEO, or the creator can amend this action item.");
+      return;
+    }
+    setErrorMessage(null);
     const updated = { ...item, [field]: value };
     setItem(updated);
     if (onUpdate) onUpdate({ [field]: value });
-    // Call server action/API silently
-    fetch(`/api/action-items/${item.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [field]: value }),
-    }).catch(() => {});
+
+    try {
+      const res = await fetch(`/api/action-items/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setErrorMessage(data.error || "Failed to update field");
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to update field");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!item) return;
+    if (!canDelete) {
+      setErrorMessage("Only EA, Admin, or CEO can delete action items.");
+      return;
+    }
+    setIsDeleting(true);
+    setErrorMessage(null);
+    try {
+      const res = await fetch(`/api/action-items/${item.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setShowDeleteConfirm(false);
+        if (onDelete) onDelete(item.id);
+        onClose();
+        window.location.reload();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || "Failed to delete action item");
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to delete action item");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleAddComment = (e: React.FormEvent) => {
@@ -200,13 +255,25 @@ export function ActionItemDrawer({
               {item?.entityName || "Action Item"}
             </span>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-duston-muted hover:text-duston-dark hover:bg-white border border-transparent hover:border-duston-border transition-colors"
-            aria-label="Close drawer"
-          >
-            <X size={18} strokeWidth={1.5} />
-          </button>
+          <div className="flex items-center gap-1">
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="p-1.5 rounded-lg text-duston-muted hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer mr-1"
+                title="Delete action item (EA, Admin, CEO)"
+              >
+                <Trash2 size={16} strokeWidth={1.5} />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-duston-muted hover:text-duston-dark hover:bg-white border border-transparent hover:border-duston-border transition-colors cursor-pointer"
+              aria-label="Close drawer"
+            >
+              <X size={18} strokeWidth={1.5} />
+            </button>
+          </div>
         </div>
 
         {/* Scrollable Body */}
@@ -218,9 +285,25 @@ export function ActionItemDrawer({
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {errorMessage && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center justify-between">
+                <span>{errorMessage}</span>
+                <button type="button" onClick={() => setErrorMessage(null)} className="text-rose-400 hover:text-rose-700">
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
+            {!canEdit && (
+              <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2">
+                <AlertCircle size={15} className="text-amber-600 shrink-0" />
+                <span>Read-only: Action items can only be amended by EA, Admin, CEO, or the person who created them.</span>
+              </div>
+            )}
+
             {/* Title (inline-editable) */}
             <div>
-              {isEditingTitle ? (
+              {isEditingTitle && canEdit ? (
                 <input
                   ref={titleInputRef}
                   type="text"
@@ -232,9 +315,12 @@ export function ActionItemDrawer({
                 />
               ) : (
                 <h2
-                  onClick={() => setIsEditingTitle(true)}
-                  className="text-xl font-medium text-duston-dark hover:bg-duston-bg p-1 -m-1 rounded cursor-pointer transition-colors"
-                  title="Edit title"
+                  onClick={() => canEdit && setIsEditingTitle(true)}
+                  className={cn(
+                    "text-xl font-medium text-duston-dark p-1 -m-1 rounded transition-colors",
+                    canEdit ? "hover:bg-duston-bg cursor-pointer" : "cursor-default"
+                  )}
+                  title={canEdit ? "Edit title" : "Title (read-only)"}
                 >
                   {item.title}
                 </h2>
@@ -282,8 +368,12 @@ export function ActionItemDrawer({
                 <label className="block text-duston-muted mb-1 font-medium">Status</label>
                 <select
                   value={item.status}
+                  disabled={!canEdit}
                   onChange={(e) => handleFieldChange("status", e.target.value)}
-                  className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
+                  className={cn(
+                    "w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]",
+                    !canEdit && "opacity-60 cursor-not-allowed bg-slate-50"
+                  )}
                 >
                   <option value="not_started">Not started</option>
                   <option value="in_progress">In progress</option>
@@ -297,8 +387,12 @@ export function ActionItemDrawer({
                 <label className="block text-duston-muted mb-1 font-medium">Priority</label>
                 <select
                   value={item.priority}
+                  disabled={!canEdit}
                   onChange={(e) => handleFieldChange("priority", e.target.value)}
-                  className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
+                  className={cn(
+                    "w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]",
+                    !canEdit && "opacity-60 cursor-not-allowed bg-slate-50"
+                  )}
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -313,12 +407,14 @@ export function ActionItemDrawer({
                 <input
                   type="date"
                   value={item.deadline}
+                  disabled={!canEdit}
                   onChange={(e) => handleFieldChange("deadline", e.target.value)}
                   className={cn(
                     "w-full bg-white border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]",
                     isDeadlineOverdue(item.deadline, item.status)
                       ? "border-duston-orange text-duston-orange"
-                      : "border-duston-border"
+                      : "border-duston-border",
+                    !canEdit && "opacity-60 cursor-not-allowed bg-slate-50"
                   )}
                 />
               </div>
@@ -330,8 +426,12 @@ export function ActionItemDrawer({
                   type="text"
                   placeholder="e.g. Legal, Treasury"
                   value={item.tag || ""}
+                  disabled={!canEdit}
                   onChange={(e) => handleFieldChange("tag", e.target.value)}
-                  className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
+                  className={cn(
+                    "w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]",
+                    !canEdit && "opacity-60 cursor-not-allowed bg-slate-50"
+                  )}
                 />
               </div>
             </div>
@@ -344,10 +444,14 @@ export function ActionItemDrawer({
               <textarea
                 rows={4}
                 value={item.description || ""}
+                disabled={!canEdit}
                 onChange={(e) => setItem({ ...item, description: e.target.value })}
                 onBlur={() => handleFieldChange("description", item.description)}
                 placeholder="Add contextual details, variance explanations, or operational notes..."
-                className="w-full bg-white border border-duston-border rounded-xl p-3 text-xs text-duston-text outline-none focus:border-[#1BCECE] resize-none"
+                className={cn(
+                  "w-full bg-white border border-duston-border rounded-xl p-3 text-xs text-duston-text outline-none focus:border-[#1BCECE] resize-none",
+                  !canEdit && "opacity-60 cursor-not-allowed bg-slate-50"
+                )}
               />
             </div>
 
@@ -426,9 +530,58 @@ export function ActionItemDrawer({
                 </div>
               )}
             </div>
+
+            {/* Delete Action Item Section (for EA, Admin, CEO) */}
+            {canDelete && (
+              <div className="pt-4 border-t border-duston-border">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full py-2.5 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Trash2 size={14} />
+                  <span>Delete action item</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-60 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-duston-border space-y-4">
+            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+              <Trash2 size={20} />
+            </div>
+            <div className="text-center">
+              <h3 className="text-sm font-semibold text-duston-dark">Delete Action Item?</h3>
+              <p className="text-xs text-duston-muted mt-1">
+                Are you sure you want to permanently delete "{item?.title}"? This cannot be undone.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-2 px-3 rounded-xl border border-duston-border text-duston-muted hover:text-duston-dark text-xs font-medium transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDelete}
+                className="flex-1 py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {isDeleting ? "Deleting..." : "Confirm Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -67,6 +67,7 @@ export default async function ActionRegisterPage() {
       entityBrandColor: it.project?.entity?.brandPrimaryColor || "#023542",
       sourceMeetingId: it.sourceMeetingId,
       sourceMeetingSubject: it.sourceMeeting?.subject,
+      createdBy: it.createdBy,
       createdAt: it.createdAt ? it.createdAt.toISOString() : new Date().toISOString(),
     }));
 

@@ -161,11 +161,16 @@ export function ProjectDetailClient({
     if (!editingVarianceItem) return;
     setIsSavingVariance(true);
     try {
-      await fetch(`/api/action-items/${editingVarianceItem.id}`, {
+      const res = await fetch(`/api/action-items/${editingVarianceItem.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description: varianceText }),
       });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Permission denied: Only EA, Admin, CEO, or the creator can amend this action item.");
+        return;
+      }
       setItemsList((prev) =>
         prev.map((it) => (it.id === editingVarianceItem.id ? { ...it, comments: varianceText } : it))
       );

@@ -39,6 +39,7 @@ export interface RegisterItem {
   entityBrandColor: string;
   sourceMeetingId?: string | null;
   sourceMeetingSubject?: string | null;
+  createdBy?: string;
   createdAt: string;
 }
 
@@ -225,18 +226,36 @@ export function ActionRegisterClient({
     };
   }, [filteredItems]);
 
+  const isPrivileged = ["admin", "ceo", "ea"].includes(userRole || "");
+
   // Quick toggle item status (Done <-> In Progress)
   const handleToggleStatus = async (item: RegisterItem) => {
+    const canEdit = isPrivileged || (Boolean(item.createdBy) && item.createdBy === currentUserId);
+    if (!canEdit) {
+      alert("Permission denied: Only EA, Admin, CEO, or the person who created this action item can amend its status.");
+      return;
+    }
+
     const newStatus = item.status === "done" ? "in_progress" : "done";
     setItems((prev) =>
       prev.map((it) => (it.id === item.id ? { ...it, status: newStatus } : it))
     );
 
     try {
-      await updateActionItemField(item.id, "status", newStatus, currentUserId);
+      const res = await updateActionItemField(item.id, "status", newStatus, currentUserId);
+      if (!res.success) {
+        alert(res.error || "Permission denied: Unable to update status.");
+        setItems((prev) =>
+          prev.map((it) => (it.id === item.id ? { ...it, status: item.status } : it))
+        );
+        return;
+      }
       router.refresh();
     } catch (err) {
       console.error("Failed to toggle status:", err);
+      setItems((prev) =>
+        prev.map((it) => (it.id === item.id ? { ...it, status: item.status } : it))
+      );
     }
   };
 

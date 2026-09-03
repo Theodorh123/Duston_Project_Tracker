@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getActionItemById, updateActionItemField } from "@/lib/actions/action-items";
+import { getActionItemById, updateActionItemField, deleteActionItem } from "@/lib/actions/action-items";
 import { auth } from "@/auth";
 
 export async function GET(
@@ -25,7 +25,36 @@ export async function PATCH(
   const actorId = session?.user?.id || "00000000-0000-0000-0000-000000000000";
 
   for (const [field, value] of Object.entries(body)) {
-    await updateActionItemField(id, field, value, actorId);
+    const res = await updateActionItemField(id, field, value, actorId);
+    if (!res.success) {
+      return NextResponse.json({ error: res.error }, { status: 403 });
+    }
+  }
+
+  return NextResponse.json({ success: true });
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const role = (session.user as any)?.role;
+  if (!["admin", "ceo", "ea"].includes(role || "")) {
+    return NextResponse.json(
+      { error: "Permission denied: Only EA, Admin, or CEO can delete action items." },
+      { status: 403 }
+    );
+  }
+
+  const { id } = await params;
+  const result = await deleteActionItem(id, session.user.id);
+  if (!result.success) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
   return NextResponse.json({ success: true });
