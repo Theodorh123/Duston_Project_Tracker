@@ -13,6 +13,9 @@ import {
   X,
   Edit2,
   Filter,
+  Shield,
+  Globe,
+  Lock,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import {
@@ -22,6 +25,7 @@ import {
   createUser,
   createEntity,
   updateEntity,
+  updateUserEntityAccess,
 } from "@/lib/actions/admin";
 
 export interface AdminUser {
@@ -30,6 +34,7 @@ export interface AdminUser {
   email: string;
   role: "admin" | "ceo" | "ea" | "md" | "hod" | "contributor" | "external";
   hasGlobalAccess: boolean;
+  assignedEntities?: Array<{ id: string; name: string; brandPrimaryColor?: string }>;
   isActive: boolean;
   createdAt: string;
 }
@@ -81,7 +86,14 @@ export function AdminClient({
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserRole, setNewUserRole] = useState<any>("contributor");
-  const [newUserGlobal, setNewUserGlobal] = useState(true);
+  const [newUserGlobal, setNewUserGlobal] = useState(false);
+  const [newUserEntityId, setNewUserEntityId] = useState("");
+
+  // Edit user entity access modal state
+  const [editingAccessUser, setEditingAccessUser] = useState<AdminUser | null>(null);
+  const [editUserGlobal, setEditUserGlobal] = useState(false);
+  const [editUserEntityIds, setEditUserEntityIds] = useState<string[]>([]);
+  const [isSavingAccess, setIsSavingAccess] = useState(false);
 
   // New entity form state
   const [newEntityName, setNewEntityName] = useState("");
@@ -116,14 +128,24 @@ export function AdminClient({
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    const entityIds = newUserEntityId ? [newUserEntityId] : [];
     const res = await createUser({
       name: newUserName.trim(),
       email: newUserEmail.trim(),
       role: newUserRole,
       hasGlobalAccess: newUserGlobal,
+      entityIds,
     });
 
     if (res.success && res.user) {
+      const assigned = entitiesList
+        .filter((ent) => entityIds.includes(ent.id))
+        .map((ent) => ({
+          id: ent.id,
+          name: ent.name,
+          brandPrimaryColor: ent.brandPrimaryColor,
+        }));
+
       setUsersList((prev) => [
         {
           id: res.user.id,
@@ -131,6 +153,7 @@ export function AdminClient({
           email: res.user.email,
           role: res.user.role as any,
           hasGlobalAccess: res.user.hasGlobalAccess,
+          assignedEntities: assigned,
           isActive: res.user.isActive,
           createdAt: new Date().toISOString(),
         },
@@ -140,6 +163,53 @@ export function AdminClient({
       setIsNewUserModalOpen(false);
       setNewUserName("");
       setNewUserEmail("");
+      setNewUserRole("contributor");
+      setNewUserGlobal(false);
+      setNewUserEntityId("");
+    }
+  };
+
+  const handleOpenEditAccess = (user: AdminUser) => {
+    setEditingAccessUser(user);
+    setEditUserGlobal(user.hasGlobalAccess);
+    setEditUserEntityIds((user.assignedEntities || []).map((e) => e.id));
+  };
+
+  const handleSaveUserAccess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAccessUser) return;
+    setIsSavingAccess(true);
+    try {
+      const res = await updateUserEntityAccess({
+        userId: editingAccessUser.id,
+        hasGlobalAccess: editUserGlobal,
+        entityIds: editUserEntityIds,
+      });
+
+      if (res.success) {
+        const assigned = entitiesList
+          .filter((ent) => editUserEntityIds.includes(ent.id))
+          .map((ent) => ({
+            id: ent.id,
+            name: ent.name,
+            brandPrimaryColor: ent.brandPrimaryColor,
+          }));
+
+        setUsersList((prev) =>
+          prev.map((u) =>
+            u.id === editingAccessUser.id
+              ? {
+                  ...u,
+                  hasGlobalAccess: editUserGlobal,
+                  assignedEntities: assigned,
+                }
+              : u
+          )
+        );
+        setEditingAccessUser(null);
+      }
+    } finally {
+      setIsSavingAccess(false);
     }
   };
 
@@ -264,7 +334,7 @@ export function AdminClient({
                 <th className="py-3 px-4">Name</th>
                 <th className="py-3 px-4">Email</th>
                 <th className="py-3 px-4">Role</th>
-                <th className="py-3 px-4">Global access</th>
+                <th className="py-3 px-4">Subsidiary & Access</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
@@ -290,16 +360,45 @@ export function AdminClient({
                     </select>
                   </td>
                   <td className="py-3 px-4">
-                    <span
-                      className={cn(
-                        "px-2 py-0.5 rounded text-[10px] font-medium",
-                        user.hasGlobalAccess
-                          ? "bg-[#1BCECE]/10 text-[#023542]"
-                          : "bg-duston-bg text-duston-muted border border-duston-border"
-                      )}
-                    >
-                      {user.hasGlobalAccess ? "All entities" : "Scoped"}
-                    </span>
+                    {user.hasGlobalAccess ? (
+                      <div className="space-y-0.5">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-[#1BCECE]/15 text-[#023542] inline-flex items-center gap-1">
+                          <Globe size={11} className="text-[#1BCECE]" />
+                          <span>All subsidiaries (Global)</span>
+                        </span>
+                        {user.assignedEntities && user.assignedEntities.length > 0 && (
+                          <div className="text-[10px] text-duston-muted">
+                            Home: {user.assignedEntities.map((e) => e.name).join(", ")}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-0.5">
+                        {user.assignedEntities && user.assignedEntities.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {user.assignedEntities.map((e) => (
+                              <span
+                                key={e.id}
+                                className="px-2 py-0.5 rounded text-[10px] font-medium inline-flex items-center gap-1 border shadow-2xs"
+                                style={{
+                                  backgroundColor: `${e.brandPrimaryColor || "#023542"}15`,
+                                  color: e.brandPrimaryColor || "#023542",
+                                  borderColor: `${e.brandPrimaryColor || "#023542"}30`,
+                                }}
+                              >
+                                <Lock size={10} />
+                                <span>{e.name}</span>
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
+                            <Lock size={10} />
+                            <span>Restricted (No subsidiary assigned)</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     <span
@@ -315,6 +414,13 @@ export function AdminClient({
                   </td>
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleOpenEditAccess(user)}
+                        className="p-1 rounded hover:bg-duston-bg text-duston-muted hover:text-[#023542]"
+                        title="Manage subsidiary access & restrictions"
+                      >
+                        <Shield size={15} strokeWidth={1.5} />
+                      </button>
                       <button
                         onClick={() => handleResetPassword(user)}
                         className="p-1 rounded hover:bg-duston-bg text-duston-muted hover:text-duston-dark"
@@ -522,7 +628,15 @@ export function AdminClient({
                 <label className="block text-duston-muted mb-1">Role *</label>
                 <select
                   value={newUserRole}
-                  onChange={(e) => setNewUserRole(e.target.value)}
+                  onChange={(e) => {
+                    const r = e.target.value;
+                    setNewUserRole(r);
+                    if (r === "admin" || r === "ceo" || r === "ea") {
+                      setNewUserGlobal(true);
+                    } else {
+                      setNewUserGlobal(false);
+                    }
+                  }}
                   className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
                 >
                   <option value="contributor">Contributor</option>
@@ -535,32 +649,205 @@ export function AdminClient({
                 </select>
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="globalAccess"
-                  checked={newUserGlobal}
-                  onChange={(e) => setNewUserGlobal(e.target.checked)}
-                  className="rounded border-duston-border text-[#023542] focus:ring-0"
-                />
-                <label htmlFor="globalAccess" className="text-duston-dark">
-                  Grant cross-entity global visibility
-                </label>
+              <div>
+                <label className="block text-duston-muted mb-1 font-medium">Subsidiary / Entity *</label>
+                <select
+                  required
+                  value={newUserEntityId}
+                  onChange={(e) => setNewUserEntityId(e.target.value)}
+                  className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
+                >
+                  <option value="">Select subsidiary person works with...</option>
+                  {entitiesList.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-duston-muted mt-1">
+                  The primary entity or subsidiary this person works with.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-duston-muted mb-1.5 font-medium">Access Restriction</label>
+                <div className="space-y-2 bg-duston-bg/60 border border-duston-border rounded-xl p-3">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="accessScope"
+                      checked={!newUserGlobal}
+                      onChange={() => setNewUserGlobal(false)}
+                      className="mt-0.5 text-[#023542] focus:ring-0"
+                    />
+                    <div>
+                      <span className="font-medium text-duston-dark block">
+                        Restrict to assigned subsidiary only
+                      </span>
+                      <span className="text-[11px] text-duston-muted block">
+                        Member can only view and access projects, meetings, and action items for their assigned subsidiary.
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 cursor-pointer pt-2 border-t border-duston-border/60">
+                    <input
+                      type="radio"
+                      name="accessScope"
+                      checked={newUserGlobal}
+                      onChange={() => setNewUserGlobal(true)}
+                      className="mt-0.5 text-[#023542] focus:ring-0"
+                    />
+                    <div>
+                      <span className="font-medium text-duston-dark block">
+                        Global Group Access (All Subsidiaries)
+                      </span>
+                      <span className="text-[11px] text-duston-muted block">
+                        Recommended for CEO, EA, and Group Directors to oversee all conglomerate operations.
+                      </span>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               <div className="pt-3 border-t border-duston-border flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsNewUserModalOpen(false)}
-                  className="px-3 py-1.5 rounded-lg border border-duston-border text-duston-text hover:bg-duston-bg"
+                  className="px-3 py-1.5 rounded-lg border border-duston-border text-duston-text hover:bg-duston-bg cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 rounded-lg bg-[#023542] hover:bg-[#1BCECE] text-white font-medium transition-colors"
+                  className="px-3 py-1.5 rounded-lg bg-[#023542] hover:bg-[#1BCECE] text-white font-medium transition-colors cursor-pointer"
                 >
                   Create user
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Entity Access Modal */}
+      {editingAccessUser && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl p-6 shadow-2xl space-y-4 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield size={18} className="text-[#023542]" />
+                <div>
+                  <h3 className="font-medium text-duston-dark text-sm">
+                    Manage Subsidiary Access
+                  </h3>
+                  <p className="text-[11px] text-duston-muted">
+                    {editingAccessUser.name} ({editingAccessUser.email})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingAccessUser(null)}
+                className="p-1 rounded text-duston-muted hover:text-duston-dark cursor-pointer"
+              >
+                <X size={16} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveUserAccess} className="space-y-4">
+              <div>
+                <label className="block text-duston-muted mb-1.5 font-medium">Access Mode</label>
+                <div className="space-y-2 bg-duston-bg/60 border border-duston-border rounded-xl p-3">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="editAccessMode"
+                      checked={editUserGlobal}
+                      onChange={() => setEditUserGlobal(true)}
+                      className="mt-0.5 text-[#023542] focus:ring-0"
+                    />
+                    <div>
+                      <span className="font-medium text-duston-dark block">
+                        Global access (All subsidiaries)
+                      </span>
+                      <span className="text-[11px] text-duston-muted block">
+                        Unrestricted visibility across all group subsidiaries and projects.
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 cursor-pointer pt-2 border-t border-duston-border/60">
+                    <input
+                      type="radio"
+                      name="editAccessMode"
+                      checked={!editUserGlobal}
+                      onChange={() => setEditUserGlobal(false)}
+                      className="mt-0.5 text-[#023542] focus:ring-0"
+                    />
+                    <div>
+                      <span className="font-medium text-duston-dark block">
+                        Restricted to specific subsidiaries
+                      </span>
+                      <span className="text-[11px] text-duston-muted block">
+                        Member can only access data belonging to the checked subsidiaries below.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {!editUserGlobal && (
+                <div>
+                  <label className="block text-duston-muted mb-1.5 font-medium">
+                    Allowed Subsidiaries ({editUserEntityIds.length} selected)
+                  </label>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto border border-duston-border rounded-xl p-2.5 bg-white">
+                    {entitiesList.map((ent) => {
+                      const isChecked = editUserEntityIds.includes(ent.id);
+                      return (
+                        <label
+                          key={ent.id}
+                          className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-duston-bg cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEditUserEntityIds([...editUserEntityIds, ent.id]);
+                              } else {
+                                setEditUserEntityIds(editUserEntityIds.filter((id) => id !== ent.id));
+                              }
+                            }}
+                            className="rounded border-duston-border text-[#023542] focus:ring-0"
+                          />
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: ent.brandPrimaryColor }}
+                          />
+                          <span className="font-medium text-duston-dark flex-1">{ent.name}</span>
+                          <span className="text-[10px] text-duston-muted">{ent.slug}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-3 border-t border-duston-border flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingAccessUser(null)}
+                  className="px-3 py-1.5 rounded-lg border border-duston-border text-duston-text hover:bg-duston-bg cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingAccess}
+                  className="px-4 py-1.5 rounded-lg bg-[#023542] hover:bg-[#1BCECE] text-white font-medium transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingAccess ? "Saving..." : "Save access permissions"}
                 </button>
               </div>
             </form>

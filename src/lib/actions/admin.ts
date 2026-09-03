@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "../db";
-import { users, entities } from "../db/schema";
+import { users, entities, userEntityAccess } from "../db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
@@ -44,6 +44,7 @@ export async function createUser(data: {
   role: "admin" | "ceo" | "ea" | "md" | "hod" | "contributor" | "external";
   phoneE164?: string;
   hasGlobalAccess?: boolean;
+  entityIds?: string[];
 }) {
   try {
     const defaultPassword = "Duston123!";
@@ -61,8 +62,65 @@ export async function createUser(data: {
       })
       .returning();
 
+    // Link restricted/assigned entities
+    if (data.entityIds && data.entityIds.length > 0) {
+      for (const entityId of data.entityIds) {
+        await db
+          .insert(userEntityAccess)
+          .values({
+            userId: newUser.id,
+            entityId,
+            accessLevel: "write",
+          })
+          .onConflictDoNothing();
+      }
+    }
+
     revalidatePath("/admin");
+    revalidatePath("/");
     return { success: true, user: newUser, tempPassword: defaultPassword };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function updateUserEntityAccess(data: {
+  userId: string;
+  hasGlobalAccess: boolean;
+  entityIds: string[];
+}) {
+  try {
+    // 1. Update user global access flag
+    await db
+      .update(users)
+      .set({
+        hasGlobalAccess: data.hasGlobalAccess,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, data.userId));
+
+    // 2. Clear previous grants
+    await db
+      .delete(userEntityAccess)
+      .where(eq(userEntityAccess.userId, data.userId));
+
+    // 3. Insert new entity grants if any
+    if (data.entityIds && data.entityIds.length > 0) {
+      for (const entityId of data.entityIds) {
+        await db
+          .insert(userEntityAccess)
+          .values({
+            userId: data.userId,
+            entityId,
+            accessLevel: "write",
+          })
+          .onConflictDoNothing();
+      }
+    }
+
+    revalidatePath("/admin");
+    revalidatePath("/");
+    return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
   }

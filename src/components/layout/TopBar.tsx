@@ -96,42 +96,63 @@ export function TopBar({
     return (parts[0][0] + (parts[1]?.[0] || "")).toUpperCase();
   };
 
-  const renderEntityChips = () => (
-    <div className="flex items-center gap-1.5 shrink-0">
-      <button
-        onClick={() => onSelectEntity(null)}
-        className={cn(
-          "px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 whitespace-nowrap",
-          selectedEntityId === null
-            ? "bg-[#023542] text-white shadow-xs"
-            : "bg-white border border-duston-border text-duston-text hover:border-[#1BCECE]"
-        )}
-      >
-        All subsidiaries
-      </button>
-      {entities.map((entity) => {
-        const isSelected = selectedEntityId === entity.id;
+  const renderEntityChips = () => {
+    if (entities.length <= 1) {
+      if (entities.length === 1) {
         return (
-          <button
-            key={entity.id}
-            onClick={() => onSelectEntity(entity.id)}
-            className={cn(
-              "px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 flex items-center gap-1.5 whitespace-nowrap",
-              isSelected
-                ? "bg-[#023542] text-white shadow-xs"
-                : "bg-white border border-duston-border text-duston-text hover:border-[#1BCECE]"
-            )}
-          >
+          <div className="flex items-center gap-1.5 shrink-0">
             <span
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: entity.brandPrimaryColor }}
-            />
-            <span>{entity.name}</span>
-          </button>
+              className="px-3 py-1 rounded-full text-xs font-medium bg-[#023542] text-white shadow-xs flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: entities[0].brandPrimaryColor }}
+              />
+              <span>{entities[0].name}</span>
+            </span>
+          </div>
         );
-      })}
-    </div>
-  );
+      }
+      return null;
+    }
+
+    return (
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          onClick={() => onSelectEntity(null)}
+          className={cn(
+            "px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 whitespace-nowrap",
+            selectedEntityId === null
+              ? "bg-[#023542] text-white shadow-xs"
+              : "bg-white border border-duston-border text-duston-text hover:border-[#1BCECE]"
+          )}
+        >
+          All subsidiaries
+        </button>
+        {entities.map((entity) => {
+          const isSelected = selectedEntityId === entity.id;
+          return (
+            <button
+              key={entity.id}
+              onClick={() => onSelectEntity(entity.id)}
+              className={cn(
+                "px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 flex items-center gap-1.5 whitespace-nowrap",
+                isSelected
+                  ? "bg-[#023542] text-white shadow-xs"
+                  : "bg-white border border-duston-border text-duston-text hover:border-[#1BCECE]"
+              )}
+            >
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: entity.brandPrimaryColor }}
+              />
+              <span>{entity.name}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <header className="sticky top-0 z-30 bg-duston-bg/95 backdrop-blur-md border-b border-duston-border">

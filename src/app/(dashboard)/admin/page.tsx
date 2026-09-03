@@ -13,8 +13,15 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  // 1. Users
+  // 1. Users with their assigned entities
   const allUsers = await db.query.users.findMany({
+    with: {
+      entityAccess: {
+        with: {
+          entity: true,
+        },
+      },
+    },
     orderBy: [desc(users.createdAt)],
   });
 
@@ -24,6 +31,13 @@ export default async function AdminPage() {
     email: u.email,
     role: u.role,
     hasGlobalAccess: u.hasGlobalAccess,
+    assignedEntities: (u.entityAccess || [])
+      .filter((ea) => ea.entity)
+      .map((ea) => ({
+        id: ea.entity.id,
+        name: ea.entity.name,
+        brandPrimaryColor: ea.entity.brandPrimaryColor,
+      })),
     isActive: u.isActive,
     createdAt: u.createdAt.toISOString(),
   }));
