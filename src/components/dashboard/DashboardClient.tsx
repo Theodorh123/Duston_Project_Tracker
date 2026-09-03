@@ -364,7 +364,7 @@ export function DashboardClient({
               ? "ring-2 ring-[#023542] border-[#023542] bg-[#023542]/5 shadow-sm"
               : "border-duston-border hover:border-[#023542]"
           )}
-          title="Click to view all open items"
+          title="Open items"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-duston-muted group-hover:text-duston-dark transition-colors">
@@ -399,7 +399,7 @@ export function DashboardClient({
               ? "ring-2 ring-[#F15A24] border-[#F15A24] bg-[#F15A24]/5 shadow-sm"
               : "border-duston-border hover:border-[#F15A24]"
           )}
-          title="Click to view overdue items"
+          title="Overdue items"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-duston-muted group-hover:text-duston-orange transition-colors">
@@ -434,7 +434,7 @@ export function DashboardClient({
               ? "ring-2 ring-[#FBB03B] border-[#FBB03B] bg-[#FBB03B]/5 shadow-sm"
               : "border-duston-border hover:border-[#FBB03B]"
           )}
-          title="Click to view items due this week"
+          title="Items due this week"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-duston-muted group-hover:text-amber-600 transition-colors">
@@ -469,7 +469,7 @@ export function DashboardClient({
               ? "ring-2 ring-[#39B54A] border-[#39B54A] bg-[#39B54A]/5 shadow-sm"
               : "border-duston-border hover:border-[#39B54A]"
           )}
-          title="Click to view completed items"
+          title="Completed items"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-duston-muted group-hover:text-[#39B54A] transition-colors">
@@ -574,14 +574,7 @@ export function DashboardClient({
                 <span>Planner</span>
               </button>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] text-duston-muted pr-1 hidden md:inline">
-                {currentView === "kanban"
-                  ? "Drag cards across columns to move, or click '+' to add"
-                  : currentView === "planner"
-                  ? "Drag cards between dates to reschedule"
-                  : "Click any item to view details"}
-              </span>
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsImportModalOpen(true)}
                 className="px-3 py-1.5 bg-white border border-duston-border hover:border-[#023542] text-duston-dark rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors shadow-2xs shrink-0 cursor-pointer"
@@ -1142,7 +1135,7 @@ export function DashboardClient({
                                       ? "opacity-40 border-dashed border-[#1BCECE] scale-[0.98]"
                                       : "border-duston-border hover:border-[#1BCECE] hover:shadow-subtle"
                                   )}
-                                  title={`${it.title} (${it.entityName}) — Drag to another day to reschedule`}
+                                  title={`${it.title} (${it.entityName})`}
                                 >
                                   <div className="font-medium text-duston-dark line-clamp-2 leading-tight">
                                     {it.title}

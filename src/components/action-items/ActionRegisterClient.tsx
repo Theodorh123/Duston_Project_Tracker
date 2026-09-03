@@ -669,7 +669,7 @@ export function ActionRegisterClient({
                               ? "bg-[#1BCECE]/15 text-[#023542] hover:bg-[#1BCECE]/25"
                               : "bg-duston-bg text-duston-muted border border-duston-border hover:bg-duston-border/50"
                           )}
-                          title="Click to toggle status (Done / In Progress)"
+                          title="Toggle status"
                         >
                           <span
                             className={cn(
@@ -725,7 +725,6 @@ export function ActionRegisterClient({
             <span>
               Showing {filteredItems.length} {filteredItems.length === 1 ? "row" : "rows"} in {scope === "my" ? "Personal Register" : "Global Group Register"}
             </span>
-            <span>Click any row to open full audit trail and comments</span>
           </div>
         </div>
       )}

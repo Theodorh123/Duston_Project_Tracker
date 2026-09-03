@@ -292,7 +292,7 @@ export function ProjectsClient({
                           type="button"
                           onClick={() => handleOpenCommentModal(project)}
                           className="flex items-center gap-1.5 text-left hover:bg-duston-bg/80 p-1.5 -m-1.5 rounded-lg cursor-pointer group transition-colors w-full"
-                          title="Click to view or edit comments"
+                          title="Comments"
                         >
                           <MessageSquare size={13} className="text-[#1BCECE] shrink-0 group-hover:scale-110 transition-transform" />
                           <span className="truncate text-xs text-duston-dark group-hover:text-[#023542]">{project.comments}</span>
@@ -364,7 +364,7 @@ export function ProjectsClient({
                       handleOpenCommentModal(project);
                     }}
                     className="text-[11px] text-duston-text bg-duston-bg/60 p-2.5 rounded-xl border border-duston-border/60 line-clamp-2 cursor-pointer hover:border-[#1BCECE] transition-colors"
-                    title="Click to edit comment"
+                    title="Comments"
                   >
                     {project.comments}
                   </div>

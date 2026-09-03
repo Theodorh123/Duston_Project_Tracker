@@ -234,7 +234,7 @@ export function ActionItemDrawer({
                 <h2
                   onClick={() => setIsEditingTitle(true)}
                   className="text-xl font-medium text-duston-dark hover:bg-duston-bg p-1 -m-1 rounded cursor-pointer transition-colors"
-                  title="Click to edit title"
+                  title="Edit title"
                 >
                   {item.title}
                 </h2>
