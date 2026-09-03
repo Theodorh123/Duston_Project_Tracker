@@ -63,7 +63,7 @@ interface DashboardClientProps {
   initialItems: ActionItemSummary[];
   upcomingMeetings?: MeetingSummary[];
   recentActivities: ActivitySummary[];
-  defaultView?: "todo" | "priority" | "kanban" | "planner";
+  defaultView?: "todo" | "kanban" | "planner";
   kanbanColumns?: string[];
   projects?: Array<{ id: string; name: string; entityName: string; entityBrandColor?: string; entityId?: string }>;
   entities?: Array<{ id: string; name: string; brandPrimaryColor?: string }>;
@@ -86,7 +86,7 @@ export function DashboardClient({
   initialFilter = "all",
 }: DashboardClientProps) {
   const { selectedEntityId, openActionItem } = useAppShell();
-  const [currentView, setCurrentView] = useState<"todo" | "priority" | "kanban" | "planner">(defaultView as any);
+  const [currentView, setCurrentView] = useState<"todo" | "kanban" | "planner">(defaultView);
   const [priorityFilter, setPriorityFilter] = useState<"all" | "critical" | "high" | "medium" | "low">("all");
   const [items, setItems] = useState<ActionItemSummary[]>(initialItems);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -324,14 +324,6 @@ export function DashboardClient({
     return true;
   });
 
-  // Group items by priority for summary view
-  const groupedByPriority = {
-    critical: displayedItems.filter((i) => i.priority === "critical"),
-    high: displayedItems.filter((i) => i.priority === "high"),
-    medium: displayedItems.filter((i) => i.priority === "medium"),
-    low: displayedItems.filter((i) => i.priority === "low"),
-  };
-
   // Group items for Todo view: Overdue, Today, This Week, Later, Completed
   const groupedTodo = {
     overdue: displayedItems.filter((i) => isDeadlineOverdue(i.deadline, i.status) && i.status !== "done"),
@@ -447,11 +439,17 @@ export function DashboardClient({
             <button
               type="button"
               onClick={() => {
-                setPriorityFilter("critical");
-                setCurrentView("priority");
+                setPriorityFilter(priorityFilter === "critical" ? "all" : "critical");
+                const el = document.getElementById("tasks-section");
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
-              className="px-2 py-1 rounded-full text-[11px] font-medium bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-400/30 flex items-center gap-1 transition-colors cursor-pointer"
-              title="View Critical deliverables"
+              className={cn(
+                "px-2 py-1 rounded-full text-[11px] font-medium border flex items-center gap-1 transition-colors cursor-pointer",
+                priorityFilter === "critical"
+                  ? "bg-rose-500 text-white border-rose-400 shadow-xs"
+                  : "bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border-rose-400/30"
+              )}
+              title="Filter by Critical deliverables"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
               <span>Critical: {priorityCounts.critical}</span>
@@ -459,11 +457,17 @@ export function DashboardClient({
             <button
               type="button"
               onClick={() => {
-                setPriorityFilter("high");
-                setCurrentView("priority");
+                setPriorityFilter(priorityFilter === "high" ? "all" : "high");
+                const el = document.getElementById("tasks-section");
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
-              className="px-2 py-1 rounded-full text-[11px] font-medium bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/30 flex items-center gap-1 transition-colors cursor-pointer"
-              title="View High priority deliverables"
+              className={cn(
+                "px-2 py-1 rounded-full text-[11px] font-medium border flex items-center gap-1 transition-colors cursor-pointer",
+                priorityFilter === "high"
+                  ? "bg-amber-500 text-white border-amber-400 shadow-xs"
+                  : "bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-400/30"
+              )}
+              title="Filter by High priority deliverables"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
               <span>High: {priorityCounts.high}</span>
@@ -471,11 +475,17 @@ export function DashboardClient({
             <button
               type="button"
               onClick={() => {
-                setPriorityFilter("medium");
-                setCurrentView("priority");
+                setPriorityFilter(priorityFilter === "medium" ? "all" : "medium");
+                const el = document.getElementById("tasks-section");
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
-              className="px-2 py-1 rounded-full text-[11px] font-medium bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border border-blue-400/30 flex items-center gap-1 transition-colors cursor-pointer"
-              title="View Medium priority deliverables"
+              className={cn(
+                "px-2 py-1 rounded-full text-[11px] font-medium border flex items-center gap-1 transition-colors cursor-pointer",
+                priorityFilter === "medium"
+                  ? "bg-blue-500 text-white border-blue-400 shadow-xs"
+                  : "bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border-blue-400/30"
+              )}
+              title="Filter by Medium priority deliverables"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
               <span>Medium: {priorityCounts.medium}</span>
@@ -483,11 +493,17 @@ export function DashboardClient({
             <button
               type="button"
               onClick={() => {
-                setPriorityFilter("low");
-                setCurrentView("priority");
+                setPriorityFilter(priorityFilter === "low" ? "all" : "low");
+                const el = document.getElementById("tasks-section");
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
-              className="px-2 py-1 rounded-full text-[11px] font-medium bg-slate-500/20 hover:bg-slate-500/30 text-slate-200 border border-slate-400/30 flex items-center gap-1 transition-colors cursor-pointer"
-              title="View Low priority deliverables"
+              className={cn(
+                "px-2 py-1 rounded-full text-[11px] font-medium border flex items-center gap-1 transition-colors cursor-pointer",
+                priorityFilter === "low"
+                  ? "bg-slate-500 text-white border-slate-400 shadow-xs"
+                  : "bg-slate-500/20 hover:bg-slate-500/30 text-slate-200 border-slate-400/30"
+              )}
+              title="Filter by Low priority deliverables"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
               <span>Low: {priorityCounts.low}</span>
@@ -693,18 +709,6 @@ export function DashboardClient({
               >
                 <ListTodo size={15} strokeWidth={1.5} />
                 <span>Todo</span>
-              </button>
-              <button
-                onClick={() => setCurrentView("priority")}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
-                  currentView === "priority"
-                    ? "bg-[#023542] text-white"
-                    : "text-duston-muted hover:text-duston-dark hover:bg-duston-bg"
-                )}
-              >
-                <Flag size={14} strokeWidth={1.5} />
-                <span>By Priority</span>
               </button>
               <button
                 onClick={() => setCurrentView("kanban")}
@@ -915,76 +919,6 @@ export function DashboardClient({
                   )}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* By Priority Grouped Summary View */}
-          {currentView === "priority" && (
-            <div className="space-y-4">
-              {[
-                {
-                  level: "critical" as const,
-                  title: "Critical Priority",
-                  subtitle: "Immediate executive attention required",
-                  items: groupedByPriority.critical,
-                  headerBg: "bg-rose-50/80 border-rose-200 text-rose-900",
-                  dotColor: "bg-rose-500",
-                  countBadge: "bg-rose-100 text-rose-800 border-rose-300",
-                },
-                {
-                  level: "high" as const,
-                  title: "High Priority",
-                  subtitle: "Urgent milestone deliverables",
-                  items: groupedByPriority.high,
-                  headerBg: "bg-amber-50/80 border-amber-200 text-amber-900",
-                  dotColor: "bg-amber-500",
-                  countBadge: "bg-amber-100 text-amber-800 border-amber-300",
-                },
-                {
-                  level: "medium" as const,
-                  title: "Medium Priority",
-                  subtitle: "Standard operational deliverables",
-                  items: groupedByPriority.medium,
-                  headerBg: "bg-blue-50/70 border-blue-200 text-blue-900",
-                  dotColor: "bg-blue-500",
-                  countBadge: "bg-blue-100 text-blue-800 border-blue-300",
-                },
-                {
-                  level: "low" as const,
-                  title: "Low Priority",
-                  subtitle: "Routine and backlog items",
-                  items: groupedByPriority.low,
-                  headerBg: "bg-slate-50/80 border-slate-200 text-slate-900",
-                  dotColor: "bg-slate-400",
-                  countBadge: "bg-slate-100 text-slate-700 border-slate-300",
-                },
-              ].map((group) => (
-                <div
-                  key={group.level}
-                  className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden"
-                >
-                  <div className={cn("p-3.5 border-b flex items-center justify-between", group.headerBg)}>
-                    <div className="flex items-center gap-2">
-                      <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", group.dotColor)} />
-                      <h3 className="text-xs font-semibold">{group.title}</h3>
-                      <span className="text-[11px] opacity-75 hidden sm:inline">• {group.subtitle}</span>
-                    </div>
-                    <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold border", group.countBadge)}>
-                      {group.items.length} {group.items.length === 1 ? "item" : "items"}
-                    </span>
-                  </div>
-
-                  {group.items.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-duston-muted italic">
-                      No {group.title.toLowerCase()} action items.
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-duston-border p-1">
-                      {group.items.map(renderTaskItemRow)}
-                    </div>
-                  )}
-                </div>
-              ))}
             </div>
           )}
 
