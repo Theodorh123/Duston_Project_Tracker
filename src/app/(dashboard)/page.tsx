@@ -52,10 +52,14 @@ export default async function DashboardPage({
     db.query.activityLog.findMany({
       with: {
         actor: true,
-        actionItem: true,
+        actionItem: {
+          with: {
+            project: true,
+          },
+        },
       },
       orderBy: [desc(activityLog.createdAt)],
-      limit: 8,
+      limit: 20,
     }),
     db.query.projects.findMany({
       with: {
@@ -96,13 +100,20 @@ export default async function DashboardPage({
     ? mappedItems
     : mappedItems.filter((i) => allowedEntityIds.includes(i.entityId));
 
-  const mappedActivities: ActivitySummary[] = recentLogs.map((l) => ({
-    id: l.id,
-    actorName: l.actor?.name || "System",
-    actionItemTitle: l.actionItem?.title || "Action Item",
-    note: l.note,
-    createdAt: l.createdAt.toISOString(),
-  }));
+  const mappedActivities: ActivitySummary[] = recentLogs
+    .filter((l) => {
+      if (user?.hasGlobalAccess) return true;
+      if (!l.actionItem?.project?.entityId) return true;
+      return allowedEntityIds.includes(l.actionItem.project.entityId);
+    })
+    .slice(0, 8)
+    .map((l) => ({
+      id: l.id,
+      actorName: l.actor?.name || "System",
+      actionItemTitle: l.actionItem?.title || "Action Item",
+      note: l.note,
+      createdAt: l.createdAt.toISOString(),
+    }));
 
   const scopedProjects = allProjects
     .filter((p) => allowedEntityIds.includes(p.entityId))
@@ -122,7 +133,7 @@ export default async function DashboardPage({
       initialItems={scopedItems}
       recentActivities={mappedActivities}
       defaultView={preferences?.defaultView || "todo"}
-      kanbanColumns={preferences?.kanbanColumns || ["Backlog", "This Week", "In Progress", "Blocked", "Done"]}
+      kanbanColumns={preferences?.kanbanColumns || ["Todo", "In-Progress", "Done"]}
       projects={scopedProjects}
       users={mappedUsers}
       entities={allEnt.map((e) => ({ id: e.id, name: e.name, brandPrimaryColor: e.brandPrimaryColor }))}

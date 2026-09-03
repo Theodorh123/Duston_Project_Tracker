@@ -117,6 +117,7 @@ export async function createMeeting(data: CreateMeetingInput) {
     }
 
     revalidatePath("/meetings");
+    revalidatePath("/action-items");
     revalidatePath("/projects");
     revalidatePath("/");
     return { success: true, meetingId: meeting.id };

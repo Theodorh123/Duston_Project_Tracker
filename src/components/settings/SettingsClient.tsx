@@ -44,7 +44,7 @@ export function SettingsClient({ user, preferences, entities = [] }: SettingsCli
 
   // Preferences state
   const [defaultView, setDefaultView] = useState<"todo" | "kanban" | "planner">(preferences.defaultView);
-  const [kanbanCols, setKanbanCols] = useState<string[]>(preferences.kanbanColumns || ["Backlog", "This Week", "In Progress", "Blocked", "Done"]);
+  const [kanbanCols, setKanbanCols] = useState<string[]>(preferences.kanbanColumns || ["Todo", "In-Progress", "Done"]);
   const [newColName, setNewColName] = useState("");
   const [whatsappEnabled, setWhatsappEnabled] = useState(preferences.whatsappEnabled);
   const [digestFrequency, setDigestFrequency] = useState<"daily" | "weekly" | "off">(preferences.digestFrequency);

@@ -22,7 +22,7 @@ export async function updateUserPreferences(
       .values({
         userId,
         defaultView: data.defaultView ?? "todo",
-        kanbanColumns: data.kanbanColumns ?? ["Backlog", "This Week", "In Progress", "Blocked", "Done"],
+        kanbanColumns: data.kanbanColumns ?? ["Todo", "In-Progress", "Done"],
         whatsappEnabled: data.whatsappEnabled ?? true,
         digestFrequency: data.digestFrequency ?? "daily",
         timezone: data.timezone ?? "Africa/Accra",

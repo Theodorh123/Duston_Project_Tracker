@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import {
   X,
   Upload,
@@ -93,6 +93,19 @@ export function ImportRegisterModal({
   const [isImporting, setIsImporting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (defaultEntityId) {
+        setSelectedEntityId(defaultEntityId);
+      } else if (entities.length > 0 && !selectedEntityId) {
+        setSelectedEntityId(entities[0].id);
+      }
+      if (defaultProjectId) {
+        setSelectedProjectId(defaultProjectId);
+      }
+    }
+  }, [isOpen, defaultEntityId, defaultProjectId, entities]);
 
   // Split a joint deliverable (e.g. Elton / Desmond) into separate individual items
   const handleSplitItem = (idx: number) => {

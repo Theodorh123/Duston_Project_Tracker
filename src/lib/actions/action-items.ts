@@ -132,6 +132,7 @@ export async function updateActionItemField(
     }
 
     revalidatePath("/");
+    revalidatePath("/action-items");
     revalidatePath("/projects");
     revalidatePath("/ea-view");
     revalidatePath("/ceo-view");
@@ -188,6 +189,7 @@ export async function createActionItem(data: {
     );
 
     revalidatePath("/");
+    revalidatePath("/action-items");
     revalidatePath("/projects");
     revalidatePath(`/projects/${data.projectId}`);
     return { success: true, item: newItem };
@@ -320,6 +322,7 @@ export async function bulkCreateActionItems(data: {
     }
 
     revalidatePath("/");
+    revalidatePath("/action-items");
     revalidatePath("/projects");
     revalidatePath(`/projects/${data.projectId}`);
     revalidatePath("/meetings");

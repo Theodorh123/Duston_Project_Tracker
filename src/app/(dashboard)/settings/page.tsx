@@ -33,7 +33,7 @@ export default async function SettingsPage() {
       }}
       preferences={{
         defaultView: preferences?.defaultView || "todo",
-        kanbanColumns: preferences?.kanbanColumns || ["Backlog", "This Week", "In Progress", "Blocked", "Done"],
+        kanbanColumns: preferences?.kanbanColumns || ["Todo", "In-Progress", "Done"],
         whatsappEnabled: preferences?.whatsappEnabled ?? true,
         digestFrequency: preferences?.digestFrequency || "daily",
         timezone: preferences?.timezone || "Africa/Accra",

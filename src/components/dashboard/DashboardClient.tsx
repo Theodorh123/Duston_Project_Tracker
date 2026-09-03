@@ -194,7 +194,7 @@ export function DashboardClient({
           id: res.item.id,
           projectId: res.item.projectId,
           projectName: selectedProj?.name || "Project",
-          entityId: "",
+          entityId: selectedProj?.entityId || "",
           entityName: selectedProj?.entityName || "Subsidiary",
           entityBrandColor: selectedProj?.entityBrandColor || "#023542",
           title: res.item.title,

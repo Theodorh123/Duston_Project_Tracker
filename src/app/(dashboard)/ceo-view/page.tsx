@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { actionItems, projects, entities, users, comments, activityLog } from "@/lib/db/schema";
-import { eq, desc, or, and } from "drizzle-orm";
+import { eq, desc, or, and, ne } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { CeoViewClient, HeatmapCell, RiskItem } from "@/components/ceo-view/CeoViewClient";
 import { isDeadlineOverdue, getDaysOverdue } from "@/lib/utils";
@@ -31,31 +31,27 @@ export default async function CeoViewPage() {
     },
   });
 
-  const categories = ["capex", "financing", "regulatory", "commercial", "operations", "corporate"];
-
-  // Build heatmap
+  // Build Conglomerate Heatmap: Entity x Category
+  const categories = ["operations", "financing", "governance", "legal", "hr_admin", "it_infra"];
   const heatmapGrid: Record<string, Record<string, HeatmapCell>> = {};
 
   for (const ent of allActiveEntities) {
     heatmapGrid[ent.id] = {};
     for (const cat of categories) {
-      const catProjects = allProjects.filter(
+      const matchingProjects = allProjects.filter(
         (p) => p.entityId === ent.id && p.category === cat
       );
-      const catItems = catProjects.flatMap((p) => p.actionItems || []);
-      const openItems = catItems.filter((i) => i.status !== "done");
+      const allCategoryItems = matchingProjects.flatMap((p) => p.actionItems);
+      const openItems = allCategoryItems.filter((i) => i.status !== "done");
       const overdueItems = openItems.filter((i) => isDeadlineOverdue(i.deadline, i.status));
 
-      let health: HeatmapCell["health"] = "empty";
-      if (openItems.length > 0) {
-        const ratio = overdueItems.length / openItems.length;
-        if (ratio > 0.3) {
-          health = "red";
-        } else if (ratio > 0) {
-          health = "amber";
-        } else {
-          health = "green";
-        }
+      let health: HeatmapCell["health"] = "green";
+      if (matchingProjects.length === 0) {
+        health = "empty";
+      } else if (overdueItems.length > 2) {
+        health = "red";
+      } else if (overdueItems.length > 0) {
+        health = "amber";
       }
 
       heatmapGrid[ent.id][cat] = {
@@ -69,9 +65,15 @@ export default async function CeoViewPage() {
     }
   }
 
-  // Top 10 Risks: Blocked items where sponsor_id = ceo_user_id OR priority = 'critical'
-  const blockedItems = await db.query.actionItems.findMany({
-    where: eq(actionItems.status, "blocked"),
+  // Top 10 Risks: Critical and high priority open items requiring CEO/Executive attention
+  const riskItems = await db.query.actionItems.findMany({
+    where: and(
+      ne(actionItems.status, "done"),
+      or(
+        eq(actionItems.priority, "critical"),
+        eq(actionItems.priority, "high")
+      )
+    ),
     with: {
       project: {
         with: {
@@ -91,11 +93,10 @@ export default async function CeoViewPage() {
     limit: 10,
   });
 
-  const topRisks: RiskItem[] = blockedItems
-    .filter((it) => it.priority === "critical" || (it.project?.sponsorId && it.project.sponsorId === ceoUserId))
+  const topRisks: RiskItem[] = riskItems
     .map((it) => {
       const daysBlocked = Math.max(1, getDaysOverdue(it.updatedAt));
-      const blockerComment = it.comments?.[0]?.body || it.description || it.activityLogs?.[0]?.note || "Awaiting external contractor milestone sign-off";
+      const blockerComment = it.comments?.[0]?.body || it.description || it.activityLogs?.[0]?.note || "Awaiting critical milestone progression";
 
       return {
         id: it.id,
