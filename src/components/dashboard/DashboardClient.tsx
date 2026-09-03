@@ -544,85 +544,6 @@ export function DashboardClient({
               Welcome back, {firstName} • {new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", year: "numeric" })}
             </p>
           </div>
-
-          {/* Executive Priority Summary Bar */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-1 sm:pt-0">
-            <span className="text-[11px] text-white/70 font-medium mr-1 flex items-center gap-1">
-              <Flag size={11} className="text-white/80" /> Priorities:
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                setPriorityFilter(priorityFilter === "critical" ? "all" : "critical");
-                const el = document.getElementById("tasks-section");
-                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-              className={cn(
-                "px-2 py-1 rounded-full text-[11px] font-medium border flex items-center gap-1 transition-colors cursor-pointer",
-                priorityFilter === "critical"
-                  ? "bg-rose-500 text-white border-rose-400 shadow-xs"
-                  : "bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border-rose-400/30"
-              )}
-              title="Filter by Critical deliverables"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-              <span>Critical: {priorityCounts.critical}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPriorityFilter(priorityFilter === "high" ? "all" : "high");
-                const el = document.getElementById("tasks-section");
-                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-              className={cn(
-                "px-2 py-1 rounded-full text-[11px] font-medium border flex items-center gap-1 transition-colors cursor-pointer",
-                priorityFilter === "high"
-                  ? "bg-amber-500 text-white border-amber-400 shadow-xs"
-                  : "bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border-amber-400/30"
-              )}
-              title="Filter by High priority deliverables"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              <span>High: {priorityCounts.high}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPriorityFilter(priorityFilter === "medium" ? "all" : "medium");
-                const el = document.getElementById("tasks-section");
-                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-              className={cn(
-                "px-2 py-1 rounded-full text-[11px] font-medium border flex items-center gap-1 transition-colors cursor-pointer",
-                priorityFilter === "medium"
-                  ? "bg-blue-500 text-white border-blue-400 shadow-xs"
-                  : "bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border-blue-400/30"
-              )}
-              title="Filter by Medium priority deliverables"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-              <span>Medium: {priorityCounts.medium}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPriorityFilter(priorityFilter === "low" ? "all" : "low");
-                const el = document.getElementById("tasks-section");
-                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-              className={cn(
-                "px-2 py-1 rounded-full text-[11px] font-medium border flex items-center gap-1 transition-colors cursor-pointer",
-                priorityFilter === "low"
-                  ? "bg-slate-500 text-white border-slate-400 shadow-xs"
-                  : "bg-slate-500/20 hover:bg-slate-500/30 text-slate-200 border-slate-400/30"
-              )}
-              title="Filter by Low priority deliverables"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-              <span>Low: {priorityCounts.low}</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -864,7 +785,7 @@ export function DashboardClient({
                 title="Add new action item"
               >
                 <Plus size={14} strokeWidth={2} />
-                <span>Add task</span>
+                <span>Add action item</span>
               </button>
             </div>
           </div>
