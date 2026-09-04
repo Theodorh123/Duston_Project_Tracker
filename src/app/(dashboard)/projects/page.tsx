@@ -38,7 +38,7 @@ export default async function ProjectsPage() {
       entityBrandColor: p.entity.brandPrimaryColor,
       category: p.category,
       ownerId: p.ownerId,
-      ownerName: p.owner.name,
+      ownerName: p.owner?.name ?? null,
       status: p.status,
       priority: p.priority,
       targetDate: p.targetDate,

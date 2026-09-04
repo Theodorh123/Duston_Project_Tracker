@@ -237,7 +237,6 @@ export function DashboardClient({
         category: "operations",
         status: "in_progress",
         priority: "medium",
-        ownerId: currentUserId || usersList[0]?.id || "",
         startDate: today,
         targetDate: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
       });

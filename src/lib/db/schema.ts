@@ -193,9 +193,7 @@ export const projects = pgTable("projects", {
   category: projectCategoryEnum("category").notNull().default("operations"),
   status: projectStatusEnum("status").notNull().default("not_started"),
   priority: priorityEnum("priority").notNull().default("medium"),
-  ownerId: uuid("owner_id")
-    .notNull()
-    .references(() => users.id),
+  ownerId: uuid("owner_id").references(() => users.id),
   sponsorId: uuid("sponsor_id").references(() => users.id),
   startDate: date("start_date").notNull(),
   targetDate: date("target_date").notNull(),

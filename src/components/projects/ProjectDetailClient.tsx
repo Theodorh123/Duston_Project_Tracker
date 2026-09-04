@@ -41,8 +41,8 @@ interface ProjectDetailProps {
     entityId: string;
     entityName: string;
     entityBrandColor: string;
-    ownerId: string;
-    ownerName: string;
+    ownerId?: string | null;
+    ownerName?: string | null;
     sponsorId?: string | null;
     sponsorName?: string | null;
   };
@@ -212,7 +212,6 @@ export function ProjectDetailClient({
     startDate: project.startDate,
     targetDate: project.targetDate,
     budgetNotes: project.budgetNotes || "",
-    ownerId: project.ownerId,
     sponsorId: project.sponsorId || "",
   });
 
@@ -294,9 +293,6 @@ export function ProjectDetailClient({
                 />
                 <span>{project.entityName}</span>
               </span>
-
-              <span>•</span>
-              <span>Responsible Party: <strong className="font-medium text-duston-dark">{project.ownerName}</strong></span>
               {project.sponsorName && (
                 <>
                   <span>•</span>
@@ -1000,38 +996,21 @@ export function ProjectDetailClient({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-duston-muted mb-1 font-medium">Responsible Party</label>
-              <select
-                value={details.ownerId}
-                onChange={(e) => {
-                  setDetails({ ...details, ownerId: e.target.value });
-                  handleSaveDetailsField("ownerId", e.target.value);
-                }}
-                className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
-              >
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-duston-muted mb-1 font-medium">Executive sponsor</label>
-              <select
-                value={details.sponsorId}
-                onChange={(e) => {
-                  setDetails({ ...details, sponsorId: e.target.value });
-                  handleSaveDetailsField("sponsorId", e.target.value);
-                }}
-                className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
-              >
-                <option value="">None</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label className="block text-duston-muted mb-1 font-medium">Executive sponsor</label>
+            <select
+              value={details.sponsorId}
+              onChange={(e) => {
+                setDetails({ ...details, sponsorId: e.target.value });
+                handleSaveDetailsField("sponsorId", e.target.value);
+              }}
+              className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+            >
+              <option value="">None</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
           </div>
 
           <div>

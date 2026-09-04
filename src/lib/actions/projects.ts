@@ -13,7 +13,7 @@ export interface CreateProjectInput {
   category: "capex" | "financing" | "regulatory" | "commercial" | "operations" | "corporate";
   status: "not_started" | "in_progress" | "on_hold" | "blocked" | "done" | "cancelled";
   priority: "low" | "medium" | "high" | "critical";
-  ownerId: string;
+  ownerId?: string;
   sponsorId?: string;
   startDate: string;
   targetDate: string;
@@ -31,7 +31,7 @@ export async function createProject(data: CreateProjectInput) {
         category: data.category,
         status: data.status,
         priority: data.priority,
-        ownerId: data.ownerId,
+        ownerId: data.ownerId || undefined,
         sponsorId: data.sponsorId,
         startDate: data.startDate,
         targetDate: data.targetDate,

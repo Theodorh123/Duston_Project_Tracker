@@ -95,7 +95,7 @@ export default async function ProjectDetailPage({
         entityName: project.entity.name,
         entityBrandColor: project.entity.brandPrimaryColor,
         ownerId: project.ownerId,
-        ownerName: project.owner.name,
+        ownerName: project.owner?.name ?? null,
         sponsorId: project.sponsorId,
         sponsorName: project.sponsor?.name,
       }}

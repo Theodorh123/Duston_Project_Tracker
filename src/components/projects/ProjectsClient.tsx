@@ -16,8 +16,8 @@ export interface ProjectListItem {
   entityName: string;
   entityBrandColor: string;
   category: string;
-  ownerId: string;
-  ownerName: string;
+  ownerId?: string | null;
+  ownerName?: string | null;
   status: string;
   priority: string;
   targetDate: string;
@@ -43,7 +43,6 @@ export function ProjectsClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [selectedOwner, setSelectedOwner] = useState<string>("all");
   const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
   const [projectsList, setProjectsList] = useState<ProjectListItem[]>(projects);
   const [commentModalProject, setCommentModalProject] = useState<ProjectListItem | null>(null);
@@ -100,24 +99,21 @@ export function ProjectsClient({
       if (selectedEntityId && p.entityId !== selectedEntityId) return false;
       if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
       if (selectedStatus !== "all" && p.status !== selectedStatus) return false;
-      if (selectedOwner !== "all" && p.ownerId !== selectedOwner) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         return (
           p.name.toLowerCase().includes(q) ||
-          p.entityName.toLowerCase().includes(q) ||
-          p.ownerName.toLowerCase().includes(q)
+          p.entityName.toLowerCase().includes(q)
         );
       }
       return true;
     });
-  }, [projectsList, selectedEntityId, selectedCategory, selectedStatus, selectedOwner, searchQuery]);
+  }, [projectsList, selectedEntityId, selectedCategory, selectedStatus, searchQuery]);
 
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedCategory("all");
     setSelectedStatus("all");
-    setSelectedOwner("all");
   };
 
   return (
@@ -144,7 +140,7 @@ export function ProjectsClient({
       {/* Filter Strip - only show if there are projects */}
       {projectsList.length > 0 && (
         <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             {/* Category Filter */}
             <div>
               <label className="block text-duston-muted mb-1 font-medium">Category</label>
@@ -176,23 +172,6 @@ export function ProjectsClient({
                 <option value="in_progress">In progress</option>
                 <option value="on_hold">On hold</option>
                 <option value="done">Done</option>
-              </select>
-            </div>
-
-            {/* Responsible Party Filter */}
-            <div>
-              <label className="block text-duston-muted mb-1 font-medium">Responsible Party</label>
-              <select
-                value={selectedOwner}
-                onChange={(e) => setSelectedOwner(e.target.value)}
-                className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
-              >
-                <option value="all">All responsible parties</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
               </select>
             </div>
 
@@ -266,7 +245,6 @@ export function ProjectsClient({
                   <th className="py-3 px-4">Project name</th>
                   <th className="py-3 px-4">Subsidiary</th>
                   <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Responsible Party</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Target date</th>
                   <th className="py-3 px-4">Comments</th>
@@ -299,9 +277,6 @@ export function ProjectsClient({
                     </td>
                     <td className="py-3 px-4 text-duston-muted uppercase tracking-wider text-[10px]">
                       {project.category}
-                    </td>
-                    <td className="py-3 px-4 text-duston-dark">
-                      {project.ownerName}
                     </td>
                     <td className="py-3 px-4">
                       {getStatusBadge(project.status)}
@@ -362,7 +337,7 @@ export function ProjectsClient({
                   >
                     {project.entityName}
                   </span>
-                  <span>Owner: {project.ownerName}</span>
+                  <span className="capitalize">{project.category}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] border-t border-duston-border pt-2 text-duston-muted">
