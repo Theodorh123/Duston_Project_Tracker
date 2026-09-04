@@ -19,6 +19,7 @@ import {
   UserPlus,
   FolderPlus,
   Building2,
+  MessageSquare,
 } from "lucide-react";
 import { cn, formatDate, formatShortDate, isDeadlineOverdue } from "@/lib/utils";
 import Link from "next/link";
@@ -42,6 +43,9 @@ export interface ActionItemSummary {
   priority: "low" | "medium" | "high" | "critical";
   assigneeId: string;
   assigneeName: string;
+  secondaryAssigneeIds?: string[];
+  secondaryAssigneeNames?: string[];
+  commentCount?: number;
   tag?: string | null;
 }
 
@@ -153,6 +157,7 @@ export function DashboardClient({
   const [quickAddComments, setQuickAddComments] = useState("");
   const [quickAddProjectId, setQuickAddProjectId] = useState(projects[0]?.id || "");
   const [quickAddAssigneeId, setQuickAddAssigneeId] = useState(currentUserId || users[0]?.id || "");
+  const [quickAddSecondaryAssigneeIds, setQuickAddSecondaryAssigneeIds] = useState<string[]>([]);
   const [quickAddStatus, setQuickAddStatus] = useState<"not_started" | "in_progress" | "done">("not_started");
   const [quickAddDeadline, setQuickAddDeadline] = useState(
     new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]
@@ -288,11 +293,16 @@ export function DashboardClient({
     const selectedProj = projectsList.find((p) => p.id === quickAddProjectId);
     const selectedUser = usersList.find((u) => u.id === quickAddAssigneeId);
 
+    const secNames = quickAddSecondaryAssigneeIds
+      .map((id) => usersList.find((u) => u.id === id)?.name)
+      .filter(Boolean) as string[];
+
     const res = await createActionItem({
       projectId: quickAddProjectId,
       title: quickAddTitle.trim(),
       description: quickAddComments.trim() || undefined,
       assigneeId: quickAddAssigneeId || currentUserId || "00000000-0000-0000-0000-000000000000",
+      secondaryAssigneeIds: quickAddSecondaryAssigneeIds,
       deadline: quickAddDeadline,
       status: targetStatus,
       priority: quickAddPriority,
@@ -314,12 +324,16 @@ export function DashboardClient({
           priority: res.item.priority as any,
           assigneeId: res.item.assigneeId,
           assigneeName: selectedUser?.name || userName,
+          secondaryAssigneeIds: quickAddSecondaryAssigneeIds,
+          secondaryAssigneeNames: secNames,
+          commentCount: 0,
         },
         ...prev,
       ]);
 
       setQuickAddTitle("");
       setQuickAddComments("");
+      setQuickAddSecondaryAssigneeIds([]);
       setQuickAddStatus("not_started");
       setIsQuickAddOpen(false);
       router.refresh();
@@ -493,6 +507,23 @@ export function DashboardClient({
               <>
                 <span>•</span>
                 <span>{item.assigneeName}</span>
+                {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+                  <span
+                    className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
+                    title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+                  >
+                    +{item.secondaryAssigneeNames?.length}
+                  </span>
+                )}
+              </>
+            )}
+            {Boolean(item.commentCount && item.commentCount > 0) && (
+              <>
+                <span>•</span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30">
+                  <MessageSquare size={10} className="text-[#1BCECE]" />
+                  <span>{item.commentCount}</span>
+                </span>
               </>
             )}
             {item.tag && (
@@ -1088,6 +1119,29 @@ export function DashboardClient({
                                   {formatShortDate(item.deadline)}
                                 </span>
                               </div>
+
+                              {/* Card Footer: Assignees & Updates */}
+                              <div className="flex items-center justify-between text-[11px] gap-1 pt-1 border-t border-duston-border/40 text-duston-muted">
+                                <div className="flex items-center gap-1 min-w-0">
+                                  <span className="text-[10px] text-duston-dark font-medium truncate max-w-[110px]">
+                                    {item.assigneeName}
+                                  </span>
+                                  {Boolean(item.secondaryAssigneeNames?.length && item.secondaryAssigneeNames.length > 0) && (
+                                    <span
+                                      className="px-1 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
+                                      title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+                                    >
+                                      +{item.secondaryAssigneeNames?.length}
+                                    </span>
+                                  )}
+                                </div>
+                                {Boolean(item.commentCount && item.commentCount > 0) && (
+                                  <span className="inline-flex items-center gap-0.5 text-[9px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1 py-0.2 rounded shrink-0">
+                                    <MessageSquare size={9} className="text-[#1BCECE]" />
+                                    <span>{item.commentCount}</span>
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           );
                         })
@@ -1205,8 +1259,27 @@ export function DashboardClient({
                                     </div>
                                     <PriorityFlag priority={it.priority} size={9} showLabel={false} />
                                   </div>
-                                  <div className="text-[9px] text-duston-muted truncate">
-                                    {it.entityName}
+                                  <div className="flex items-center justify-between gap-1 text-[9px] text-duston-muted">
+                                    <span className="truncate">{it.entityName}</span>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      {Boolean(it.secondaryAssigneeNames && it.secondaryAssigneeNames.length > 0) && (
+                                        <span
+                                          className="inline-flex items-center px-1 py-0.2 rounded text-[8px] font-semibold bg-duston-bg border border-duston-border text-duston-dark"
+                                          title={`Co-owners: ${it.secondaryAssigneeNames?.join(", ")}`}
+                                        >
+                                          +{it.secondaryAssigneeNames?.length}
+                                        </span>
+                                      )}
+                                      {Boolean(it.commentCount && it.commentCount > 0) && (
+                                        <span
+                                          className="inline-flex items-center gap-0.5 text-[8px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1 py-0.2 rounded border border-[#1BCECE]/30"
+                                          title={`${it.commentCount} update${it.commentCount === 1 ? "" : "s"}`}
+                                        >
+                                          <MessageSquare size={8} className="text-[#1BCECE]" />
+                                          <span>{it.commentCount}</span>
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               );
@@ -1420,11 +1493,11 @@ export function DashboardClient({
                     )}
                   </div>
 
-                  {/* Responsible Party selector + inline add */}
+                  {/* Primary Responsible Party selector + inline add */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-medium text-duston-dark">
-                        Responsible Party <span className="text-duston-orange">*</span>
+                        Primary Responsible Party (Lead) <span className="text-duston-orange">*</span>
                       </label>
                       <button
                         type="button"
@@ -1473,7 +1546,12 @@ export function DashboardClient({
                     ) : (
                       <select
                         value={quickAddAssigneeId}
-                        onChange={(e) => setQuickAddAssigneeId(e.target.value)}
+                        onChange={(e) => {
+                          const newPrimary = e.target.value;
+                          setQuickAddAssigneeId(newPrimary);
+                          // Remove from secondary if was there
+                          setQuickAddSecondaryAssigneeIds((prev) => prev.filter((id) => id !== newPrimary));
+                        }}
                         required
                         className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
                       >
@@ -1484,6 +1562,64 @@ export function DashboardClient({
                         ))}
                       </select>
                     )}
+                  </div>
+
+                  {/* Secondary Responsible Parties (Co-owners) */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-duston-dark">
+                      Secondary Responsible Parties (Optional co-owners)
+                    </label>
+
+                    {quickAddSecondaryAssigneeIds.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 p-2 bg-duston-bg rounded-lg border border-duston-border/70">
+                        {quickAddSecondaryAssigneeIds.map((secId) => {
+                          const u = usersList.find((usr) => usr.id === secId);
+                          return (
+                            <span
+                              key={secId}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-white border border-duston-border text-duston-dark shadow-2xs"
+                            >
+                              <span>{u?.name || "User"}</span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setQuickAddSecondaryAssigneeIds((prev) =>
+                                    prev.filter((id) => id !== secId)
+                                  )
+                                }
+                                className="text-duston-muted hover:text-duston-orange transition-colors cursor-pointer"
+                              >
+                                <X size={11} />
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val && !quickAddSecondaryAssigneeIds.includes(val)) {
+                          setQuickAddSecondaryAssigneeIds((prev) => [...prev, val]);
+                        }
+                      }}
+                      className="w-full text-xs p-2 rounded-lg border border-duston-border bg-white text-duston-dark focus:outline-none focus:border-[#1BCECE]"
+                    >
+                      <option value="">+ Add secondary responsible party...</option>
+                      {usersList
+                        .filter(
+                          (u) =>
+                            u.id !== quickAddAssigneeId &&
+                            !quickAddSecondaryAssigneeIds.includes(u.id)
+                        )
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
+                    </select>
                   </div>
                 </div>
 

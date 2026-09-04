@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Calendar, Clock, CheckCircle2, AlertCircle, ChevronDown, ChevronUp, MessageSquare, Send, Trash2 } from "lucide-react";
+import { X, Calendar, Clock, CheckCircle2, AlertCircle, ChevronDown, ChevronUp, MessageSquare, Send, Trash2, Plus, Users } from "lucide-react";
 import Link from "next/link";
 import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
 
@@ -15,6 +15,8 @@ export interface ActionItemDetail {
   description?: string | null;
   assigneeId: string;
   assigneeName?: string;
+  secondaryAssigneeIds?: string[];
+  secondaryAssignees?: Array<{ id: string; name: string }>;
   deadline: string;
   status: "not_started" | "in_progress" | "blocked" | "done" | "postponed";
   priority: "low" | "medium" | "high" | "critical";
@@ -25,6 +27,7 @@ export interface ActionItemDetail {
   comments?: Array<{
     id: string;
     userName: string;
+    userRole?: string | null;
     body: string;
     createdAt: string;
   }>;
@@ -66,7 +69,19 @@ export function ActionItemDrawer({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [availableUsers, setAvailableUsers] = useState<Array<{ id: string; name: string }>>([]);
   const titleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch("/api/users")
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data) => {
+          if (Array.isArray(data)) setAvailableUsers(data);
+        })
+        .catch(() => {});
+    }
+  }, [isOpen]);
 
   const isPrivileged = ["admin", "ceo", "ea"].includes(currentUserRole || "");
   const canDelete = isPrivileged;
@@ -203,26 +218,66 @@ export function ActionItemDrawer({
     }
   };
 
-  const handleAddComment = (e: React.FormEvent) => {
+  const handleRemoveSecondary = (idToRemove: string) => {
+    if (!item || !canEdit) return;
+    const newIds = (item.secondaryAssigneeIds || []).filter((id) => id !== idToRemove);
+    const newAssignees = (item.secondaryAssignees || []).filter((u) => u.id !== idToRemove);
+    setItem({ ...item, secondaryAssigneeIds: newIds, secondaryAssignees: newAssignees });
+    handleFieldChange("secondaryAssigneeIds", newIds);
+  };
+
+  const handleAddSecondary = (userIdToAdd: string) => {
+    if (!item || !canEdit || !userIdToAdd) return;
+    if (item.secondaryAssigneeIds?.includes(userIdToAdd)) return;
+    const newIds = [...(item.secondaryAssigneeIds || []), userIdToAdd];
+    const addedUser = availableUsers.find((u) => u.id === userIdToAdd);
+    const newAssignees = addedUser
+      ? [...(item.secondaryAssignees || []), addedUser]
+      : (item.secondaryAssignees || []);
+    setItem({ ...item, secondaryAssigneeIds: newIds, secondaryAssignees: newAssignees });
+    handleFieldChange("secondaryAssigneeIds", newIds);
+  };
+
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || !item) return;
+    const commentBody = newComment.trim();
+    setNewComment("");
+
+    const isLead = currentUserId === item.assigneeId;
+    const isCoOwner = item.secondaryAssigneeIds?.includes(currentUserId || "");
+    const calculatedRole = isLead ? "Lead Owner" : isCoOwner ? "Co-Owner" : undefined;
+
     const commentObj = {
       id: `c_${Date.now()}`,
       userName: "You",
-      body: newComment.trim(),
+      userRole: calculatedRole,
+      body: commentBody,
       createdAt: new Date().toISOString(),
     };
     setItem({
       ...item,
-      comments: [...(item.comments || []), commentObj],
+      comments: [commentObj, ...(item.comments || [])],
     });
-    setNewComment("");
 
-    fetch(`/api/action-items/${item.id}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: commentObj.body }),
-    }).catch(() => {});
+    try {
+      const res = await fetch(`/api/action-items/${item.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: commentBody }),
+      });
+      if (res.ok) {
+        // Refresh item to get server-rendered comment list and roles
+        const refreshed = await fetch(`/api/action-items/${item.id}`).then((r) =>
+          r.ok ? r.json() : null
+        );
+        if (refreshed) {
+          setItem(refreshed);
+        }
+      }
+    } catch {
+      // Keep optimistic comment on error
+    }
   };
 
   if (!isOpen) return null;
@@ -352,15 +407,83 @@ export function ActionItemDrawer({
 
             {/* Editable Fields Grid */}
             <div className="grid grid-cols-2 gap-4 p-4 rounded-xl border border-duston-border bg-duston-bg/40 text-xs">
-              {/* Responsible Party */}
+              {/* Primary Responsible Party (Lead) */}
               <div className="col-span-2">
-                <label className="block text-duston-muted mb-1 font-medium">Responsible Party</label>
+                <label className="block text-duston-muted mb-1 font-medium">Primary Responsible Party (Lead)</label>
                 <div className="bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-dark font-medium flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-[#023542] text-white flex items-center justify-center text-[9px]">
+                  <div className="w-5 h-5 rounded-full bg-[#023542] text-white flex items-center justify-center text-[9px] font-semibold">
                     {(item.assigneeName || "RP").slice(0, 2).toUpperCase()}
                   </div>
                   <span className="truncate">{item.assigneeName || "Unassigned"}</span>
+                  <span className="ml-auto text-[10px] text-duston-muted bg-duston-bg px-2 py-0.5 rounded border border-duston-border">
+                    Lead Owner
+                  </span>
                 </div>
+              </div>
+
+              {/* Secondary Responsible Parties (Co-owners) */}
+              <div className="col-span-2 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-duston-muted font-medium">
+                    Secondary Responsible Parties (Co-owners)
+                  </label>
+                  <span className="text-[10px] text-duston-muted">
+                    {(item.secondaryAssignees?.length ?? 0)} co-owner{(item.secondaryAssignees?.length ?? 0) === 1 ? "" : "s"}
+                  </span>
+                </div>
+
+                {/* Chips list */}
+                <div className="flex flex-wrap gap-1.5 min-h-[34px] p-2 bg-white border border-duston-border rounded-lg items-center">
+                  {(!item.secondaryAssignees || item.secondaryAssignees.length === 0) ? (
+                    <span className="text-duston-muted text-xs italic">No secondary co-owners assigned.</span>
+                  ) : (
+                    item.secondaryAssignees.map((sec) => (
+                      <span
+                        key={sec.id}
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-duston-bg border border-duston-border text-duston-dark"
+                      >
+                        <span className="w-4 h-4 rounded-full bg-[#1BCECE]/20 text-[#023542] font-semibold text-[8px] flex items-center justify-center">
+                          {sec.name.slice(0, 2).toUpperCase()}
+                        </span>
+                        <span>{sec.name}</span>
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSecondary(sec.id)}
+                            className="text-duston-muted hover:text-rose-600 ml-0.5 cursor-pointer"
+                            title={`Remove ${sec.name}`}
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </span>
+                    ))
+                  )}
+                </div>
+
+                {/* Add Secondary Selector (if canEdit) */}
+                {canEdit && availableUsers.length > 0 && (
+                  <div className="pt-0.5">
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          handleAddSecondary(e.target.value);
+                        }
+                      }}
+                      className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-text outline-none focus:border-[#1BCECE] cursor-pointer"
+                    >
+                      <option value="" disabled>+ Add secondary responsible party (co-owner)...</option>
+                      {availableUsers
+                        .filter((u) => u.id !== item.assigneeId && !item.secondaryAssigneeIds?.includes(u.id))
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Status */}
@@ -455,34 +578,55 @@ export function ActionItemDrawer({
               />
             </div>
 
-            {/* Comments Section */}
+            {/* Comments & Progress Updates Section */}
             <div className="border-t border-duston-border pt-4 space-y-3">
-              <div className="flex items-center gap-2 text-xs font-medium text-duston-dark">
-                <MessageSquare size={14} strokeWidth={1.5} />
-                <span>Comments</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-semibold text-duston-dark">
+                  <MessageSquare size={14} strokeWidth={1.5} className="text-[#1BCECE]" />
+                  <span>Progress Updates & Comments ({item.comments?.length || 0})</span>
+                </div>
+                <span className="text-[10px] text-duston-muted">
+                  Visible to all project members
+                </span>
               </div>
 
-              <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
                 {item.comments && item.comments.length > 0 ? (
                   item.comments.map((c) => (
-                    <div key={c.id} className="p-3 bg-duston-bg rounded-xl border border-duston-border text-xs space-y-1">
+                    <div key={c.id} className="p-3 bg-duston-bg rounded-xl border border-duston-border text-xs space-y-1.5">
                       <div className="flex items-center justify-between text-duston-muted text-[11px]">
-                        <span className="font-medium text-duston-dark">{c.userName}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-duston-dark">{c.userName}</span>
+                          {c.userRole && (
+                            <span
+                              className={cn(
+                                "px-1.5 py-0.2 rounded text-[9px] font-semibold",
+                                c.userRole === "Lead Owner"
+                                  ? "bg-[#023542] text-white"
+                                  : "bg-[#1BCECE]/20 text-[#023542] border border-[#1BCECE]/40"
+                              )}
+                            >
+                              {c.userRole}
+                            </span>
+                          )}
+                        </div>
                         <span>{formatDate(c.createdAt)}</span>
                       </div>
-                      <p className="text-duston-text leading-relaxed">{c.body}</p>
+                      <p className="text-duston-text leading-relaxed whitespace-pre-wrap">{c.body}</p>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-duston-muted italic">No comments yet.</p>
+                  <p className="text-xs text-duston-muted italic bg-duston-bg/60 p-3 rounded-xl border border-duston-border text-center">
+                    No progress updates recorded yet. Any responsible party can post updates here.
+                  </p>
                 )}
               </div>
 
-              {/* Comment Input */}
+              {/* Comment / Progress Update Input */}
               <form onSubmit={handleAddComment} className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Type a comment..."
+                  placeholder="Post an official progress update or comment..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   className="flex-1 bg-white border border-duston-border rounded-lg px-3 py-2 text-xs outline-none focus:border-[#1BCECE]"
@@ -490,9 +634,10 @@ export function ActionItemDrawer({
                 <button
                   type="submit"
                   disabled={!newComment.trim()}
-                  className="px-3 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-40"
+                  className="px-3.5 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-40 flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
-                  <Send size={14} strokeWidth={1.5} />
+                  <Send size={13} strokeWidth={1.5} />
+                  <span>Update</span>
                 </button>
               </form>
             </div>

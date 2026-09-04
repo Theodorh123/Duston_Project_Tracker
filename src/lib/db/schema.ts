@@ -265,6 +265,7 @@ export const actionItems = pgTable("action_items", {
   assigneeId: uuid("assignee_id")
     .notNull()
     .references(() => users.id),
+  secondaryAssigneeIds: jsonb("secondary_assignee_ids").$type<string[]>().default([]),
   deadline: date("deadline").notNull(),
   status: actionItemStatusEnum("status").notNull().default("not_started"),
   priority: priorityEnum("priority").notNull().default("medium"),

@@ -49,11 +49,14 @@ interface ProjectDetailProps {
     title: string;
     assigneeId: string;
     assigneeName: string;
+    secondaryAssigneeIds?: string[];
+    secondaryAssigneeNames?: string[];
     deadline: string;
     status: "not_started" | "in_progress" | "blocked" | "done" | "postponed";
     priority: "low" | "medium" | "high" | "critical";
     tag?: string | null;
     comments?: string | null;
+    commentCount?: number;
   }>;
   meetings: Array<{
     id: string;
@@ -144,6 +147,7 @@ export function ProjectDetailClient({
   // New action item state
   const [newItemTitle, setNewItemTitle] = useState("");
   const [newItemAssignee, setNewItemAssignee] = useState(currentUserId);
+  const [newItemSecondaryAssignees, setNewItemSecondaryAssignees] = useState<string[]>([]);
   const [newItemDeadline, setNewItemDeadline] = useState(
     new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]
   );
@@ -226,6 +230,7 @@ export function ProjectDetailClient({
       title: newItemTitle.trim(),
       description: newItemComments.trim() || undefined,
       assigneeId: newItemAssignee,
+      secondaryAssigneeIds: newItemSecondaryAssignees,
       deadline: newItemDeadline,
       status: newItemStatus,
       priority: newItemPriority,
@@ -234,22 +239,30 @@ export function ProjectDetailClient({
 
     if (res.success && res.item) {
       const assignedUser = usersList.find((u) => u.id === newItemAssignee);
+      const secNames = newItemSecondaryAssignees
+        .map((uid) => usersList.find((u) => u.id === uid)?.name)
+        .filter(Boolean) as string[];
+
       setItemsList((prev) => [
         {
           id: res.item.id,
           title: res.item.title,
           assigneeId: res.item.assigneeId,
           assigneeName: assignedUser?.name || "Assignee",
+          secondaryAssigneeIds: newItemSecondaryAssignees,
+          secondaryAssigneeNames: secNames,
           deadline: res.item.deadline,
           status: res.item.status as any,
           priority: res.item.priority as any,
           tag: res.item.tag,
           comments: res.item.description || newItemComments.trim() || null,
+          commentCount: 0,
         },
         ...prev,
       ]);
       setNewItemTitle("");
       setNewItemComments("");
+      setNewItemSecondaryAssignees([]);
       setNewItemStatus("not_started");
       setIsNewItemModalOpen(false);
     }
@@ -530,10 +543,31 @@ export function ProjectDetailClient({
                         onClick={() => openActionItem(item.id)}
                         className="py-3 px-4 font-medium text-duston-dark hover:text-[#1BCECE] cursor-pointer"
                       >
-                        {item.title}
+                        <div className="flex items-center gap-2">
+                          <span>{item.title}</span>
+                          {Boolean(item.commentCount && item.commentCount > 0) && (
+                            <span
+                              className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30 shrink-0"
+                              title={`${item.commentCount} update${item.commentCount === 1 ? "" : "s"}`}
+                            >
+                              <MessageSquare size={10} className="text-[#1BCECE]" />
+                              <span>{item.commentCount}</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-duston-dark whitespace-nowrap">
-                        {item.assigneeName}
+                        <div className="flex items-center gap-1.5">
+                          <span>{item.assigneeName}</span>
+                          {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+                            <span
+                              className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
+                              title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+                            >
+                              +{item.secondaryAssigneeNames?.length}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
                         <span className="capitalize px-2 py-0.5 rounded bg-duston-bg border border-duston-border text-[11px] text-duston-text">
@@ -686,10 +720,31 @@ export function ProjectDetailClient({
                                 onClick={() => openActionItem(item.id)}
                                 className="py-3 px-4 font-medium text-duston-dark hover:text-[#1BCECE] cursor-pointer"
                               >
-                                {item.title}
+                                <div className="flex items-center gap-2">
+                                  <span>{item.title}</span>
+                                  {Boolean(item.commentCount && item.commentCount > 0) && (
+                                    <span
+                                      className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30 shrink-0"
+                                      title={`${item.commentCount} update${item.commentCount === 1 ? "" : "s"}`}
+                                    >
+                                      <MessageSquare size={10} className="text-[#1BCECE]" />
+                                      <span>{item.commentCount}</span>
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td className="py-3 px-4 text-duston-dark whitespace-nowrap">
-                                {item.assigneeName}
+                                <div className="flex items-center gap-1.5">
+                                  <span>{item.assigneeName}</span>
+                                  {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+                                    <span
+                                      className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
+                                      title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+                                    >
+                                      +{item.secondaryAssigneeNames?.length}
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td className="py-3 px-4 whitespace-nowrap">
                                 <span className="capitalize px-2 py-0.5 rounded bg-duston-bg border border-duston-border text-[11px] text-duston-text">
@@ -844,11 +899,30 @@ export function ProjectDetailClient({
                                 <div className="text-xs font-medium text-duston-dark line-clamp-2">{item.title}</div>
                                 <PriorityFlag priority={item.priority} showLabel={false} />
                               </div>
-                              <div className="flex items-center justify-between text-[11px]">
-                                <span className="text-duston-muted">{item.assigneeName}</span>
+                              <div className="flex items-center justify-between text-[11px] gap-2">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="text-duston-muted truncate max-w-[110px]">{item.assigneeName}</span>
+                                  {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+                                    <span
+                                      className="px-1.5 py-0.2 rounded text-[8px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
+                                      title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+                                    >
+                                      +{item.secondaryAssigneeNames?.length}
+                                    </span>
+                                  )}
+                                  {Boolean(item.commentCount && item.commentCount > 0) && (
+                                    <span
+                                      className="inline-flex items-center gap-0.5 text-[9px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30 shrink-0"
+                                      title={`${item.commentCount} update${item.commentCount === 1 ? "" : "s"}`}
+                                    >
+                                      <MessageSquare size={8} className="text-[#1BCECE]" />
+                                      <span>{item.commentCount}</span>
+                                    </span>
+                                  )}
+                                </div>
                                 <span
                                   className={cn(
-                                    "text-[10px] font-medium px-1.5 py-0.5 rounded",
+                                    "text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0",
                                     isDeadlineOverdue(item.deadline, item.status)
                                       ? "bg-duston-orange/10 text-duston-orange"
                                       : "bg-duston-bg text-duston-muted border border-duston-border"
@@ -1041,7 +1115,7 @@ export function ProjectDetailClient({
                 {/* Responsible Party + inline Add */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-duston-muted font-medium">Responsible Party *</label>
+                    <label className="block text-duston-muted font-medium">Primary Responsible Party (Lead) *</label>
                     <button
                       type="button"
                       onClick={() => setIsAddingUser(!isAddingUser)}
@@ -1097,6 +1171,56 @@ export function ProjectDetailClient({
                       ))}
                     </select>
                   )}
+                </div>
+
+                {/* Secondary Responsible Parties (Co-owners) */}
+                <div className="space-y-1.5">
+                  <label className="block text-duston-muted font-medium">
+                    Secondary Responsible Parties (Co-owners)
+                  </label>
+                  {newItemSecondaryAssignees.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 p-2 bg-duston-bg/70 border border-duston-border rounded-lg">
+                      {newItemSecondaryAssignees.map((secId) => {
+                        const secUser = usersList.find((u) => u.id === secId);
+                        return (
+                          <span
+                            key={secId}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-white border border-duston-border text-duston-dark shadow-2xs"
+                          >
+                            <span>{secUser?.name || "User"}</span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setNewItemSecondaryAssignees((prev) => prev.filter((id) => id !== secId))
+                              }
+                              className="text-duston-muted hover:text-rose-600 ml-0.5 cursor-pointer"
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value && !newItemSecondaryAssignees.includes(e.target.value)) {
+                        setNewItemSecondaryAssignees((prev) => [...prev, e.target.value]);
+                      }
+                    }}
+                    className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-text outline-none focus:border-[#1BCECE] cursor-pointer"
+                  >
+                    <option value="" disabled>+ Add secondary responsible party (co-owner)...</option>
+                    {usersList
+                      .filter((u) => u.id !== newItemAssignee && !newItemSecondaryAssignees.includes(u.id))
+                      .map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                        </option>
+                      ))}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

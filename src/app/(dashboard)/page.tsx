@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { actionItems, activityLog, userPreferences, users, projects, entities, userEntityAccess } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, or, sql } from "drizzle-orm";
 import { DashboardClient, ActionItemSummary, ActivitySummary } from "@/components/dashboard/DashboardClient";
 
 import { getUserScopeCached, getActiveEntitiesCached, getActiveUsersCached } from "@/lib/db/cache";
@@ -31,7 +31,10 @@ export default async function DashboardPage({
         where: eq(userPreferences.userId, userId),
       }),
       db.query.actionItems.findMany({
-        where: eq(actionItems.assigneeId, userId),
+        where: or(
+          eq(actionItems.assigneeId, userId),
+          sql`${actionItems.secondaryAssigneeIds} @> ${JSON.stringify([userId])}::jsonb`
+        ),
         with: {
           project: {
             with: {
@@ -39,6 +42,7 @@ export default async function DashboardPage({
             },
           },
           assignee: true,
+          comments: true,
         },
         orderBy: [actionItems.deadline],
       }),
@@ -63,22 +67,34 @@ export default async function DashboardPage({
     ]),
   ]);
 
+  const userNameMap = new Map(allUsers.map((u) => [u.id, u.name]));
+
   // Map action items for client
-  const mappedItems: ActionItemSummary[] = items.map((item) => ({
-    id: item.id,
-    projectId: item.projectId,
-    projectName: item.project.name,
-    entityId: item.project.entityId,
-    entityName: item.project.entity.name,
-    entityBrandColor: item.project.entity.brandPrimaryColor,
-    title: item.title,
-    deadline: item.deadline,
-    status: item.status as any,
-    priority: item.priority as any,
-    assigneeId: item.assigneeId,
-    assigneeName: item.assignee.name,
-    tag: item.tag,
-  }));
+  const mappedItems: ActionItemSummary[] = items.map((item) => {
+    const secIds: string[] = Array.isArray(item.secondaryAssigneeIds)
+      ? (item.secondaryAssigneeIds as string[])
+      : [];
+    const secNames = secIds.map((id) => userNameMap.get(id)).filter(Boolean) as string[];
+
+    return {
+      id: item.id,
+      projectId: item.projectId,
+      projectName: item.project.name,
+      entityId: item.project.entityId,
+      entityName: item.project.entity.name,
+      entityBrandColor: item.project.entity.brandPrimaryColor,
+      title: item.title,
+      deadline: item.deadline,
+      status: item.status as any,
+      priority: item.priority as any,
+      assigneeId: item.assigneeId,
+      assigneeName: item.assignee.name,
+      secondaryAssigneeIds: secIds,
+      secondaryAssigneeNames: secNames,
+      commentCount: item.comments?.length || 0,
+      tag: item.tag,
+    };
+  });
 
   // Filter items by allowed entities if restricted
   const scopedItems = user?.hasGlobalAccess

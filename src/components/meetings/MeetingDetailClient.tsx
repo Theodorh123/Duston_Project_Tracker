@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, ExternalLink, MapPin, Video, Flag } from "lucide-react";
+import { ChevronRight, ExternalLink, MapPin, Video, Flag, MessageSquare } from "lucide-react";
 import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
 import { useAppShell } from "../layout/AppShell";
 import { PriorityFlag } from "@/components/ui/PriorityFlag";
@@ -24,9 +24,11 @@ interface MeetingDetailClientProps {
     title: string;
     projectName: string;
     assigneeName: string;
+    secondaryAssigneeNames?: string[];
     deadline: string;
     status: string;
     priority: string;
+    commentCount?: number;
   }>;
 }
 
@@ -60,12 +62,37 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
       onClick={() => openActionItem(item.id)}
       className="hover:bg-duston-bg cursor-pointer transition-colors"
     >
-      <td className="py-3 px-4 font-medium text-duston-dark">{item.title}</td>
+      <td className="py-3 px-4 font-medium text-duston-dark">
+        <div className="flex items-center gap-2">
+          <span>{item.title}</span>
+          {Boolean(item.commentCount && item.commentCount > 0) && (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30 shrink-0"
+              title={`${item.commentCount} update${item.commentCount === 1 ? "" : "s"}`}
+            >
+              <MessageSquare size={10} className="text-[#1BCECE]" />
+              <span>{item.commentCount}</span>
+            </span>
+          )}
+        </div>
+      </td>
       <td className="py-3 px-4">
         <PriorityFlag priority={item.priority} />
       </td>
       <td className="py-3 px-4 text-duston-muted">{item.projectName}</td>
-      <td className="py-3 px-4 text-duston-dark">{item.assigneeName}</td>
+      <td className="py-3 px-4 text-duston-dark">
+        <div className="flex items-center gap-1.5">
+          <span>{item.assigneeName}</span>
+          {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+            <span
+              className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
+              title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+            >
+              +{item.secondaryAssigneeNames?.length}
+            </span>
+          )}
+        </div>
+      </td>
       <td className="py-3 px-4 text-duston-muted">
         <span
           className={cn(

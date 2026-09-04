@@ -2,7 +2,7 @@
 
 import { db } from "../db";
 import { actionItems, activityLog, comments, users, projects, entities, meetings } from "../db/schema";
-import { eq, sql, desc, and } from "drizzle-orm";
+import { eq, sql, desc, and, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { sendWhatsApp } from "../services/whatsapp";
 
@@ -41,6 +41,18 @@ export async function getActionItemById(id: string) {
 
     if (!item) return null;
 
+    const secIds: string[] = Array.isArray(item.secondaryAssigneeIds)
+      ? (item.secondaryAssigneeIds as string[])
+      : [];
+
+    let secondaryUsers: Array<{ id: string; name: string }> = [];
+    if (secIds.length > 0) {
+      secondaryUsers = await db.query.users.findMany({
+        where: inArray(users.id, secIds),
+        columns: { id: true, name: true },
+      });
+    }
+
     return {
       id: item.id,
       projectId: item.projectId,
@@ -51,6 +63,8 @@ export async function getActionItemById(id: string) {
       description: item.description,
       assigneeId: item.assigneeId,
       assigneeName: item.assignee?.name || "Assignee",
+      secondaryAssigneeIds: secIds,
+      secondaryAssignees: secondaryUsers,
       deadline: item.deadline,
       status: item.status,
       priority: item.priority,
@@ -58,12 +72,18 @@ export async function getActionItemById(id: string) {
       sourceMeetingId: item.sourceMeetingId,
       sourceMeetingSubject: item.sourceMeeting?.subject,
       createdBy: item.createdBy,
-      comments: item.comments?.map((c) => ({
-        id: c.id,
-        userName: c.user?.name || "User",
-        body: c.body,
-        createdAt: c.createdAt.toISOString(),
-      })),
+      comments: item.comments?.map((c) => {
+        const isPrimary = c.userId === item.assigneeId;
+        const isSecondary = secIds.includes(c.userId);
+        return {
+          id: c.id,
+          userId: c.userId,
+          userName: c.user?.name || "User",
+          userRole: isPrimary ? "Lead Owner" : isSecondary ? "Co-Owner" : undefined,
+          body: c.body,
+          createdAt: c.createdAt.toISOString(),
+        };
+      }),
       activityLogs: item.activityLogs?.map((a) => ({
         id: a.id,
         actorName: a.actor?.name || "Team Member",
@@ -134,10 +154,10 @@ export async function updateActionItemField(
     await db.insert(activityLog).values({
       actionItemId: id,
       actorId: safeActorId,
-      eventType: field === "status" ? "status_change" : field === "assigneeId" ? "reassign" : "status_change",
-      fromValue: String((current as any)[field] ?? ""),
-      toValue: String(value),
-      note: `Updated ${field} to ${value}`,
+      eventType: field === "status" ? "status_change" : (field === "assigneeId" || field === "secondaryAssigneeIds") ? "reassign" : "status_change",
+      fromValue: typeof (current as any)[field] === "object" ? JSON.stringify((current as any)[field] ?? []) : String((current as any)[field] ?? ""),
+      toValue: typeof value === "object" ? JSON.stringify(value) : String(value),
+      note: field === "secondaryAssigneeIds" ? "Updated secondary co-owners" : `Updated ${field} to ${value}`,
     });
 
     // WhatsApp nudge / notification if status changed to blocked
@@ -207,6 +227,7 @@ export async function createActionItem(data: {
   title: string;
   description?: string;
   assigneeId: string;
+  secondaryAssigneeIds?: string[];
   deadline: string;
   status?: "not_started" | "in_progress" | "blocked" | "done" | "postponed";
   priority: "low" | "medium" | "high" | "critical";
@@ -222,6 +243,7 @@ export async function createActionItem(data: {
         title: data.title,
         description: data.description,
         assigneeId: data.assigneeId,
+        secondaryAssigneeIds: data.secondaryAssigneeIds || [],
         deadline: data.deadline,
         status: data.status || "not_started",
         priority: data.priority,
@@ -245,6 +267,18 @@ export async function createActionItem(data: {
       `New action item assigned: "${data.title}" due on ${data.deadline}.`,
       newItem.id
     );
+
+    if (data.secondaryAssigneeIds && data.secondaryAssigneeIds.length > 0) {
+      for (const secId of data.secondaryAssigneeIds) {
+        if (secId && secId !== data.assigneeId) {
+          await sendWhatsApp(
+            secId,
+            `You are co-assigned to action item: "${data.title}" due on ${data.deadline}.`,
+            newItem.id
+          );
+        }
+      }
+    }
 
     revalidatePath("/");
     revalidatePath("/action-items");

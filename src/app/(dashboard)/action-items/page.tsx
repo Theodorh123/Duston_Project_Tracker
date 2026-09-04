@@ -29,6 +29,7 @@ export default async function ActionRegisterPage() {
           },
           assignee: true,
           sourceMeeting: true,
+          comments: true,
         },
         orderBy: [actionItems.deadline],
       }),
@@ -37,6 +38,8 @@ export default async function ActionRegisterPage() {
       }),
     ]),
   ]);
+
+  const userNameMap = new Map(allUsers.map((u) => [u.id, u.name]));
 
   const scopedEntities = allEnt
     .filter((e) => allowedEntityIds.includes(e.id))
@@ -50,26 +53,36 @@ export default async function ActionRegisterPage() {
 
   const mappedItems: RegisterItem[] = allItems
     .filter((it) => it.project && allowedEntityIds.includes(it.project.entityId))
-    .map((it) => ({
-      id: it.id,
-      title: it.title,
-      description: it.description,
-      deadline: it.deadline,
-      status: it.status as any,
-      priority: it.priority as any,
-      tag: it.tag,
-      assigneeId: it.assigneeId,
-      assigneeName: it.assignee?.name || "Unassigned",
-      projectId: it.projectId,
-      projectName: it.project?.name || "Project",
-      entityId: it.project?.entityId,
-      entityName: it.project?.entity?.name || "Subsidiary",
-      entityBrandColor: it.project?.entity?.brandPrimaryColor || "#023542",
-      sourceMeetingId: it.sourceMeetingId,
-      sourceMeetingSubject: it.sourceMeeting?.subject,
-      createdBy: it.createdBy,
-      createdAt: it.createdAt ? it.createdAt.toISOString() : new Date().toISOString(),
-    }));
+    .map((it) => {
+      const secIds: string[] = Array.isArray(it.secondaryAssigneeIds)
+        ? (it.secondaryAssigneeIds as string[])
+        : [];
+      const secNames = secIds.map((id) => userNameMap.get(id)).filter(Boolean) as string[];
+
+      return {
+        id: it.id,
+        title: it.title,
+        description: it.description,
+        deadline: it.deadline,
+        status: it.status as any,
+        priority: it.priority as any,
+        tag: it.tag,
+        assigneeId: it.assigneeId,
+        assigneeName: it.assignee?.name || "Unassigned",
+        secondaryAssigneeIds: secIds,
+        secondaryAssigneeNames: secNames,
+        commentCount: it.comments?.length || 0,
+        projectId: it.projectId,
+        projectName: it.project?.name || "Project",
+        entityId: it.project?.entityId,
+        entityName: it.project?.entity?.name || "Subsidiary",
+        entityBrandColor: it.project?.entity?.brandPrimaryColor || "#023542",
+        sourceMeetingId: it.sourceMeetingId,
+        sourceMeetingSubject: it.sourceMeeting?.subject,
+        createdBy: it.createdBy,
+        createdAt: it.createdAt ? it.createdAt.toISOString() : new Date().toISOString(),
+      };
+    });
 
   return (
     <Suspense fallback={null}>

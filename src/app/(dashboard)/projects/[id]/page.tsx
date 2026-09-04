@@ -35,6 +35,7 @@ export default async function ProjectDetailPage({
       where: eq(actionItems.projectId, id),
       with: {
         assignee: true,
+        comments: true,
       },
       orderBy: [desc(actionItems.deadline)],
     }),
@@ -78,6 +79,8 @@ export default async function ProjectDetailPage({
       : Promise.resolve([]),
   ]);
 
+  const userMap = new Map(allUsers.map((u) => [u.id, u.name]));
+
   return (
     <ProjectDetailClient
       project={{
@@ -96,17 +99,26 @@ export default async function ProjectDetailPage({
         ownerId: project.ownerId,
         ownerName: project.owner?.name ?? null,
       }}
-      actionItems={items.map((it) => ({
-        id: it.id,
-        title: it.title,
-        assigneeId: it.assigneeId,
-        assigneeName: it.assignee.name,
-        deadline: it.deadline,
-        status: it.status,
-        priority: it.priority,
-        tag: it.tag,
-        comments: it.description || null,
-      }))}
+      actionItems={items.map((it) => {
+        const secIds = Array.isArray(it.secondaryAssigneeIds)
+          ? (it.secondaryAssigneeIds as string[])
+          : [];
+        const secNames = secIds.map((uid) => userMap.get(uid)).filter(Boolean) as string[];
+        return {
+          id: it.id,
+          title: it.title,
+          assigneeId: it.assigneeId,
+          assigneeName: it.assignee.name,
+          secondaryAssigneeIds: secIds,
+          secondaryAssigneeNames: secNames,
+          deadline: it.deadline,
+          status: it.status,
+          priority: it.priority,
+          tag: it.tag,
+          comments: it.description || null,
+          commentCount: it.comments?.length ?? 0,
+        };
+      })}
       meetings={projectMeetings.map((m) => ({
         id: m.id,
         subject: m.subject,

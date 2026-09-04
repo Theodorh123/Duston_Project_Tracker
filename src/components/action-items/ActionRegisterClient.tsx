@@ -14,6 +14,7 @@ import {
   X,
   ChevronRight,
   Flag,
+  MessageSquare,
 } from "lucide-react";
 import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
 import { ImportRegisterModal } from "./ImportRegisterModal";
@@ -32,6 +33,9 @@ export interface RegisterItem {
   tag?: string | null;
   assigneeId: string;
   assigneeName: string;
+  secondaryAssigneeIds?: string[];
+  secondaryAssigneeNames?: string[];
+  commentCount?: number;
   projectId: string;
   projectName: string;
   entityId: string;
@@ -99,8 +103,11 @@ export function ActionRegisterClient({
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       // 1. Primary Scope: "my" items vs "global"
-      if (scope === "my" && item.assigneeId !== currentUserId) {
-        return false;
+      if (scope === "my") {
+        const isMyItem =
+          item.assigneeId === currentUserId ||
+          Boolean(item.secondaryAssigneeIds?.includes(currentUserId));
+        if (!isMyItem) return false;
       }
 
       // 2. Global Entity Filter (AppShell TopBar)
@@ -137,9 +144,12 @@ export function ActionRegisterClient({
         }
       }
 
-      // 6. Assignee Filter
-      if (selectedAssignee !== "all" && item.assigneeId !== selectedAssignee) {
-        return false;
+      // 6. Assignee Filter (matches primary or secondary)
+      if (selectedAssignee !== "all") {
+        const matchesAssignee =
+          item.assigneeId === selectedAssignee ||
+          Boolean(item.secondaryAssigneeIds?.includes(selectedAssignee));
+        if (!matchesAssignee) return false;
       }
 
       // 7. Deliverable Type Filter (Internal vs External/Counterparty)
@@ -195,7 +205,12 @@ export function ActionRegisterClient({
 
   // Counts for scope pills
   const myItemsCount = useMemo(
-    () => items.filter((it) => it.assigneeId === currentUserId).length,
+    () =>
+      items.filter(
+        (it) =>
+          it.assigneeId === currentUserId ||
+          Boolean(it.secondaryAssigneeIds?.includes(currentUserId))
+      ).length,
     [items, currentUserId]
   );
   const globalItemsCount = items.length;
@@ -203,7 +218,11 @@ export function ActionRegisterClient({
   // KPI counts based on currently selected scope
   const scopedAll = useMemo(() => {
     return scope === "my"
-      ? items.filter((it) => it.assigneeId === currentUserId)
+      ? items.filter(
+          (it) =>
+            it.assigneeId === currentUserId ||
+            Boolean(it.secondaryAssigneeIds?.includes(currentUserId))
+        )
       : items;
   }, [items, scope, currentUserId]);
 
@@ -359,14 +378,25 @@ export function ActionRegisterClient({
               </p>
             )}
 
-            {item.sourceMeetingSubject && (
-              <span className="inline-flex items-center gap-1 text-[10px] text-duston-muted font-medium bg-duston-bg px-2 py-0.5 rounded border border-duston-border/60">
-                <Calendar size={10} />
-                <span className="truncate max-w-[200px]">
-                  Minutes: {item.sourceMeetingSubject}
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              {item.sourceMeetingSubject && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-duston-muted font-medium bg-duston-bg px-2 py-0.5 rounded border border-duston-border/60">
+                  <Calendar size={10} />
+                  <span className="truncate max-w-[180px]">
+                    Minutes: {item.sourceMeetingSubject}
+                  </span>
                 </span>
-              </span>
-            )}
+              )}
+
+              {Boolean(item.commentCount && item.commentCount > 0) && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-2 py-0.5 rounded border border-[#1BCECE]/30">
+                  <MessageSquare size={10} className="text-[#1BCECE]" />
+                  <span>
+                    {item.commentCount} {item.commentCount === 1 ? "update" : "updates"}
+                  </span>
+                </span>
+              )}
+            </div>
           </div>
         </td>
 
@@ -390,18 +420,33 @@ export function ActionRegisterClient({
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-[#023542]/10 text-[#023542] text-[10px] font-semibold flex items-center justify-center shrink-0">
-                {item.assigneeName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase()}
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-[#023542]/10 text-[#023542] text-[10px] font-semibold flex items-center justify-center shrink-0">
+                  {item.assigneeName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()}
+                </div>
+                <span className="font-medium text-duston-dark truncate">
+                  {item.assigneeName}
+                </span>
+                {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+                  <span
+                    className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
+                    title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+                  >
+                    +{item.secondaryAssigneeNames?.length}
+                  </span>
+                )}
               </div>
-              <span className="font-medium text-duston-dark truncate">
-                {item.assigneeName}
-              </span>
+              {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+                <div className="text-[10px] text-duston-muted truncate pl-8">
+                  Co: {item.secondaryAssigneeNames?.join(", ")}
+                </div>
+              )}
             </div>
           )}
         </td>
@@ -566,6 +611,17 @@ export function ActionRegisterClient({
               </span>
             </div>
           )}
+
+          {Boolean(item.commentCount && item.commentCount > 0) && (
+            <div className="mt-1.5">
+              <span className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-2 py-0.5 rounded border border-[#1BCECE]/30">
+                <MessageSquare size={10} className="text-[#1BCECE]" />
+                <span>
+                  {item.commentCount} {item.commentCount === 1 ? "update" : "updates"}
+                </span>
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Subsidiary & Project Badge */}
@@ -605,6 +661,14 @@ export function ActionRegisterClient({
             <span className="text-duston-dark font-medium truncate text-xs">
               {item.assigneeName}
             </span>
+            {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+              <span
+                className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
+                title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+              >
+                +{item.secondaryAssigneeNames?.length}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">

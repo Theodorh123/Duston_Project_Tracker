@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { comments, activityLog } from "@/lib/db/schema";
+import { comments, activityLog, users, actionItems } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
+import { revalidatePath } from "next/cache";
 
 export async function POST(
   req: NextRequest,
@@ -33,8 +35,26 @@ export async function POST(
     actionItemId: id,
     actorId: userId,
     eventType: "comment_added",
-    note: "Added a comment",
+    note: "Added an update",
   });
 
-  return NextResponse.json({ success: true, comment: newComment });
+  // Revalidate views across the app so everyone sees the latest updates immediately
+  revalidatePath("/");
+  revalidatePath("/action-items");
+  revalidatePath("/projects");
+  revalidatePath("/ea-view");
+  revalidatePath("/ceo-view");
+
+  const author = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { name: true },
+  });
+
+  return NextResponse.json({
+    success: true,
+    comment: {
+      ...newComment,
+      userName: author?.name || "Team Member",
+    },
+  });
 }

@@ -4,7 +4,7 @@ import { meetings, actionItems } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { MeetingDetailClient } from "@/components/meetings/MeetingDetailClient";
-import { getUserScopeCached } from "@/lib/db/cache";
+import { getUserScopeCached, getActiveUsersCached } from "@/lib/db/cache";
 
 export default async function MeetingDetailPage({
   params,
@@ -17,9 +17,11 @@ export default async function MeetingDetailPage({
 
   const [
     { allowedEntityIds },
+    allUsers,
     meeting,
   ] = await Promise.all([
     getUserScopeCached(userId),
+    getActiveUsersCached(),
     db.query.meetings.findFirst({
       where: eq(meetings.id, id),
       with: {
@@ -33,6 +35,7 @@ export default async function MeetingDetailPage({
           with: {
             project: true,
             assignee: true,
+            comments: true,
           },
           orderBy: [desc(actionItems.deadline)],
         },
@@ -48,6 +51,8 @@ export default async function MeetingDetailPage({
   if (!allowedEntityIds.includes(meeting.entityId)) {
     redirect("/meetings");
   }
+
+  const userMap = new Map(allUsers.map((u) => [u.id, u.name]));
 
   return (
     <MeetingDetailClient
@@ -66,15 +71,23 @@ export default async function MeetingDetailPage({
           email: a.user.email,
         })),
       }}
-      actionItems={meeting.actionItems.map((it) => ({
-        id: it.id,
-        title: it.title,
-        projectName: it.project.name,
-        assigneeName: it.assignee.name,
-        deadline: it.deadline,
-        status: it.status,
-        priority: it.priority,
-      }))}
+      actionItems={meeting.actionItems.map((it) => {
+        const secIds = Array.isArray(it.secondaryAssigneeIds)
+          ? (it.secondaryAssigneeIds as string[])
+          : [];
+        const secNames = secIds.map((uid) => userMap.get(uid)).filter(Boolean) as string[];
+        return {
+          id: it.id,
+          title: it.title,
+          projectName: it.project.name,
+          assigneeName: it.assignee.name,
+          secondaryAssigneeNames: secNames,
+          deadline: it.deadline,
+          status: it.status,
+          priority: it.priority,
+          commentCount: it.comments?.length ?? 0,
+        };
+      })}
     />
   );
 }
