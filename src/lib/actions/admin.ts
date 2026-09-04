@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "../db";
-import { users, entities, userEntityAccess } from "../db/schema";
+import { users, entities, userEntityAccess, notifications, activityLog } from "../db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
@@ -261,4 +261,40 @@ export async function quickCreateEntity(data: {
     return { success: false, error: err.message };
   }
 }
+
+export async function clearAllNotifications() {
+  try {
+    await db.delete(notifications);
+    revalidatePath("/");
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function clearAllActivityLogs() {
+  try {
+    await db.delete(activityLog);
+    revalidatePath("/");
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function markNotificationsAsRead(userId: string) {
+  try {
+    await db
+      .update(notifications)
+      .set({ readAt: new Date() })
+      .where(eq(notifications.userId, userId));
+    revalidatePath("/");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
 

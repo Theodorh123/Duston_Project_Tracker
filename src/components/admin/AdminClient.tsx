@@ -16,6 +16,10 @@ import {
   Shield,
   Globe,
   Lock,
+  Database,
+  Trash2,
+  AlertCircle,
+  Check,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import {
@@ -26,6 +30,8 @@ import {
   createEntity,
   updateEntity,
   updateUserEntityAccess,
+  clearAllNotifications,
+  clearAllActivityLogs,
 } from "@/lib/actions/admin";
 
 export interface AdminUser {
@@ -61,21 +67,44 @@ export interface AdminActivityLog {
   createdAt: string;
 }
 
+export interface AdminStats {
+  users: number;
+  entities: number;
+  projects: number;
+  actionItems: number;
+  notifications: number;
+  activityLogs: number;
+}
+
 interface AdminClientProps {
   initialUsers: AdminUser[];
   initialEntities: AdminEntity[];
   initialActivities: AdminActivityLog[];
+  initialStats?: AdminStats;
 }
 
 export function AdminClient({
   initialUsers,
   initialEntities,
   initialActivities,
+  initialStats,
 }: AdminClientProps) {
-  const [activeTab, setActiveTab] = useState<"users" | "entities" | "activity">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "entities" | "activity" | "maintenance">("users");
   const [usersList, setUsersList] = useState(initialUsers);
   const [entitiesList, setEntitiesList] = useState(initialEntities);
   const [activitiesList, setActivitiesList] = useState(initialActivities);
+  const [stats, setStats] = useState<AdminStats>(
+    initialStats || {
+      users: initialUsers.length,
+      entities: initialEntities.length,
+      projects: 0,
+      actionItems: 0,
+      notifications: 0,
+      activityLogs: initialActivities.length,
+    }
+  );
+  const [maintenanceLoading, setMaintenanceLoading] = useState<string | null>(null);
+  const [maintenanceMessage, setMaintenanceMessage] = useState<string | null>(null);
 
   // Modals & alerts
   const [tempPasswordModal, setTempPasswordModal] = useState<{ user: string; pass: string } | null>(null);
@@ -240,6 +269,49 @@ export function AdminClient({
     }
   };
 
+  const handleClearNotifications = async () => {
+    if (!window.confirm("Are you sure you want to clear all system notifications? This action cannot be undone.")) {
+      return;
+    }
+    setMaintenanceLoading("notifications");
+    setMaintenanceMessage(null);
+    try {
+      const res = await clearAllNotifications();
+      if (res.success) {
+        setStats((prev) => ({ ...prev, notifications: 0 }));
+        setMaintenanceMessage("All system notifications have been cleared successfully.");
+      } else {
+        alert("Failed to clear notifications: " + res.error);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setMaintenanceLoading(null);
+    }
+  };
+
+  const handleClearActivityLogs = async () => {
+    if (!window.confirm("Are you sure you want to clear all activity audit logs? This action cannot be undone.")) {
+      return;
+    }
+    setMaintenanceLoading("activity");
+    setMaintenanceMessage(null);
+    try {
+      const res = await clearAllActivityLogs();
+      if (res.success) {
+        setStats((prev) => ({ ...prev, activityLogs: 0 }));
+        setActivitiesList([]);
+        setMaintenanceMessage("All activity audit logs have been cleared successfully.");
+      } else {
+        alert("Failed to clear activity logs: " + res.error);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setMaintenanceLoading(null);
+    }
+  };
+
   const filteredActivities = activitiesList.filter((a) =>
     selectedEventType === "all" ? true : a.eventType === selectedEventType
   );
@@ -301,6 +373,19 @@ export function AdminClient({
           >
             <Activity size={14} strokeWidth={1.5} />
             <span>Activity log</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("maintenance")}
+            className={cn(
+              "pb-3 text-xs font-medium border-b-2 flex items-center gap-2 transition-colors",
+              activeTab === "maintenance"
+                ? "border-[#023542] text-[#023542]"
+                : "border-transparent text-duston-muted hover:text-duston-dark"
+            )}
+          >
+            <Database size={14} strokeWidth={1.5} />
+            <span>Data & Maintenance</span>
           </button>
         </div>
 
@@ -552,6 +637,115 @@ export function AdminClient({
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Data & Maintenance */}
+      {activeTab === "maintenance" && (
+        <div className="space-y-6">
+          {maintenanceMessage && (
+            <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs flex items-center gap-2 animate-in fade-in">
+              <Check size={16} className="text-emerald-600 shrink-0" />
+              <span>{maintenanceMessage}</span>
+            </div>
+          )}
+
+          {/* System Records Live Overview */}
+          <div>
+            <h2 className="text-xs font-semibold text-duston-dark uppercase tracking-wider mb-3">
+              Database Records Overview
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {[
+                { label: "Team Members", value: stats.users, desc: "Users in directory" },
+                { label: "Subsidiaries", value: stats.entities, desc: "Active business units" },
+                { label: "Projects", value: stats.projects, desc: "Strategic projects" },
+                { label: "Action Items", value: stats.actionItems, desc: "Action items in database" },
+                { label: "Notifications", value: stats.notifications, desc: "Notification records" },
+                { label: "Activity Logs", value: stats.activityLogs, desc: "Audit log records" },
+              ].map((card, i) => (
+                <div
+                  key={i}
+                  className="bg-white border border-duston-border rounded-2xl p-4 shadow-subtle space-y-1"
+                >
+                  <span className="text-[11px] font-medium text-duston-muted block">{card.label}</span>
+                  <div className="text-2xl font-bold text-duston-dark">{card.value}</div>
+                  <span className="text-[10px] text-duston-muted block">{card.desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Maintenance Actions */}
+          <div className="space-y-4">
+            <h2 className="text-xs font-semibold text-duston-dark uppercase tracking-wider">
+              Data Cleaning & Maintenance Actions
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Notifications Card */}
+              <div className="bg-white border border-duston-border rounded-2xl p-5 shadow-subtle flex flex-col justify-between space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-duston-dark flex items-center gap-2">
+                      <Database size={16} className="text-[#023542]" />
+                      System Notifications
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-duston-bg border border-duston-border text-duston-dark">
+                      {stats.notifications} record(s)
+                    </span>
+                  </div>
+                  <p className="text-xs text-duston-muted leading-relaxed">
+                    Purge all system notifications. This resets the notification bell dropdown and clears all unread alerts for all team members across the organization.
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-duston-border flex items-center justify-between">
+                  <span className="text-[11px] text-duston-muted">Irreversible action</span>
+                  <button
+                    type="button"
+                    disabled={maintenanceLoading === "notifications"}
+                    onClick={handleClearNotifications}
+                    className="px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <Trash2 size={13} />
+                    <span>{maintenanceLoading === "notifications" ? "Clearing..." : "Clear all notifications"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Activity Audit Logs Card */}
+              <div className="bg-white border border-duston-border rounded-2xl p-5 shadow-subtle flex flex-col justify-between space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-duston-dark flex items-center gap-2">
+                      <Activity size={16} className="text-[#023542]" />
+                      Activity Audit Logs
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-duston-bg border border-duston-border text-duston-dark">
+                      {stats.activityLogs} event(s)
+                    </span>
+                  </div>
+                  <p className="text-xs text-duston-muted leading-relaxed">
+                    Purge all past audit entries from the activity log history. Keeps the system clean when transitioning from testing to production.
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-duston-border flex items-center justify-between">
+                  <span className="text-[11px] text-duston-muted">Irreversible action</span>
+                  <button
+                    type="button"
+                    disabled={maintenanceLoading === "activity"}
+                    onClick={handleClearActivityLogs}
+                    className="px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <Trash2 size={13} />
+                    <span>{maintenanceLoading === "activity" ? "Clearing..." : "Clear activity logs"}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

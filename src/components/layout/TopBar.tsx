@@ -27,6 +27,13 @@ interface TopBarProps {
   onOpenMobileNav: () => void;
   onOpenSearch: () => void;
   unreadCount?: number;
+  notifications?: Array<{
+    id: string;
+    title: string;
+    type?: string;
+    timeAgo?: string;
+    readAt?: string | null;
+  }>;
 }
 
 export function TopBar({
@@ -37,9 +44,11 @@ export function TopBar({
   onOpenMobileNav,
   onOpenSearch,
   unreadCount = 0,
+  notifications = [],
 }: TopBarProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [items, setItems] = useState(notifications);
 
   // Keep only first name at the Account icon area
   const getFirstName = (fullName?: string | null) => {
@@ -219,28 +228,48 @@ export function TopBar({
                   <span className="text-sm font-medium text-duston-dark">
                     Notifications
                   </span>
-                  <span className="text-xs text-duston-muted">
-                    {unreadCount} unread
-                  </span>
-                </div>
-                <div className="space-y-2 text-xs text-duston-muted max-h-60 overflow-y-auto">
-                  <div className="p-2.5 rounded-xl bg-duston-bg border border-duston-border">
-                    <div className="font-medium text-duston-text">
-                      EBID syndication term sheet overdue
-                    </div>
-                    <div className="text-[11px] text-duston-orange mt-0.5">
-                      Action item passed deadline
-                    </div>
-                  </div>
-                  <div className="p-2.5 rounded-xl hover:bg-duston-bg transition-colors">
-                    <div className="font-medium text-duston-text">
-                      New project milestone reached
-                    </div>
-                    <div className="text-[11px] text-duston-muted mt-0.5">
-                      Updated today at 10:00 AM
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-duston-muted">
+                      {items.length} {items.length === 1 ? "alert" : "alerts"}
+                    </span>
+                    {items.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setItems([])}
+                        className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-medium hover:underline cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    )}
                   </div>
                 </div>
+
+                {items.length === 0 ? (
+                  <div className="py-7 text-center">
+                    <div className="w-8 h-8 rounded-full bg-duston-bg border border-duston-border/80 flex items-center justify-center mx-auto mb-2 text-duston-muted">
+                      <Bell size={15} strokeWidth={1.5} />
+                    </div>
+                    <p className="text-xs font-medium text-duston-dark">No notifications</p>
+                    <p className="text-[11px] text-duston-muted mt-0.5">You're all caught up!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 text-xs text-duston-muted max-h-60 overflow-y-auto">
+                    {items.map((notif) => (
+                      <div
+                        key={notif.id}
+                        className="p-2.5 rounded-xl bg-duston-bg border border-duston-border space-y-0.5"
+                      >
+                        <div className="font-medium text-duston-text">
+                          {notif.title}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-duston-orange">{notif.type || "Notification"}</span>
+                          <span className="text-duston-muted">{notif.timeAgo || "Recently"}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
