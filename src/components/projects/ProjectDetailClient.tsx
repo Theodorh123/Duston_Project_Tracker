@@ -1048,7 +1048,7 @@ export function ProjectDetailClient({
       {/* New Action Item Modal */}
       {isNewItemModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] flex flex-col shadow-2xl border border-duston-border overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] flex flex-col shadow-2xl border border-duston-border overflow-hidden my-auto animate-in fade-in duration-150">
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/60 shrink-0">
               <div className="flex items-center gap-2">
@@ -1079,7 +1079,6 @@ export function ProjectDetailClient({
                     value={newItemTitle}
                     onChange={(e) => setNewItemTitle(e.target.value)}
                     className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
-                    autoFocus
                   />
                 </div>
 
@@ -1206,7 +1205,7 @@ export function ProjectDetailClient({
       {/* Variance Note Edit Modal */}
       {editingVarianceItem && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] flex flex-col shadow-2xl border border-duston-border overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] flex flex-col shadow-2xl border border-duston-border overflow-hidden my-auto animate-in fade-in duration-150">
             <div className="p-4 sm:p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/60 shrink-0">
               <h3 className="text-sm font-semibold text-duston-dark">
                 Variance Explanation / Comments
@@ -1229,7 +1228,6 @@ export function ProjectDetailClient({
                 onChange={(e) => setVarianceText(e.target.value)}
                 placeholder="Explain any schedule/budget variances, bottlenecks, or delivery notes..."
                 className="w-full bg-white border border-duston-border rounded-xl p-3 text-xs text-duston-text outline-none focus:border-[#1BCECE] resize-none"
-                autoFocus
               />
             </div>
             <div className="p-3.5 sm:p-4 border-t border-duston-border flex items-center justify-end gap-2 bg-duston-bg/40 shrink-0">

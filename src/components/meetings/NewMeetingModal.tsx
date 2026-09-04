@@ -67,7 +67,7 @@ export function NewMeetingModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs overflow-y-auto">
-      <div className="w-full max-w-lg bg-white border border-duston-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] my-auto animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-lg bg-white border border-duston-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] my-auto animate-in fade-in duration-150">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/60 shrink-0">
           <h2 className="text-sm font-semibold text-duston-dark">New meeting</h2>

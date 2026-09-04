@@ -1268,7 +1268,7 @@ export function DashboardClient({
       {/* Quick Add Action Item Modal */}
       {isQuickAddOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] flex flex-col shadow-2xl border border-duston-border overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] flex flex-col shadow-2xl border border-duston-border overflow-hidden my-auto animate-in fade-in duration-150">
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/60 shrink-0">
               <div className="flex items-center gap-2.5">
@@ -1308,7 +1308,6 @@ export function DashboardClient({
                     onChange={(e) => setQuickAddTitle(e.target.value)}
                     placeholder="e.g., Review mining lease agreement with Norva..."
                     className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
-                    autoFocus
                   />
                 </div>
 

@@ -66,3 +66,18 @@ nextjs-portal,
 [data-nextjs-toast] {
   display: none !important;
 }
+
+/* Prevent iOS Safari / mobile automatic zoom on input focus */
+@media screen and (max-width: 767px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="search"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+

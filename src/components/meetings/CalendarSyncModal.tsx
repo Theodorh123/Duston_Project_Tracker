@@ -129,7 +129,7 @@ export function CalendarSyncModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto">
-      <div className="bg-white border border-duston-border rounded-2xl shadow-2xl w-full max-w-xl max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col my-auto animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white border border-duston-border rounded-2xl shadow-2xl w-full max-w-xl max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] overflow-hidden flex flex-col my-auto animate-in fade-in duration-150">
         {/* Header */}
         <div className="p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/40">
           <div className="flex items-center gap-2.5">

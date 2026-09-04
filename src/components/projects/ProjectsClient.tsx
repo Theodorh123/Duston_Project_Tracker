@@ -423,7 +423,6 @@ export function ProjectsClient({
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder="Add project status updates, operational remarks, or executive notes..."
                     className="w-full bg-white border border-duston-border rounded-xl p-3 text-xs text-duston-dark outline-none focus:border-[#1BCECE] leading-relaxed resize-none font-sans"
-                    autoFocus
                   />
                 </div>
               </div>
