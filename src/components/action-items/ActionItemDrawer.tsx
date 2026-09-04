@@ -1,7 +1,23 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Calendar, Clock, CheckCircle2, AlertCircle, ChevronDown, ChevronUp, MessageSquare, Send, Trash2, Plus, Users } from "lucide-react";
+import {
+  X,
+  Calendar,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
+  Send,
+  Trash2,
+  Plus,
+  Users,
+  Edit2,
+  Check,
+  Loader2,
+} from "lucide-react";
 import Link from "next/link";
 import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
 
@@ -70,7 +86,25 @@ export function ActionItemDrawer({
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [availableUsers, setAvailableUsers] = useState<Array<{ id: string; name: string }>>([]);
+  const [availableProjects, setAvailableProjects] = useState<
+    Array<{ id: string; name: string; entityName?: string; entityBrandColor?: string }>
+  >([]);
   const titleInputRef = useRef<HTMLInputElement>(null);
+
+  // Edit Action Item Modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSavingAll, setIsSavingAll] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    title: "",
+    projectId: "",
+    assigneeId: "",
+    secondaryAssigneeIds: [] as string[],
+    status: "not_started" as "not_started" | "in_progress" | "blocked" | "done" | "postponed",
+    priority: "medium" as "low" | "medium" | "high" | "critical",
+    deadline: "",
+    tag: "",
+    description: "",
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -80,10 +114,18 @@ export function ActionItemDrawer({
           if (Array.isArray(data)) setAvailableUsers(data);
         })
         .catch(() => {});
+
+      fetch("/api/projects")
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data) => {
+          if (Array.isArray(data)) setAvailableProjects(data);
+        })
+        .catch(() => {});
     }
   }, [isOpen]);
 
-  const isPrivileged = ["admin", "ceo", "ea"].includes(currentUserRole || "");
+  const normalizedRole = (currentUserRole || "").toLowerCase().trim();
+  const isPrivileged = ["admin", "ceo", "ea"].includes(normalizedRole);
   const canDelete = isPrivileged;
   const canEdit = isPrivileged || (Boolean(item?.createdBy) && item?.createdBy === currentUserId);
 
@@ -187,6 +229,60 @@ export function ActionItemDrawer({
       }
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to update field");
+    }
+  };
+
+  const openEditModal = () => {
+    if (!item) return;
+    setEditFormData({
+      title: item.title || "",
+      projectId: item.projectId || "",
+      assigneeId: item.assigneeId || "",
+      secondaryAssigneeIds: item.secondaryAssigneeIds ? [...item.secondaryAssigneeIds] : [],
+      status: item.status,
+      priority: item.priority,
+      deadline: item.deadline ? item.deadline.slice(0, 10) : "",
+      tag: item.tag || "",
+      description: item.description || "",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!item || isSavingAll) return;
+    if (!editFormData.title.trim()) {
+      setErrorMessage("Action item title is required.");
+      return;
+    }
+    setIsSavingAll(true);
+    setErrorMessage(null);
+
+    try {
+      const res = await fetch(`/api/action-items/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editFormData),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update action item");
+      }
+
+      // Re-fetch updated full item
+      const refreshed = await fetch(`/api/action-items/${item.id}`).then((r) =>
+        r.ok ? r.json() : null
+      );
+      if (refreshed) {
+        setItem(refreshed);
+        if (onUpdate) onUpdate(refreshed);
+      }
+      setIsEditModalOpen(false);
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to update action item");
+    } finally {
+      setIsSavingAll(false);
     }
   };
 
@@ -306,16 +402,29 @@ export function ActionItemDrawer({
                 style={{ backgroundColor: item.entityBrandColor }}
               />
             )}
-            <span className="text-xs font-medium text-duston-muted">
+            <span className="text-xs font-semibold text-duston-dark truncate max-w-[200px]">
               {item?.entityName || "Action Item"}
             </span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
+            {/* Prominent Edit Item Button */}
+            {canEdit && (
+              <button
+                type="button"
+                onClick={openEditModal}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[#023542] hover:bg-[#1BCECE] text-white transition-colors cursor-pointer shadow-2xs"
+                title="Edit this action item (Admin, EA, CEO, Creator)"
+              >
+                <Edit2 size={13} />
+                <span>Edit item</span>
+              </button>
+            )}
+
             {canDelete && (
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="p-1.5 rounded-lg text-duston-muted hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer mr-1"
+                className="p-1.5 rounded-lg text-duston-muted hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
                 title="Delete action item (EA, Admin, CEO)"
               >
                 <Trash2 size={16} strokeWidth={1.5} />
@@ -339,7 +448,7 @@ export function ActionItemDrawer({
             <div className="h-24 w-full skeleton-quiet" />
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-5">
             {errorMessage && (
               <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center justify-between">
                 <span>{errorMessage}</span>
@@ -349,36 +458,82 @@ export function ActionItemDrawer({
               </div>
             )}
 
-            {!canEdit && (
+            {canEdit ? (
+              <div className="flex items-center justify-between p-2.5 bg-[#1BCECE]/10 border border-[#1BCECE]/30 rounded-xl text-xs text-[#023542]">
+                <span className="font-medium flex items-center gap-1.5">
+                  <Edit2 size={13} className="text-[#023542]" />
+                  <span>Authorized to edit (Admin / EA / Owner)</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={openEditModal}
+                  className="text-xs font-bold underline hover:text-[#1BCECE] cursor-pointer"
+                >
+                  Edit all fields →
+                </button>
+              </div>
+            ) : (
               <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2">
                 <AlertCircle size={15} className="text-amber-600 shrink-0" />
                 <span>Read-only: Action items can only be amended by EA, Admin, CEO, or the person who created them.</span>
               </div>
             )}
 
-            {/* Title (inline-editable) */}
+            {/* Title (inline-editable with save confirmation) */}
             <div>
               {isEditingTitle && canEdit ? (
-                <input
-                  ref={titleInputRef}
-                  type="text"
-                  value={item.title}
-                  autoFocus
-                  onBlur={() => setIsEditingTitle(false)}
-                  onChange={(e) => handleFieldChange("title", e.target.value)}
-                  className="w-full text-xl font-medium text-duston-dark border border-[#1BCECE] rounded px-2 py-1 outline-none"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={titleInputRef}
+                    type="text"
+                    value={item.title}
+                    autoFocus
+                    onChange={(e) => setItem({ ...item, title: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleFieldChange("title", item.title);
+                        setIsEditingTitle(false);
+                      } else if (e.key === "Escape") {
+                        setIsEditingTitle(false);
+                      }
+                    }}
+                    className="w-full text-lg sm:text-xl font-medium text-duston-dark border border-[#1BCECE] rounded-lg px-2.5 py-1 outline-none ring-2 ring-[#1BCECE]/20"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleFieldChange("title", item.title);
+                      setIsEditingTitle(false);
+                    }}
+                    className="p-1.5 rounded-lg bg-[#023542] text-white hover:bg-[#1BCECE] transition-colors shrink-0 cursor-pointer"
+                    title="Save title"
+                  >
+                    <Check size={16} />
+                  </button>
+                </div>
               ) : (
-                <h2
-                  onClick={() => canEdit && setIsEditingTitle(true)}
-                  className={cn(
-                    "text-xl font-medium text-duston-dark p-1 -m-1 rounded transition-colors",
-                    canEdit ? "hover:bg-duston-bg cursor-pointer" : "cursor-default"
+                <div className="flex items-start justify-between gap-2 group">
+                  <h2
+                    onClick={() => canEdit && setIsEditingTitle(true)}
+                    className={cn(
+                      "text-lg sm:text-xl font-medium text-duston-dark p-1 -m-1 rounded transition-colors flex-1",
+                      canEdit ? "hover:bg-duston-bg cursor-pointer" : "cursor-default"
+                    )}
+                    title={canEdit ? "Click to edit title" : "Title (read-only)"}
+                  >
+                    {item.title}
+                  </h2>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingTitle(true)}
+                      className="p-1 rounded-md text-duston-muted hover:text-[#023542] hover:bg-duston-bg opacity-70 group-hover:opacity-100 transition-opacity cursor-pointer shrink-0 mt-0.5"
+                      title="Edit title"
+                    >
+                      <Edit2 size={15} />
+                    </button>
                   )}
-                  title={canEdit ? "Edit title" : "Title (read-only)"}
-                >
-                  {item.title}
-                </h2>
+                </div>
               )}
             </div>
 
@@ -407,18 +562,80 @@ export function ActionItemDrawer({
 
             {/* Editable Fields Grid */}
             <div className="grid grid-cols-2 gap-4 p-4 rounded-xl border border-duston-border bg-duston-bg/40 text-xs">
+              {/* Project Selection / Reassignment */}
+              <div className="col-span-2">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-duston-muted font-medium">Assigned Project</label>
+                  <Link
+                    href={`/projects/${item.projectId}`}
+                    className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-semibold underline underline-offset-2"
+                  >
+                    View project details →
+                  </Link>
+                </div>
+                {canEdit && availableProjects.length > 0 ? (
+                  <select
+                    value={item.projectId}
+                    onChange={(e) => {
+                      const proj = availableProjects.find((p) => p.id === e.target.value);
+                      setItem({
+                        ...item,
+                        projectId: e.target.value,
+                        projectName: proj?.name || item.projectName,
+                        entityName: proj?.entityName || item.entityName,
+                        entityBrandColor: proj?.entityBrandColor || item.entityBrandColor,
+                      });
+                      handleFieldChange("projectId", e.target.value);
+                    }}
+                    className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
+                  >
+                    {availableProjects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} {p.entityName ? `(${p.entityName})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-dark font-medium">
+                    {item.projectName}
+                  </div>
+                )}
+              </div>
+
               {/* Primary Responsible Party (Lead) */}
               <div className="col-span-2">
                 <label className="block text-duston-muted mb-1 font-medium">Primary Responsible Party (Lead)</label>
-                <div className="bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-dark font-medium flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-[#023542] text-white flex items-center justify-center text-[9px] font-semibold">
-                    {(item.assigneeName || "RP").slice(0, 2).toUpperCase()}
+                {canEdit && availableUsers.length > 0 ? (
+                  <select
+                    value={item.assigneeId}
+                    onChange={(e) => {
+                      const u = availableUsers.find((user) => user.id === e.target.value);
+                      setItem({
+                        ...item,
+                        assigneeId: e.target.value,
+                        assigneeName: u?.name || item.assigneeName,
+                      });
+                      handleFieldChange("assigneeId", e.target.value);
+                    }}
+                    className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer font-medium"
+                  >
+                    {availableUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-dark font-medium flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-[#023542] text-white flex items-center justify-center text-[9px] font-semibold">
+                      {(item.assigneeName || "RP").slice(0, 2).toUpperCase()}
+                    </div>
+                    <span className="truncate">{item.assigneeName || "Unassigned"}</span>
+                    <span className="ml-auto text-[10px] text-duston-muted bg-duston-bg px-2 py-0.5 rounded border border-duston-border">
+                      Lead Owner
+                    </span>
                   </div>
-                  <span className="truncate">{item.assigneeName || "Unassigned"}</span>
-                  <span className="ml-auto text-[10px] text-duston-muted bg-duston-bg px-2 py-0.5 rounded border border-duston-border">
-                    Lead Owner
-                  </span>
-                </div>
+                )}
               </div>
 
               {/* Secondary Responsible Parties (Co-owners) */}
@@ -692,6 +909,264 @@ export function ActionItemDrawer({
           </div>
         )}
       </div>
+
+      {/* Dedicated Edit Action Item Modal */}
+      {isEditModalOpen && item && (
+        <div className="fixed inset-0 z-60 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-duston-border overflow-hidden my-auto flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/60">
+              <div>
+                <h3 className="text-sm sm:text-base font-semibold text-duston-dark flex items-center gap-2">
+                  <Edit2 size={16} className="text-[#023542]" />
+                  <span>Edit Action Item</span>
+                </h3>
+                <p className="text-[11px] text-duston-muted mt-0.5">
+                  Update deliverable details, assignees, deadlines, and project assignment.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-1.5 rounded-lg text-duston-muted hover:text-duston-dark hover:bg-white border border-transparent hover:border-duston-border transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Form Content */}
+            <form onSubmit={handleSaveModal} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs">
+              {/* Deliverable Title */}
+              <div>
+                <label className="block font-semibold text-duston-dark mb-1">
+                  Action Item Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.title}
+                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                  placeholder="e.g. Submit draft term sheet to Stanbic Bank"
+                  className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-duston-dark outline-none focus:border-[#1BCECE] ring-1 ring-transparent focus:ring-[#1BCECE]/20 font-medium"
+                />
+              </div>
+
+              {/* Project Assignment */}
+              <div>
+                <label className="block font-semibold text-duston-dark mb-1">
+                  Assigned Project <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={editFormData.projectId}
+                  onChange={(e) => setEditFormData({ ...editFormData, projectId: e.target.value })}
+                  className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
+                >
+                  {availableProjects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} {p.entityName ? `(${p.entityName})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Primary Responsible Party (Lead) */}
+              <div>
+                <label className="block font-semibold text-duston-dark mb-1">
+                  Primary Responsible Party (Lead) <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={editFormData.assigneeId}
+                  onChange={(e) => setEditFormData({ ...editFormData, assigneeId: e.target.value })}
+                  className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
+                >
+                  {availableUsers.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Secondary Responsible Parties (Co-owners) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block font-semibold text-duston-dark">
+                    Secondary Responsible Parties (Co-owners)
+                  </label>
+                  <span className="text-[10px] text-duston-muted">
+                    {editFormData.secondaryAssigneeIds.length} selected
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-duston-bg/40 border border-duston-border rounded-xl items-center">
+                  {editFormData.secondaryAssigneeIds.length === 0 ? (
+                    <span className="text-duston-muted text-xs italic">No co-owners selected.</span>
+                  ) : (
+                    editFormData.secondaryAssigneeIds.map((userId) => {
+                      const u = availableUsers.find((x) => x.id === userId);
+                      return (
+                        <span
+                          key={userId}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white border border-duston-border text-duston-dark shadow-2xs"
+                        >
+                          <span className="w-4 h-4 rounded-full bg-[#1BCECE]/20 text-[#023542] font-semibold text-[8px] flex items-center justify-center">
+                            {(u?.name || "U").slice(0, 2).toUpperCase()}
+                          </span>
+                          <span>{u?.name || "User"}</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditFormData({
+                                ...editFormData,
+                                secondaryAssigneeIds: editFormData.secondaryAssigneeIds.filter((id) => id !== userId),
+                              })
+                            }
+                            className="text-duston-muted hover:text-rose-600 ml-0.5 cursor-pointer"
+                            title={`Remove ${u?.name || "User"}`}
+                          >
+                            <X size={12} />
+                          </button>
+                        </span>
+                      );
+                    })
+                  )}
+                </div>
+
+                {availableUsers.filter(
+                  (u) =>
+                    u.id !== editFormData.assigneeId &&
+                    !editFormData.secondaryAssigneeIds.includes(u.id)
+                ).length > 0 && (
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value && !editFormData.secondaryAssigneeIds.includes(e.target.value)) {
+                        setEditFormData({
+                          ...editFormData,
+                          secondaryAssigneeIds: [...editFormData.secondaryAssigneeIds, e.target.value],
+                        });
+                      }
+                    }}
+                    className="w-full bg-white border border-duston-border rounded-xl px-3 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
+                  >
+                    <option value="" disabled>+ Add secondary responsible party...</option>
+                    {availableUsers
+                      .filter(
+                        (u) =>
+                          u.id !== editFormData.assigneeId &&
+                          !editFormData.secondaryAssigneeIds.includes(u.id)
+                      )
+                      .map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                        </option>
+                      ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Status & Priority Row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-duston-dark mb-1">Status</label>
+                  <select
+                    value={editFormData.status}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as any })}
+                    className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
+                  >
+                    <option value="not_started">Not Started</option>
+                    <option value="in_progress">In-Progress</option>
+                    <option value="done">Done</option>
+                    <option value="postponed">Postponed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-duston-dark mb-1">Priority</label>
+                  <select
+                    value={editFormData.priority}
+                    onChange={(e) => setEditFormData({ ...editFormData, priority: e.target.value as any })}
+                    className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Deadline & Tag Row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-duston-dark mb-1">Deadline</label>
+                  <input
+                    type="date"
+                    required
+                    value={editFormData.deadline}
+                    onChange={(e) => setEditFormData({ ...editFormData, deadline: e.target.value })}
+                    className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-duston-dark outline-none focus:border-[#1BCECE]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-duston-dark mb-1">Tag / Category</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Legal, Treasury"
+                    value={editFormData.tag}
+                    onChange={(e) => setEditFormData({ ...editFormData, tag: e.target.value })}
+                    className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-duston-dark outline-none focus:border-[#1BCECE]"
+                  />
+                </div>
+              </div>
+
+              {/* Description / Variance Notes */}
+              <div>
+                <label className="block font-semibold text-duston-dark mb-1">
+                  Description / Operational Notes
+                </label>
+                <textarea
+                  rows={3}
+                  value={editFormData.description}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  placeholder="Context, counterparty requirements, or variance explanations..."
+                  className="w-full bg-white border border-duston-border rounded-xl p-3 text-duston-dark outline-none focus:border-[#1BCECE] resize-none"
+                />
+              </div>
+
+              {/* Form Footer */}
+              <div className="pt-2 border-t border-duston-border flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={isSavingAll}
+                  className="px-4 py-2 border border-duston-border hover:bg-duston-bg text-duston-muted hover:text-duston-dark rounded-xl font-medium transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingAll}
+                  className="px-5 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl font-semibold transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
+                >
+                  {isSavingAll ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Saving changes...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={14} />
+                      <span>Save Changes</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (

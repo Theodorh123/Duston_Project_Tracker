@@ -100,6 +100,109 @@ export async function getActionItemById(id: string) {
   }
 }
 
+export interface UpdateActionItemInput {
+  title?: string;
+  projectId?: string;
+  assigneeId?: string;
+  secondaryAssigneeIds?: string[];
+  deadline?: string;
+  status?: "not_started" | "in_progress" | "blocked" | "done" | "postponed";
+  priority?: "low" | "medium" | "high" | "critical";
+  tag?: string | null;
+  description?: string | null;
+}
+
+export async function updateActionItem(
+  id: string,
+  data: UpdateActionItemInput,
+  actorId?: string
+) {
+  if (!id || !UUID_REGEX.test(id)) {
+    return { success: false, error: "Invalid ID" };
+  }
+
+  try {
+    const current = await db.query.actionItems.findFirst({
+      where: eq(actionItems.id, id),
+    });
+    if (!current) return { success: false, error: "Not found" };
+
+    // Authorization check: Only EA, Admin, CEO can edit any action item.
+    // All other users can only edit action items that originate from them.
+    if (actorId && UUID_REGEX.test(actorId) && actorId !== "00000000-0000-0000-0000-000000000000") {
+      const actor = await db.query.users.findFirst({
+        where: eq(users.id, actorId),
+      });
+      const actorRole = actor?.role?.toLowerCase()?.trim() || "";
+      const isPrivileged = ["admin", "ceo", "ea"].includes(actorRole);
+      const isOriginator = current.createdBy === actorId;
+
+      if (!isPrivileged && !isOriginator) {
+        return {
+          success: false,
+          error: "Permission denied: Only EA, Admin, CEO or the creator of this action item can amend it.",
+        };
+      }
+    }
+
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+
+    if (data.title !== undefined) updateData.title = data.title.trim();
+    if (data.projectId !== undefined) updateData.projectId = data.projectId;
+    if (data.assigneeId !== undefined) updateData.assigneeId = data.assigneeId;
+    if (data.secondaryAssigneeIds !== undefined) updateData.secondaryAssigneeIds = data.secondaryAssigneeIds;
+    if (data.deadline !== undefined) updateData.deadline = data.deadline;
+    if (data.status !== undefined) {
+      updateData.status = data.status;
+      if (data.status === "done") {
+        updateData.completedAt = new Date();
+      }
+    }
+    if (data.priority !== undefined) updateData.priority = data.priority;
+    if (data.tag !== undefined) updateData.tag = data.tag;
+    if (data.description !== undefined) updateData.description = data.description;
+
+    const [updated] = await db
+      .update(actionItems)
+      .set(updateData)
+      .where(eq(actionItems.id, id))
+      .returning();
+
+    const safeActorId =
+      actorId && UUID_REGEX.test(actorId) && actorId !== "00000000-0000-0000-0000-000000000000"
+        ? actorId
+        : current.assigneeId;
+
+    await db.insert(activityLog).values({
+      actionItemId: id,
+      actorId: safeActorId,
+      eventType: data.status && data.status !== current.status ? "status_change" : "status_change",
+      note: "Updated action item details",
+    });
+
+    if (data.status === "blocked" && current.status !== "blocked") {
+      await sendWhatsApp(
+        updated.assigneeId,
+        `Attention: Action item "${updated.title}" is marked BLOCKED.`,
+        id
+      );
+    }
+
+    revalidatePath("/");
+    revalidatePath("/action-items");
+    revalidatePath("/projects");
+    revalidatePath("/ea-view");
+    revalidatePath("/ceo-view");
+
+    return { success: true, item: updated };
+  } catch (err: any) {
+    console.error("updateActionItem error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function updateActionItemField(
   id: string,
   field: string,
@@ -122,7 +225,8 @@ export async function updateActionItemField(
       const actor = await db.query.users.findFirst({
         where: eq(users.id, actorId),
       });
-      const isPrivileged = actor && ["admin", "ceo", "ea"].includes(actor.role);
+      const actorRole = actor?.role?.toLowerCase()?.trim() || "";
+      const isPrivileged = ["admin", "ceo", "ea"].includes(actorRole);
       const isOriginator = current.createdBy === actorId;
 
       if (!isPrivileged && !isOriginator) {
@@ -157,7 +261,13 @@ export async function updateActionItemField(
       eventType: field === "status" ? "status_change" : (field === "assigneeId" || field === "secondaryAssigneeIds") ? "reassign" : "status_change",
       fromValue: typeof (current as any)[field] === "object" ? JSON.stringify((current as any)[field] ?? []) : String((current as any)[field] ?? ""),
       toValue: typeof value === "object" ? JSON.stringify(value) : String(value),
-      note: field === "secondaryAssigneeIds" ? "Updated secondary co-owners" : `Updated ${field} to ${value}`,
+      note: field === "secondaryAssigneeIds" 
+        ? "Updated secondary co-owners" 
+        : field === "assigneeId" 
+        ? "Reassigned primary responsible party"
+        : field === "projectId"
+        ? "Moved to different project"
+        : `Updated ${field} to ${value}`,
     });
 
     // WhatsApp nudge / notification if status changed to blocked

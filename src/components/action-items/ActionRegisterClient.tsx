@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Flag,
   MessageSquare,
+  Edit2,
 } from "lucide-react";
 import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
 import { ImportRegisterModal } from "./ImportRegisterModal";
@@ -521,9 +522,20 @@ export function ActionRegisterClient({
           </div>
         </td>
 
-        {/* 8. Action Arrow */}
-        <td className="py-3 px-3 text-center text-duston-muted group-hover:text-[#023542]">
-          <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+        {/* 8. Actions (Edit + Open) */}
+        <td className="py-3 px-3 text-right" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => openActionItem(item.id)}
+              className="px-2 py-1 rounded-md text-[11px] font-medium text-duston-dark hover:text-[#023542] hover:bg-duston-bg border border-transparent hover:border-duston-border flex items-center gap-1 transition-colors cursor-pointer"
+              title="Edit or view deliverable details"
+            >
+              <Edit2 size={12} className="text-duston-muted group-hover:text-[#023542]" />
+              <span>Edit</span>
+            </button>
+            <ChevronRight size={14} className="text-duston-muted group-hover:translate-x-0.5 transition-transform shrink-0" />
+          </div>
         </td>
       </tr>
     );
@@ -672,6 +684,17 @@ export function ActionRegisterClient({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openActionItem(item.id);
+              }}
+              className="px-2 py-0.5 rounded text-[10px] font-semibold text-[#023542] bg-[#023542]/5 border border-[#023542]/20 hover:bg-[#023542]/10 flex items-center gap-1 transition-colors cursor-pointer"
+            >
+              <Edit2 size={10} />
+              <span>Edit</span>
+            </button>
             <span
               className={cn(
                 "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold",
