@@ -83,7 +83,7 @@ export function DashboardClient({
   upcomingMeetings = [],
   recentActivities,
   defaultView = "todo",
-  kanbanColumns = ["Todo", "In Progress", "Done"],
+  kanbanColumns = ["Not Started", "In-Progress", "Done"],
   projects = [],
   entities = [],
   users = [],
@@ -153,7 +153,7 @@ export function DashboardClient({
   const [quickAddComments, setQuickAddComments] = useState("");
   const [quickAddProjectId, setQuickAddProjectId] = useState(projects[0]?.id || "");
   const [quickAddAssigneeId, setQuickAddAssigneeId] = useState(currentUserId || users[0]?.id || "");
-  const [quickAddColumn, setQuickAddColumn] = useState<"todo" | "in_progress" | "done">("todo");
+  const [quickAddStatus, setQuickAddStatus] = useState<"not_started" | "in_progress" | "done">("not_started");
   const [quickAddDeadline, setQuickAddDeadline] = useState(
     new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]
   );
@@ -261,17 +261,18 @@ export function DashboardClient({
     }
   };
 
-  const handleOpenQuickAdd = (targetCol: "todo" | "in_progress" | "done") => {
-    setQuickAddColumn(targetCol);
+  const handleOpenQuickAdd = (targetStatus?: "not_started" | "in_progress" | "done") => {
+    const status = targetStatus || "not_started";
+    setQuickAddStatus(status);
     const today = new Date().toISOString().split("T")[0];
     const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
     const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
 
-    if (targetCol === "todo") {
+    if (status === "not_started") {
       setQuickAddDeadline(in7Days);
-    } else if (targetCol === "in_progress") {
+    } else if (status === "in_progress") {
       setQuickAddDeadline(in3Days);
-    } else if (targetCol === "done") {
+    } else if (status === "done") {
       setQuickAddDeadline(today);
     }
     setIsQuickAddOpen(true);
@@ -283,12 +284,7 @@ export function DashboardClient({
 
     setIsSubmittingQuickAdd(true);
 
-    const targetStatus =
-      quickAddColumn === "done"
-        ? "done"
-        : quickAddColumn === "in_progress"
-        ? "in_progress"
-        : "not_started";
+    const targetStatus = quickAddStatus;
 
     const selectedProj = projectsList.find((p) => p.id === quickAddProjectId);
     const selectedUser = usersList.find((u) => u.id === quickAddAssigneeId);
@@ -325,6 +321,7 @@ export function DashboardClient({
 
       setQuickAddTitle("");
       setQuickAddComments("");
+      setQuickAddStatus("not_started");
       setIsQuickAddOpen(false);
       router.refresh();
     }
@@ -347,7 +344,7 @@ export function DashboardClient({
 
   const handleDropItem = async (
     itemId: string,
-    targetCol: "todo" | "in_progress" | "done"
+    targetCol: "not_started" | "in_progress" | "done"
   ) => {
     setDragOverCol(null);
     setDraggingItemId(null);
@@ -368,7 +365,7 @@ export function DashboardClient({
       if (isDeadlineOverdue(targetItem.deadline, targetItem.status)) {
         newDeadline = in3Days;
       }
-    } else if (targetCol === "todo") {
+    } else if (targetCol === "not_started") {
       newStatus = "not_started";
       if (isDeadlineOverdue(targetItem.deadline, targetItem.status)) {
         newDeadline = in7Days;
@@ -783,7 +780,7 @@ export function DashboardClient({
                 <span>Import register</span>
               </button>
               <button
-                onClick={() => handleOpenQuickAdd("todo")}
+                onClick={() => handleOpenQuickAdd("not_started")}
                 className="flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl sm:rounded-lg text-xs font-medium transition-colors shadow-subtle cursor-pointer whitespace-nowrap"
                 title="Add new action item"
               >
@@ -965,8 +962,8 @@ export function DashboardClient({
             <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto pb-4 no-scrollbar snap-x">
               {[
                 {
-                  key: "todo" as const,
-                  label: "Todo",
+                  key: "not_started" as const,
+                  label: "Not Started",
                   dotColor: "bg-slate-400",
                   filterFn: (i: ActionItemSummary) =>
                     i.status === "not_started" && !isDeadlineOverdue(i.deadline, i.status),
@@ -1494,24 +1491,23 @@ export function DashboardClient({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-duston-dark mb-1">
-                      Add to column / status
+                      Status
                     </label>
                     <select
-                      value={quickAddColumn}
+                      value={quickAddStatus}
                       onChange={(e) => {
-                        const val = e.target.value as any;
-                        setQuickAddColumn(val);
+                        const val = e.target.value as "not_started" | "in_progress" | "done";
+                        setQuickAddStatus(val);
                         const today = new Date().toISOString().split("T")[0];
-                        const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
                         const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
                         const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
-                        if (val === "todo") setQuickAddDeadline(in7Days);
+                        if (val === "not_started") setQuickAddDeadline(in7Days);
                         else if (val === "in_progress") setQuickAddDeadline(in3Days);
                         else if (val === "done") setQuickAddDeadline(today);
                       }}
                       className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
                     >
-                      <option value="todo">Todo</option>
+                      <option value="not_started">Not Started</option>
                       <option value="in_progress">In-Progress</option>
                       <option value="done">Done</option>
                     </select>

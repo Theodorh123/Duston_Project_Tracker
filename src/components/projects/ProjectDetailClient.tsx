@@ -149,6 +149,7 @@ export function ProjectDetailClient({
   const [newItemDeadline, setNewItemDeadline] = useState(
     new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]
   );
+  const [newItemStatus, setNewItemStatus] = useState<"not_started" | "in_progress" | "done">("not_started");
   const [newItemPriority, setNewItemPriority] = useState<"low" | "medium" | "high" | "critical">("medium");
   const [newItemComments, setNewItemComments] = useState("");
 
@@ -230,6 +231,7 @@ export function ProjectDetailClient({
       description: newItemComments.trim() || undefined,
       assigneeId: newItemAssignee,
       deadline: newItemDeadline,
+      status: newItemStatus,
       priority: newItemPriority,
       createdBy: currentUserId,
     });
@@ -252,6 +254,7 @@ export function ProjectDetailClient({
       ]);
       setNewItemTitle("");
       setNewItemComments("");
+      setNewItemStatus("not_started");
       setIsNewItemModalOpen(false);
     }
   };
@@ -1143,7 +1146,19 @@ export function ProjectDetailClient({
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-duston-muted mb-1 font-medium">Status</label>
+                    <select
+                      value={newItemStatus}
+                      onChange={(e) => setNewItemStatus(e.target.value as any)}
+                      className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+                    >
+                      <option value="not_started">Not Started</option>
+                      <option value="in_progress">In-Progress</option>
+                      <option value="done">Done</option>
+                    </select>
+                  </div>
                   <div>
                     <label className="block text-duston-muted mb-1 font-medium">Priority</label>
                     <select

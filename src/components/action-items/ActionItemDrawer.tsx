@@ -375,8 +375,8 @@ export function ActionItemDrawer({
                     !canEdit && "opacity-60 cursor-not-allowed bg-slate-50"
                   )}
                 >
-                  <option value="not_started">Not started</option>
-                  <option value="in_progress">In progress</option>
+                  <option value="not_started">Not Started</option>
+                  <option value="in_progress">In-Progress</option>
                   <option value="done">Done</option>
                   <option value="postponed">Postponed</option>
                 </select>
