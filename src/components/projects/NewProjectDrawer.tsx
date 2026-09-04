@@ -26,7 +26,6 @@ export function NewProjectDrawer({
     category: "operations",
     status: "not_started",
     priority: "medium",
-    sponsorId: "",
     startDate: new Date().toISOString().split("T")[0],
     targetDate: new Date(Date.now() + 60 * 86400000).toISOString().split("T")[0],
     budgetNotes: "",
@@ -41,10 +40,7 @@ export function NewProjectDrawer({
     setLoading(true);
     setError(null);
 
-    const res = await createProject({
-      ...formData,
-      sponsorId: formData.sponsorId || undefined,
-    });
+    const res = await createProject(formData);
 
     if (res.success) {
       onClose();
@@ -133,22 +129,6 @@ export function NewProjectDrawer({
                 <option value="critical">Critical</option>
               </select>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-duston-muted mb-1 font-medium">Executive sponsor</label>
-            <select
-              value={formData.sponsorId}
-              onChange={(e) => setFormData({ ...formData, sponsorId: e.target.value })}
-              className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
-            >
-              <option value="">None</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

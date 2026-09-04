@@ -43,8 +43,6 @@ interface ProjectDetailProps {
     entityBrandColor: string;
     ownerId?: string | null;
     ownerName?: string | null;
-    sponsorId?: string | null;
-    sponsorName?: string | null;
   };
   actionItems: Array<{
     id: string;
@@ -212,7 +210,6 @@ export function ProjectDetailClient({
     startDate: project.startDate,
     targetDate: project.targetDate,
     budgetNotes: project.budgetNotes || "",
-    sponsorId: project.sponsorId || "",
   });
 
   const handleSaveDetailsField = async (field: string, value: string) => {
@@ -293,12 +290,6 @@ export function ProjectDetailClient({
                 />
                 <span>{project.entityName}</span>
               </span>
-              {project.sponsorName && (
-                <>
-                  <span>•</span>
-                  <span>Sponsor: <strong className="font-medium text-duston-dark">{project.sponsorName}</strong></span>
-                </>
-              )}
               <span>•</span>
               <span>Target: {formatDate(project.targetDate)}</span>
               <span>•</span>
@@ -994,23 +985,6 @@ export function ProjectDetailClient({
                 className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-duston-muted mb-1 font-medium">Executive sponsor</label>
-            <select
-              value={details.sponsorId}
-              onChange={(e) => {
-                setDetails({ ...details, sponsorId: e.target.value });
-                handleSaveDetailsField("sponsorId", e.target.value);
-              }}
-              className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
-            >
-              <option value="">None</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>{u.name}</option>
-              ))}
-            </select>
           </div>
 
           <div>

@@ -32,7 +32,7 @@ export async function createProject(data: CreateProjectInput) {
         status: data.status,
         priority: data.priority,
         ownerId: data.ownerId || undefined,
-        sponsorId: data.sponsorId,
+        sponsorId: data.sponsorId || undefined,
         startDate: data.startDate,
         targetDate: data.targetDate,
         budgetNotes: data.budgetNotes,

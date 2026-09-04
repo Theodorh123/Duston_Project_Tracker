@@ -213,7 +213,7 @@ export function CeoViewClient({
 
         {topRisks.length === 0 ? (
           <p className="text-xs text-[#39B54A] font-medium py-3 text-center">
-            No critical or CEO-sponsored delayed workstreams currently active.
+            No critical delayed workstreams currently active.
           </p>
         ) : (
           <div className="overflow-x-auto">

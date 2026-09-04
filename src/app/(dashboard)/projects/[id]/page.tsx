@@ -29,7 +29,6 @@ export default async function ProjectDetailPage({
       with: {
         entity: true,
         owner: true,
-        sponsor: true,
       },
     }),
     db.query.actionItems.findMany({
@@ -96,8 +95,6 @@ export default async function ProjectDetailPage({
         entityBrandColor: project.entity.brandPrimaryColor,
         ownerId: project.ownerId,
         ownerName: project.owner?.name ?? null,
-        sponsorId: project.sponsorId,
-        sponsorName: project.sponsor?.name,
       }}
       actionItems={items.map((it) => ({
         id: it.id,
