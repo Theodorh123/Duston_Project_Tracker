@@ -359,8 +359,8 @@ export function ImportRegisterModal({
   const selectedCount = items.filter((i) => i.selected).length;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3 sm:p-5 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-duston-border overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-5 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] flex flex-col shadow-2xl border border-duston-border overflow-hidden my-auto">
         {/* Modal Header */}
         <div className="p-4 sm:p-5 border-b border-duston-border bg-duston-bg/60 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">

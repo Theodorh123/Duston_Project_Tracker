@@ -1047,133 +1047,153 @@ export function ProjectDetailClient({
 
       {/* New Action Item Modal */}
       {isNewItemModalOpen && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl shadow-2xl p-6">
-            <h3 className="text-sm font-semibold text-duston-dark mb-4">
-              Create action item
-            </h3>
-            <form onSubmit={handleCreateActionItem} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-duston-muted mb-1 font-medium">Action item *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Sign ministerial bilateral guarantee letter"
-                  value={newItemTitle}
-                  onChange={(e) => setNewItemTitle(e.target.value)}
-                  className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
-                />
-              </div>
-
-              {/* Responsible Party + inline Add */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-duston-muted font-medium">Responsible Party *</label>
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingUser(!isAddingUser)}
-                    className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-1 cursor-pointer transition-colors"
-                  >
-                    <UserPlus size={12} />
-                    {isAddingUser ? "Cancel" : "+ Add person"}
-                  </button>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] flex flex-col shadow-2xl border border-duston-border overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/60 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#023542] text-white flex items-center justify-center text-xs font-semibold">
+                  +
                 </div>
-
-                {isAddingUser ? (
-                  <div className="p-3 bg-duston-bg/80 border border-duston-border rounded-lg space-y-2 mb-2">
-                    <input
-                      type="text"
-                      placeholder="Full name *"
-                      value={newUserName}
-                      onChange={(e) => setNewUserName(e.target.value)}
-                      className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
-                    />
-                    <input
-                      type="email"
-                      placeholder="Email (optional)"
-                      value={newUserEmail}
-                      onChange={(e) => setNewUserEmail(e.target.value)}
-                      className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
-                    />
-                    <div className="flex justify-end gap-1.5 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setIsAddingUser(false)}
-                        className="px-2.5 py-1 text-[11px] text-duston-muted hover:text-duston-dark rounded cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSaveNewUser}
-                        disabled={isSavingUser || !newUserName.trim()}
-                        className="px-3 py-1 text-[11px] bg-[#023542] hover:bg-[#1BCECE] text-white rounded font-medium disabled:opacity-50 cursor-pointer"
-                      >
-                        {isSavingUser ? "Saving..." : "Save & Select"}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <select
-                    value={newItemAssignee}
-                    onChange={(e) => setNewItemAssignee(e.target.value)}
-                    className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
-                  >
-                    {usersList.map((u) => (
-                      <option key={u.id} value={u.id}>{u.name}</option>
-                    ))}
-                  </select>
-                )}
+                <h3 className="text-sm font-semibold text-duston-dark">
+                  Create Action Item
+                </h3>
               </div>
+              <button
+                type="button"
+                onClick={() => setIsNewItemModalOpen(false)}
+                className="p-1.5 rounded-lg text-duston-muted hover:text-duston-dark hover:bg-duston-bg transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleCreateActionItem} className="flex flex-col flex-1 overflow-hidden min-h-0">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs overscroll-contain">
                 <div>
-                  <label className="block text-duston-muted mb-1 font-medium">Priority</label>
-                  <select
-                    value={newItemPriority}
-                    onChange={(e) => setNewItemPriority(e.target.value as any)}
-                    className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-duston-muted mb-1 font-medium">Deadline</label>
+                  <label className="block text-duston-muted mb-1 font-medium">Action item *</label>
                   <input
-                    type="date"
+                    type="text"
                     required
-                    value={newItemDeadline}
-                    onChange={(e) => setNewItemDeadline(e.target.value)}
+                    placeholder="e.g. Sign ministerial bilateral guarantee letter"
+                    value={newItemTitle}
+                    onChange={(e) => setNewItemTitle(e.target.value)}
                     className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+                    autoFocus
+                  />
+                </div>
+
+                {/* Responsible Party + inline Add */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-duston-muted font-medium">Responsible Party *</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingUser(!isAddingUser)}
+                      className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <UserPlus size={12} />
+                      {isAddingUser ? "Cancel" : "+ Add person"}
+                    </button>
+                  </div>
+
+                  {isAddingUser ? (
+                    <div className="p-3 bg-duston-bg/80 border border-duston-border rounded-lg space-y-2 mb-2">
+                      <input
+                        type="text"
+                        placeholder="Full name *"
+                        value={newUserName}
+                        onChange={(e) => setNewUserName(e.target.value)}
+                        className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
+                      />
+                      <input
+                        type="email"
+                        placeholder="Email (optional)"
+                        value={newUserEmail}
+                        onChange={(e) => setNewUserEmail(e.target.value)}
+                        className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
+                      />
+                      <div className="flex justify-end gap-1.5 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingUser(false)}
+                          className="px-2.5 py-1 text-[11px] text-duston-muted hover:text-duston-dark rounded cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveNewUser}
+                          disabled={isSavingUser || !newUserName.trim()}
+                          className="px-3 py-1 text-[11px] bg-[#023542] hover:bg-[#1BCECE] text-white rounded font-medium disabled:opacity-50 cursor-pointer"
+                        >
+                          {isSavingUser ? "Saving..." : "Save & Select"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <select
+                      value={newItemAssignee}
+                      onChange={(e) => setNewItemAssignee(e.target.value)}
+                      className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+                    >
+                      {usersList.map((u) => (
+                        <option key={u.id} value={u.id}>{u.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-duston-muted mb-1 font-medium">Priority</label>
+                    <select
+                      value={newItemPriority}
+                      onChange={(e) => setNewItemPriority(e.target.value as any)}
+                      className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="critical">Critical</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-duston-muted mb-1 font-medium">Deadline</label>
+                    <input
+                      type="date"
+                      required
+                      value={newItemDeadline}
+                      onChange={(e) => setNewItemDeadline(e.target.value)}
+                      className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-duston-muted mb-1 font-medium">Comments / Variance note (optional)</label>
+                  <textarea
+                    rows={2}
+                    value={newItemComments}
+                    onChange={(e) => setNewItemComments(e.target.value)}
+                    placeholder="Explain any scope variances, milestone context, or operational notes..."
+                    className="w-full bg-white border border-duston-border rounded-lg p-2.5 text-duston-text outline-none focus:border-[#1BCECE] resize-none"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-duston-muted mb-1 font-medium">Comments / Variance note (optional)</label>
-                <textarea
-                  rows={2}
-                  value={newItemComments}
-                  onChange={(e) => setNewItemComments(e.target.value)}
-                  placeholder="Explain any scope variances, milestone context, or operational notes..."
-                  className="w-full bg-white border border-duston-border rounded-lg p-2.5 text-duston-text outline-none focus:border-[#1BCECE] resize-none"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2">
+              {/* Pinned Modal Footer */}
+              <div className="p-3.5 sm:p-4 border-t border-duston-border flex items-center justify-end gap-2 bg-duston-bg/40 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsNewItemModalOpen(false)}
-                  className="px-3 py-1.5 rounded-lg border border-duston-border text-duston-text hover:bg-duston-bg cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-duston-border text-duston-muted hover:text-duston-dark hover:bg-duston-bg text-xs font-medium cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 rounded-lg bg-[#023542] hover:bg-[#1BCECE] text-white font-medium transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[#023542] hover:bg-[#1BCECE] text-white text-xs font-medium transition-colors shadow-subtle cursor-pointer"
                 >
                   Create action item
                 </button>
@@ -1185,35 +1205,38 @@ export function ProjectDetailClient({
 
       {/* Variance Note Edit Modal */}
       {editingVarianceItem && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl shadow-2xl p-6">
-            <div className="flex items-center justify-between mb-3">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] flex flex-col shadow-2xl border border-duston-border overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-4 sm:p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/60 shrink-0">
               <h3 className="text-sm font-semibold text-duston-dark">
                 Variance Explanation / Comments
               </h3>
               <button
+                type="button"
                 onClick={() => setEditingVarianceItem(null)}
                 className="p-1 rounded-md text-duston-muted hover:text-duston-dark cursor-pointer"
               >
                 <X size={16} />
               </button>
             </div>
-            <p className="text-xs text-duston-muted mb-3">
-              Action item: <span className="font-medium text-duston-dark">{editingVarianceItem.title}</span>
-            </p>
-            <textarea
-              rows={4}
-              value={varianceText}
-              onChange={(e) => setVarianceText(e.target.value)}
-              placeholder="Explain any schedule/budget variances, bottlenecks, or delivery notes..."
-              className="w-full bg-white border border-duston-border rounded-lg p-3 text-xs text-duston-text outline-none focus:border-[#1BCECE] resize-none"
-              autoFocus
-            />
-            <div className="flex items-center justify-end gap-2 mt-4">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3 text-xs overscroll-contain">
+              <p className="text-xs text-duston-muted">
+                Action item: <span className="font-medium text-duston-dark">{editingVarianceItem.title}</span>
+              </p>
+              <textarea
+                rows={4}
+                value={varianceText}
+                onChange={(e) => setVarianceText(e.target.value)}
+                placeholder="Explain any schedule/budget variances, bottlenecks, or delivery notes..."
+                className="w-full bg-white border border-duston-border rounded-xl p-3 text-xs text-duston-text outline-none focus:border-[#1BCECE] resize-none"
+                autoFocus
+              />
+            </div>
+            <div className="p-3.5 sm:p-4 border-t border-duston-border flex items-center justify-end gap-2 bg-duston-bg/40 shrink-0">
               <button
                 type="button"
                 onClick={() => setEditingVarianceItem(null)}
-                className="px-3 py-1.5 rounded-lg border border-duston-border text-xs text-duston-text hover:bg-duston-bg cursor-pointer"
+                className="px-4 py-2 rounded-xl border border-duston-border text-xs text-duston-muted hover:text-duston-dark hover:bg-duston-bg cursor-pointer"
               >
                 Cancel
               </button>
@@ -1221,7 +1244,7 @@ export function ProjectDetailClient({
                 type="button"
                 onClick={handleSaveVariance}
                 disabled={isSavingVariance}
-                className="px-4 py-1.5 rounded-lg bg-[#023542] hover:bg-[#1BCECE] text-white text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-[#023542] hover:bg-[#1BCECE] text-white text-xs font-medium transition-colors disabled:opacity-50 shadow-subtle cursor-pointer"
               >
                 {isSavingVariance ? "Saving..." : "Save comment"}
               </button>

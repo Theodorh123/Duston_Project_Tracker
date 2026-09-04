@@ -386,10 +386,10 @@ export function ProjectsClient({
 
       {/* Project Comment / Remarks Modal */}
       {commentModalProject && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-duston-border overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 animate-in fade-in duration-150 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] shadow-2xl border border-duston-border overflow-hidden flex flex-col my-auto">
             {/* Header */}
-            <div className="p-4 border-b border-duston-border bg-duston-bg/60 flex items-center justify-between">
+            <div className="p-4 sm:p-5 border-b border-duston-border bg-duston-bg/60 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-[#023542] text-white flex items-center justify-center">
                   <MessageSquare size={14} />
@@ -411,22 +411,24 @@ export function ProjectsClient({
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSaveComment} className="p-5 space-y-4 text-xs">
-              <div>
-                <label className="block text-duston-muted font-medium mb-1.5">
-                  Comment / Executive Note
-                </label>
-                <textarea
-                  rows={4}
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Add project status updates, operational remarks, or executive notes..."
-                  className="w-full bg-white border border-duston-border rounded-xl p-3 text-xs text-duston-dark outline-none focus:border-[#1BCECE] leading-relaxed resize-none font-sans"
-                  autoFocus
-                />
+            <form onSubmit={handleSaveComment} className="flex flex-col flex-1 overflow-hidden min-h-0">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs overscroll-contain">
+                <div>
+                  <label className="block text-duston-muted font-medium mb-1.5">
+                    Comment / Executive Note
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Add project status updates, operational remarks, or executive notes..."
+                    className="w-full bg-white border border-duston-border rounded-xl p-3 text-xs text-duston-dark outline-none focus:border-[#1BCECE] leading-relaxed resize-none font-sans"
+                    autoFocus
+                  />
+                </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-duston-border">
+              <div className="flex items-center justify-end gap-2 p-3.5 sm:p-4 border-t border-duston-border bg-duston-bg/40 shrink-0">
                 <button
                   type="button"
                   onClick={() => setCommentModalProject(null)}

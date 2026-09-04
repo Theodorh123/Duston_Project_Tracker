@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Maven_Pro } from "next/font/google";
 import { Suspense } from "react";
 import { NavigationProgress } from "@/components/layout/NavigationProgress";
@@ -10,6 +10,13 @@ const mavenPro = Maven_Pro({
   variable: "--font-maven-pro",
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+};
 
 export const metadata: Metadata = {
   title: "Duston Project Tracker",

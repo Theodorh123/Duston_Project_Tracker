@@ -781,140 +781,143 @@ export function AdminClient({
 
       {/* New User Modal */}
       {isNewUserModalOpen && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl p-6 shadow-2xl space-y-4 text-xs">
-            <div className="flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs overflow-y-auto">
+          <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] my-auto">
+            <div className="p-4 sm:p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/60 shrink-0">
               <h3 className="font-medium text-duston-dark text-sm">Create New User</h3>
               <button
+                type="button"
                 onClick={() => setIsNewUserModalOpen(false)}
-                className="p-1 rounded text-duston-muted hover:text-duston-dark"
+                className="p-1 rounded text-duston-muted hover:text-duston-dark cursor-pointer"
               >
                 <X size={16} strokeWidth={1.5} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateUser} className="space-y-3">
-              <div>
-                <label className="block text-duston-muted mb-1">Full name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Kwesi Mensah"
-                  value={newUserName}
-                  onChange={(e) => setNewUserName(e.target.value)}
-                  className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
-                />
-              </div>
+            <form onSubmit={handleCreateUser} className="flex flex-col flex-1 overflow-hidden min-h-0">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs overscroll-contain">
+                <div>
+                  <label className="block text-duston-muted mb-1">Full name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Kwesi Mensah"
+                    value={newUserName}
+                    onChange={(e) => setNewUserName(e.target.value)}
+                    className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-duston-muted mb-1">Email address *</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="kwesi@duston.com"
-                  value={newUserEmail}
-                  onChange={(e) => setNewUserEmail(e.target.value)}
-                  className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
-                />
-              </div>
+                <div>
+                  <label className="block text-duston-muted mb-1">Email address *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="kwesi@duston.com"
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-duston-muted mb-1">Role *</label>
-                <select
-                  value={newUserRole}
-                  onChange={(e) => {
-                    const r = e.target.value;
-                    setNewUserRole(r);
-                    if (r === "admin" || r === "ceo" || r === "ea") {
-                      setNewUserGlobal(true);
-                    } else {
-                      setNewUserGlobal(false);
-                    }
-                  }}
-                  className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
-                >
-                  <option value="contributor">Contributor</option>
-                  <option value="hod">Head of Department (HOD)</option>
-                  <option value="md">Managing Director (MD)</option>
-                  <option value="ea">Executive Assistant (EA)</option>
-                  <option value="ceo">CEO</option>
-                  <option value="admin">System Administrator (Admin)</option>
-                  <option value="external">External</option>
-                </select>
-              </div>
+                <div>
+                  <label className="block text-duston-muted mb-1">Role *</label>
+                  <select
+                    value={newUserRole}
+                    onChange={(e) => {
+                      const r = e.target.value;
+                      setNewUserRole(r);
+                      if (r === "admin" || r === "ceo" || r === "ea") {
+                        setNewUserGlobal(true);
+                      } else {
+                        setNewUserGlobal(false);
+                      }
+                    }}
+                    className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
+                  >
+                    <option value="contributor">Contributor</option>
+                    <option value="hod">Head of Department (HOD)</option>
+                    <option value="md">Managing Director (MD)</option>
+                    <option value="ea">Executive Assistant (EA)</option>
+                    <option value="ceo">CEO</option>
+                    <option value="admin">System Administrator (Admin)</option>
+                    <option value="external">External</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-duston-muted mb-1 font-medium">Subsidiary / Entity *</label>
-                <select
-                  required
-                  value={newUserEntityId}
-                  onChange={(e) => setNewUserEntityId(e.target.value)}
-                  className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
-                >
-                  <option value="">Select subsidiary person works with...</option>
-                  {entitiesList.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-duston-muted mt-1">
-                  The primary entity or subsidiary this person works with.
-                </p>
-              </div>
+                <div>
+                  <label className="block text-duston-muted mb-1 font-medium">Subsidiary / Entity *</label>
+                  <select
+                    required
+                    value={newUserEntityId}
+                    onChange={(e) => setNewUserEntityId(e.target.value)}
+                    className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
+                  >
+                    <option value="">Select subsidiary person works with...</option>
+                    {entitiesList.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-duston-muted mt-1">
+                    The primary entity or subsidiary this person works with.
+                  </p>
+                </div>
 
-              <div>
-                <label className="block text-duston-muted mb-1.5 font-medium">Access Restriction</label>
-                <div className="space-y-2 bg-duston-bg/60 border border-duston-border rounded-xl p-3">
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="accessScope"
-                      checked={!newUserGlobal}
-                      onChange={() => setNewUserGlobal(false)}
-                      className="mt-0.5 text-[#023542] focus:ring-0"
-                    />
-                    <div>
-                      <span className="font-medium text-duston-dark block">
-                        Restrict to assigned subsidiary only
-                      </span>
-                      <span className="text-[11px] text-duston-muted block">
-                        Member can only view and access projects, meetings, and action items for their assigned subsidiary.
-                      </span>
-                    </div>
-                  </label>
+                <div>
+                  <label className="block text-duston-muted mb-1.5 font-medium">Access Restriction</label>
+                  <div className="space-y-2 bg-duston-bg/60 border border-duston-border rounded-xl p-3">
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="accessScope"
+                        checked={!newUserGlobal}
+                        onChange={() => setNewUserGlobal(false)}
+                        className="mt-0.5 text-[#023542] focus:ring-0"
+                      />
+                      <div>
+                        <span className="font-medium text-duston-dark block">
+                          Restrict to assigned subsidiary only
+                        </span>
+                        <span className="text-[11px] text-duston-muted block">
+                          Member can only view and access projects, meetings, and action items for their assigned subsidiary.
+                        </span>
+                      </div>
+                    </label>
 
-                  <label className="flex items-start gap-2.5 cursor-pointer pt-2 border-t border-duston-border/60">
-                    <input
-                      type="radio"
-                      name="accessScope"
-                      checked={newUserGlobal}
-                      onChange={() => setNewUserGlobal(true)}
-                      className="mt-0.5 text-[#023542] focus:ring-0"
-                    />
-                    <div>
-                      <span className="font-medium text-duston-dark block">
-                        Global Group Access (All Subsidiaries)
-                      </span>
-                      <span className="text-[11px] text-duston-muted block">
-                        Recommended for CEO, EA, and Group Directors to oversee all conglomerate operations.
-                      </span>
-                    </div>
-                  </label>
+                    <label className="flex items-start gap-2.5 cursor-pointer pt-2 border-t border-duston-border/60">
+                      <input
+                        type="radio"
+                        name="accessScope"
+                        checked={newUserGlobal}
+                        onChange={() => setNewUserGlobal(true)}
+                        className="mt-0.5 text-[#023542] focus:ring-0"
+                      />
+                      <div>
+                        <span className="font-medium text-duston-dark block">
+                          Global Group Access (All Subsidiaries)
+                        </span>
+                        <span className="text-[11px] text-duston-muted block">
+                          Recommended for CEO, EA, and Group Directors to oversee all conglomerate operations.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-duston-border flex justify-end gap-2">
+              <div className="p-3.5 sm:p-4 border-t border-duston-border bg-duston-bg/40 flex justify-end gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsNewUserModalOpen(false)}
-                  className="px-3 py-1.5 rounded-lg border border-duston-border text-duston-text hover:bg-duston-bg cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-duston-border text-duston-muted hover:text-duston-dark hover:bg-duston-bg text-xs font-medium cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 rounded-lg bg-[#023542] hover:bg-[#1BCECE] text-white font-medium transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[#023542] hover:bg-[#1BCECE] text-white text-xs font-medium transition-colors shadow-subtle cursor-pointer"
                 >
                   Create user
                 </button>
@@ -926,9 +929,9 @@ export function AdminClient({
 
       {/* Edit User Entity Access Modal */}
       {editingAccessUser && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl p-6 shadow-2xl space-y-4 text-xs">
-            <div className="flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs overflow-y-auto">
+          <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] my-auto">
+            <div className="p-4 sm:p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/60 shrink-0">
               <div className="flex items-center gap-2">
                 <Shield size={18} className="text-[#023542]" />
                 <div>
@@ -941,6 +944,7 @@ export function AdminClient({
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setEditingAccessUser(null)}
                 className="p-1 rounded text-duston-muted hover:text-duston-dark cursor-pointer"
               >
@@ -948,98 +952,100 @@ export function AdminClient({
               </button>
             </div>
 
-            <form onSubmit={handleSaveUserAccess} className="space-y-4">
-              <div>
-                <label className="block text-duston-muted mb-1.5 font-medium">Access Mode</label>
-                <div className="space-y-2 bg-duston-bg/60 border border-duston-border rounded-xl p-3">
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="editAccessMode"
-                      checked={editUserGlobal}
-                      onChange={() => setEditUserGlobal(true)}
-                      className="mt-0.5 text-[#023542] focus:ring-0"
-                    />
-                    <div>
-                      <span className="font-medium text-duston-dark block">
-                        Global access (All subsidiaries)
-                      </span>
-                      <span className="text-[11px] text-duston-muted block">
-                        Unrestricted visibility across all group subsidiaries and projects.
-                      </span>
-                    </div>
-                  </label>
-
-                  <label className="flex items-start gap-2.5 cursor-pointer pt-2 border-t border-duston-border/60">
-                    <input
-                      type="radio"
-                      name="editAccessMode"
-                      checked={!editUserGlobal}
-                      onChange={() => setEditUserGlobal(false)}
-                      className="mt-0.5 text-[#023542] focus:ring-0"
-                    />
-                    <div>
-                      <span className="font-medium text-duston-dark block">
-                        Restricted to specific subsidiaries
-                      </span>
-                      <span className="text-[11px] text-duston-muted block">
-                        Member can only access data belonging to the checked subsidiaries below.
-                      </span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {!editUserGlobal && (
+            <form onSubmit={handleSaveUserAccess} className="flex flex-col flex-1 overflow-hidden min-h-0">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs overscroll-contain">
                 <div>
-                  <label className="block text-duston-muted mb-1.5 font-medium">
-                    Allowed Subsidiaries ({editUserEntityIds.length} selected)
-                  </label>
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto border border-duston-border rounded-xl p-2.5 bg-white">
-                    {entitiesList.map((ent) => {
-                      const isChecked = editUserEntityIds.includes(ent.id);
-                      return (
-                        <label
-                          key={ent.id}
-                          className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-duston-bg cursor-pointer transition-colors"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setEditUserEntityIds([...editUserEntityIds, ent.id]);
-                              } else {
-                                setEditUserEntityIds(editUserEntityIds.filter((id) => id !== ent.id));
-                              }
-                            }}
-                            className="rounded border-duston-border text-[#023542] focus:ring-0"
-                          />
-                          <span
-                            className="w-2.5 h-2.5 rounded-full shrink-0"
-                            style={{ backgroundColor: ent.brandPrimaryColor }}
-                          />
-                          <span className="font-medium text-duston-dark flex-1">{ent.name}</span>
-                          <span className="text-[10px] text-duston-muted">{ent.slug}</span>
-                        </label>
-                      );
-                    })}
+                  <label className="block text-duston-muted mb-1.5 font-medium">Access Mode</label>
+                  <div className="space-y-2 bg-duston-bg/60 border border-duston-border rounded-xl p-3">
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="editAccessMode"
+                        checked={editUserGlobal}
+                        onChange={() => setEditUserGlobal(true)}
+                        className="mt-0.5 text-[#023542] focus:ring-0"
+                      />
+                      <div>
+                        <span className="font-medium text-duston-dark block">
+                          Global access (All subsidiaries)
+                        </span>
+                        <span className="text-[11px] text-duston-muted block">
+                          Unrestricted visibility across all group subsidiaries and projects.
+                        </span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-start gap-2.5 cursor-pointer pt-2 border-t border-duston-border/60">
+                      <input
+                        type="radio"
+                        name="editAccessMode"
+                        checked={!editUserGlobal}
+                        onChange={() => setEditUserGlobal(false)}
+                        className="mt-0.5 text-[#023542] focus:ring-0"
+                      />
+                      <div>
+                        <span className="font-medium text-duston-dark block">
+                          Restricted to specific subsidiaries
+                        </span>
+                        <span className="text-[11px] text-duston-muted block">
+                          Member can only access data belonging to the checked subsidiaries below.
+                        </span>
+                      </div>
+                    </label>
                   </div>
                 </div>
-              )}
 
-              <div className="pt-3 border-t border-duston-border flex justify-end gap-2">
+                {!editUserGlobal && (
+                  <div>
+                    <label className="block text-duston-muted mb-1.5 font-medium">
+                      Allowed Subsidiaries ({editUserEntityIds.length} selected)
+                    </label>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto border border-duston-border rounded-xl p-2.5 bg-white">
+                      {entitiesList.map((ent) => {
+                        const isChecked = editUserEntityIds.includes(ent.id);
+                        return (
+                          <label
+                            key={ent.id}
+                            className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-duston-bg cursor-pointer transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEditUserEntityIds([...editUserEntityIds, ent.id]);
+                                } else {
+                                  setEditUserEntityIds(editUserEntityIds.filter((id) => id !== ent.id));
+                                }
+                              }}
+                              className="rounded border-duston-border text-[#023542] focus:ring-0"
+                            />
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: ent.brandPrimaryColor }}
+                            />
+                            <span className="font-medium text-duston-dark flex-1">{ent.name}</span>
+                            <span className="text-[10px] text-duston-muted">{ent.slug}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3.5 sm:p-4 border-t border-duston-border bg-duston-bg/40 flex justify-end gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setEditingAccessUser(null)}
-                  className="px-3 py-1.5 rounded-lg border border-duston-border text-duston-text hover:bg-duston-bg cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-duston-border text-duston-muted hover:text-duston-dark hover:bg-duston-bg text-xs font-medium cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingAccess}
-                  className="px-4 py-1.5 rounded-lg bg-[#023542] hover:bg-[#1BCECE] text-white font-medium transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-[#023542] hover:bg-[#1BCECE] text-white text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 shadow-subtle"
                 >
                   {isSavingAccess ? "Saving..." : "Save access permissions"}
                 </button>
@@ -1051,80 +1057,83 @@ export function AdminClient({
 
       {/* New Entity Modal */}
       {isNewEntityModalOpen && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl p-6 shadow-2xl space-y-4 text-xs">
-            <div className="flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs overflow-y-auto">
+          <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] my-auto">
+            <div className="p-4 sm:p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/60 shrink-0">
               <h3 className="font-medium text-duston-dark text-sm">Add New Entity</h3>
               <button
+                type="button"
                 onClick={() => setIsNewEntityModalOpen(false)}
-                className="p-1 rounded text-duston-muted hover:text-duston-dark"
+                className="p-1 rounded text-duston-muted hover:text-duston-dark cursor-pointer"
               >
                 <X size={16} strokeWidth={1.5} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateEntity} className="space-y-3">
-              <div>
-                <label className="block text-duston-muted mb-1">Entity Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Duston Telecom"
-                  value={newEntityName}
-                  onChange={(e) => setNewEntityName(e.target.value)}
-                  className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-duston-muted mb-1">Slug *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. duston-telecom"
-                  value={newEntitySlug}
-                  onChange={(e) => setNewEntitySlug(e.target.value)}
-                  className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleCreateEntity} className="flex flex-col flex-1 overflow-hidden min-h-0">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs overscroll-contain">
                 <div>
-                  <label className="block text-duston-muted mb-1">Brand Hex Color</label>
+                  <label className="block text-duston-muted mb-1">Entity Name *</label>
                   <input
                     type="text"
-                    value={newEntityColor}
-                    onChange={(e) => setNewEntityColor(e.target.value)}
-                    className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 font-mono outline-none focus:border-[#1BCECE]"
+                    required
+                    placeholder="e.g. Duston Telecom"
+                    value={newEntityName}
+                    onChange={(e) => setNewEntityName(e.target.value)}
+                    className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-duston-muted mb-1">Parent Entity</label>
-                  <select
-                    value={newEntityParent}
-                    onChange={(e) => setNewEntityParent(e.target.value)}
-                    className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-2 outline-none focus:border-[#1BCECE]"
-                  >
-                    <option value="">None (Top level)</option>
-                    {entitiesList.map((ent) => (
-                      <option key={ent.id} value={ent.id}>{ent.name}</option>
-                    ))}
-                  </select>
+                  <label className="block text-duston-muted mb-1">Slug *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. duston-telecom"
+                    value={newEntitySlug}
+                    onChange={(e) => setNewEntitySlug(e.target.value)}
+                    className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-duston-muted mb-1">Brand Hex Color</label>
+                    <input
+                      type="text"
+                      value={newEntityColor}
+                      onChange={(e) => setNewEntityColor(e.target.value)}
+                      className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 font-mono outline-none focus:border-[#1BCECE]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-duston-muted mb-1">Parent Entity</label>
+                    <select
+                      value={newEntityParent}
+                      onChange={(e) => setNewEntityParent(e.target.value)}
+                      className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-2 outline-none focus:border-[#1BCECE]"
+                    >
+                      <option value="">None (Top level)</option>
+                      {entitiesList.map((ent) => (
+                        <option key={ent.id} value={ent.id}>{ent.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-duston-border flex justify-end gap-2">
+              <div className="p-3.5 sm:p-4 border-t border-duston-border bg-duston-bg/40 flex justify-end gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsNewEntityModalOpen(false)}
-                  className="px-3 py-1.5 rounded-lg border border-duston-border text-duston-text hover:bg-duston-bg"
+                  className="px-4 py-2 rounded-xl border border-duston-border text-duston-muted hover:text-duston-dark hover:bg-duston-bg text-xs font-medium cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 rounded-lg bg-[#023542] hover:bg-[#1BCECE] text-white font-medium transition-colors"
+                  className="px-4 py-2 rounded-xl bg-[#023542] hover:bg-[#1BCECE] text-white text-xs font-medium transition-colors shadow-subtle cursor-pointer"
                 >
                   Add entity
                 </button>

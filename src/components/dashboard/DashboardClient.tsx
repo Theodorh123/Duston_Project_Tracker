@@ -730,61 +730,64 @@ export function DashboardClient({
               </button>
             </div>
           )}
-          {/* View Toggle Bar */}
-          <div className="flex items-center justify-between bg-white border border-duston-border rounded-xl p-2 shadow-subtle">
-            <div className="flex items-center gap-1">
+          {/* View Toggle & Action Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white border border-duston-border rounded-2xl p-2.5 shadow-subtle">
+            {/* View Switcher Tabs: 3 equal columns on mobile */}
+            <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-duston-bg/60 sm:bg-transparent p-1 sm:p-0 rounded-xl">
               <button
                 onClick={() => setCurrentView("todo")}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
+                  "flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
                   currentView === "todo"
-                    ? "bg-[#023542] text-white"
-                    : "text-duston-muted hover:text-duston-dark hover:bg-duston-bg"
+                    ? "bg-[#023542] text-white shadow-2xs font-semibold"
+                    : "text-duston-muted hover:text-duston-dark hover:bg-white/80"
                 )}
               >
-                <ListTodo size={15} strokeWidth={1.5} />
+                <ListTodo size={14} strokeWidth={1.5} />
                 <span>Todo</span>
               </button>
               <button
                 onClick={() => setCurrentView("kanban")}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
+                  "flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
                   currentView === "kanban"
-                    ? "bg-[#023542] text-white"
-                    : "text-duston-muted hover:text-duston-dark hover:bg-duston-bg"
+                    ? "bg-[#023542] text-white shadow-2xs font-semibold"
+                    : "text-duston-muted hover:text-duston-dark hover:bg-white/80"
                 )}
               >
-                <Columns3 size={15} strokeWidth={1.5} />
+                <Columns3 size={14} strokeWidth={1.5} />
                 <span>Board</span>
               </button>
               <button
                 onClick={() => setCurrentView("planner")}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
+                  "flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
                   currentView === "planner"
-                    ? "bg-[#023542] text-white"
-                    : "text-duston-muted hover:text-duston-dark hover:bg-duston-bg"
+                    ? "bg-[#023542] text-white shadow-2xs font-semibold"
+                    : "text-duston-muted hover:text-duston-dark hover:bg-white/80"
                 )}
               >
-                <Calendar size={15} strokeWidth={1.5} />
+                <Calendar size={14} strokeWidth={1.5} />
                 <span>Planner</span>
               </button>
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Action Buttons: 2 columns on mobile, never squished */}
+            <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
               <button
                 onClick={() => setIsImportModalOpen(true)}
-                className="px-3 py-1.5 bg-white border border-duston-border hover:border-[#023542] text-duston-dark rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors shadow-2xs shrink-0 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 bg-white border border-duston-border hover:border-[#023542] text-duston-dark rounded-xl sm:rounded-lg text-xs font-medium transition-colors shadow-2xs cursor-pointer"
                 title="Import action register from Excel (.xlsx, .csv) or PDF"
               >
-                <FileSpreadsheet size={14} className="text-[#1BCECE]" />
-                <span className="hidden sm:inline">Import register</span>
+                <FileSpreadsheet size={14} className="text-[#1BCECE] shrink-0" />
+                <span>Import register</span>
               </button>
               <button
                 onClick={() => handleOpenQuickAdd("todo")}
-                className="px-3 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors shadow-subtle shrink-0 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl sm:rounded-lg text-xs font-medium transition-colors shadow-subtle cursor-pointer whitespace-nowrap"
                 title="Add new action item"
               >
-                <Plus size={14} strokeWidth={2} />
+                <Plus size={14} strokeWidth={2} className="shrink-0" />
                 <span>Add action item</span>
               </button>
             </div>
@@ -1264,11 +1267,12 @@ export function DashboardClient({
 
       {/* Quick Add Action Item Modal */}
       {isQuickAddOpen && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-duston-border space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-duston-border">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#023542] text-white flex items-center justify-center text-xs font-semibold">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] flex flex-col shadow-2xl border border-duston-border overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/60 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#023542] text-white flex items-center justify-center text-sm font-semibold shadow-2xs">
                   +
                 </div>
                 <div>
@@ -1281,278 +1285,284 @@ export function DashboardClient({
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setIsQuickAddOpen(false)}
-                className="p-1 rounded-md text-duston-muted hover:text-duston-dark hover:bg-duston-bg cursor-pointer"
+                className="p-1.5 rounded-lg text-duston-muted hover:text-duston-dark hover:bg-duston-bg transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateQuickTask} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-duston-dark mb-1">
-                  Action item <span className="text-duston-orange">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={quickAddTitle}
-                  onChange={(e) => setQuickAddTitle(e.target.value)}
-                  placeholder="e.g., Review mining lease agreement with Norva..."
-                  className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
-                  autoFocus
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Project selector + inline add */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-medium text-duston-dark">
-                      Project <span className="text-duston-orange">*</span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setIsAddingProject(!isAddingProject)}
-                      className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-1 cursor-pointer transition-colors"
-                    >
-                      <FolderPlus size={12} />
-                      {isAddingProject ? "Cancel" : "+ Add project"}
-                    </button>
-                  </div>
-
-                  {isAddingProject ? (
-                    <div className="p-3 bg-duston-bg/80 border border-duston-border rounded-lg space-y-2 mb-2">
-                      <input
-                        type="text"
-                        placeholder="Project name *"
-                        value={newProjectName}
-                        onChange={(e) => setNewProjectName(e.target.value)}
-                        className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
-                      />
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-medium text-duston-muted">Subsidiary</label>
-                        <button
-                          type="button"
-                          onClick={() => setIsAddingSubsidiary(!isAddingSubsidiary)}
-                          className="text-[10px] text-[#023542] hover:text-[#1BCECE] cursor-pointer"
-                        >
-                          {isAddingSubsidiary ? "Cancel" : "+ Add subsidiary"}
-                        </button>
-                      </div>
-                      {isAddingSubsidiary ? (
-                        <div className="flex gap-1.5">
-                          <input
-                            type="text"
-                            placeholder="New subsidiary name *"
-                            value={newSubsidiaryName}
-                            onChange={(e) => setNewSubsidiaryName(e.target.value)}
-                            className="flex-1 text-xs p-1.5 rounded border border-duston-border bg-white text-duston-dark"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleSaveNewSubsidiary}
-                            disabled={isSavingSubsidiary || !newSubsidiaryName.trim()}
-                            className="px-2.5 py-1 text-[11px] bg-[#023542] text-white rounded font-medium disabled:opacity-50 cursor-pointer"
-                          >
-                            {isSavingSubsidiary ? "Saving..." : "Save"}
-                          </button>
-                        </div>
-                      ) : (
-                        <select
-                          value={newProjectEntityId}
-                          onChange={(e) => setNewProjectEntityId(e.target.value)}
-                          className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
-                        >
-                          {entitiesList.map((e) => (
-                            <option key={e.id} value={e.id}>
-                              {e.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                      <div className="flex justify-end gap-1.5 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => setIsAddingProject(false)}
-                          className="px-2.5 py-1 text-[11px] text-duston-muted hover:text-duston-dark rounded cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleSaveNewProject}
-                          disabled={isSavingProject || !newProjectName.trim()}
-                          className="px-3 py-1 text-[11px] bg-[#023542] hover:bg-[#1BCECE] text-white rounded font-medium disabled:opacity-50 cursor-pointer"
-                        >
-                          {isSavingProject ? "Saving..." : "Save & Select"}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <select
-                      value={quickAddProjectId}
-                      onChange={(e) => setQuickAddProjectId(e.target.value)}
-                      required
-                      className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
-                    >
-                      {projectsList.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.entityName} — {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-
-                {/* Responsible Party selector + inline add */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-medium text-duston-dark">
-                      Responsible Party <span className="text-duston-orange">*</span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setIsAddingUser(!isAddingUser)}
-                      className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-1 cursor-pointer transition-colors"
-                    >
-                      <UserPlus size={12} />
-                      {isAddingUser ? "Cancel" : "+ Add person"}
-                    </button>
-                  </div>
-
-                  {isAddingUser ? (
-                    <div className="p-3 bg-duston-bg/80 border border-duston-border rounded-lg space-y-2 mb-2">
-                      <input
-                        type="text"
-                        placeholder="Full name *"
-                        value={newUserName}
-                        onChange={(e) => setNewUserName(e.target.value)}
-                        className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
-                      />
-                      <input
-                        type="email"
-                        placeholder="Email (optional)"
-                        value={newUserEmail}
-                        onChange={(e) => setNewUserEmail(e.target.value)}
-                        className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
-                      />
-                      <div className="flex justify-end gap-1.5 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => setIsAddingUser(false)}
-                          className="px-2.5 py-1 text-[11px] text-duston-muted hover:text-duston-dark rounded cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleSaveNewUser}
-                          disabled={isSavingUser || !newUserName.trim()}
-                          className="px-3 py-1 text-[11px] bg-[#023542] hover:bg-[#1BCECE] text-white rounded font-medium disabled:opacity-50 cursor-pointer"
-                        >
-                          {isSavingUser ? "Saving..." : "Save & Select"}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <select
-                      value={quickAddAssigneeId}
-                      onChange={(e) => setQuickAddAssigneeId(e.target.value)}
-                      required
-                      className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
-                    >
-                      {usersList.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Form */}
+            <form onSubmit={handleCreateQuickTask} className="flex flex-col flex-1 overflow-hidden min-h-0">
+              {/* Scrollable Body */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs overscroll-contain">
                 <div>
                   <label className="block text-xs font-medium text-duston-dark mb-1">
-                    Add to column / status
-                  </label>
-                  <select
-                    value={quickAddColumn}
-                    onChange={(e) => {
-                      const val = e.target.value as any;
-                      setQuickAddColumn(val);
-                      const today = new Date().toISOString().split("T")[0];
-                      const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-                      const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
-                      const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
-                      if (val === "todo") setQuickAddDeadline(in7Days);
-                      else if (val === "in_progress") setQuickAddDeadline(in3Days);
-                      else if (val === "done") setQuickAddDeadline(today);
-                    }}
-                    className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
-                  >
-                    <option value="todo">Todo</option>
-                    <option value="in_progress">In-Progress</option>
-                    <option value="done">Done</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-duston-dark mb-1">
-                    Deadline
+                    Action item <span className="text-duston-orange">*</span>
                   </label>
                   <input
-                    type="date"
+                    type="text"
                     required
-                    value={quickAddDeadline}
-                    onChange={(e) => setQuickAddDeadline(e.target.value)}
+                    value={quickAddTitle}
+                    onChange={(e) => setQuickAddTitle(e.target.value)}
+                    placeholder="e.g., Review mining lease agreement with Norva..."
                     className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
+                    autoFocus
                   />
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Project selector + inline add */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-medium text-duston-dark">
+                        Project <span className="text-duston-orange">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingProject(!isAddingProject)}
+                        className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <FolderPlus size={12} />
+                        {isAddingProject ? "Cancel" : "+ Add project"}
+                      </button>
+                    </div>
+
+                    {isAddingProject ? (
+                      <div className="p-3 bg-duston-bg/80 border border-duston-border rounded-lg space-y-2 mb-2">
+                        <input
+                          type="text"
+                          placeholder="Project name *"
+                          value={newProjectName}
+                          onChange={(e) => setNewProjectName(e.target.value)}
+                          className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
+                        />
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-medium text-duston-muted">Subsidiary</label>
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingSubsidiary(!isAddingSubsidiary)}
+                            className="text-[10px] text-[#023542] hover:text-[#1BCECE] cursor-pointer"
+                          >
+                            {isAddingSubsidiary ? "Cancel" : "+ Add subsidiary"}
+                          </button>
+                        </div>
+                        {isAddingSubsidiary ? (
+                          <div className="flex gap-1.5">
+                            <input
+                              type="text"
+                              placeholder="New subsidiary name *"
+                              value={newSubsidiaryName}
+                              onChange={(e) => setNewSubsidiaryName(e.target.value)}
+                              className="flex-1 text-xs p-1.5 rounded border border-duston-border bg-white text-duston-dark"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleSaveNewSubsidiary}
+                              disabled={isSavingSubsidiary || !newSubsidiaryName.trim()}
+                              className="px-2.5 py-1 text-[11px] bg-[#023542] text-white rounded font-medium disabled:opacity-50 cursor-pointer"
+                            >
+                              {isSavingSubsidiary ? "Saving..." : "Save"}
+                            </button>
+                          </div>
+                        ) : (
+                          <select
+                            value={newProjectEntityId}
+                            onChange={(e) => setNewProjectEntityId(e.target.value)}
+                            className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
+                          >
+                            {entitiesList.map((e) => (
+                              <option key={e.id} value={e.id}>
+                                {e.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        <div className="flex justify-end gap-1.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingProject(false)}
+                            className="px-2.5 py-1 text-[11px] text-duston-muted hover:text-duston-dark rounded cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSaveNewProject}
+                            disabled={isSavingProject || !newProjectName.trim()}
+                            className="px-3 py-1 text-[11px] bg-[#023542] hover:bg-[#1BCECE] text-white rounded font-medium disabled:opacity-50 cursor-pointer"
+                          >
+                            {isSavingProject ? "Saving..." : "Save & Select"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <select
+                        value={quickAddProjectId}
+                        onChange={(e) => setQuickAddProjectId(e.target.value)}
+                        required
+                        className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
+                      >
+                        {projectsList.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.entityName} — {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Responsible Party selector + inline add */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-medium text-duston-dark">
+                        Responsible Party <span className="text-duston-orange">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingUser(!isAddingUser)}
+                        className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <UserPlus size={12} />
+                        {isAddingUser ? "Cancel" : "+ Add person"}
+                      </button>
+                    </div>
+
+                    {isAddingUser ? (
+                      <div className="p-3 bg-duston-bg/80 border border-duston-border rounded-lg space-y-2 mb-2">
+                        <input
+                          type="text"
+                          placeholder="Full name *"
+                          value={newUserName}
+                          onChange={(e) => setNewUserName(e.target.value)}
+                          className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
+                        />
+                        <input
+                          type="email"
+                          placeholder="Email (optional)"
+                          value={newUserEmail}
+                          onChange={(e) => setNewUserEmail(e.target.value)}
+                          className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
+                        />
+                        <div className="flex justify-end gap-1.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingUser(false)}
+                            className="px-2.5 py-1 text-[11px] text-duston-muted hover:text-duston-dark rounded cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSaveNewUser}
+                            disabled={isSavingUser || !newUserName.trim()}
+                            className="px-3 py-1 text-[11px] bg-[#023542] hover:bg-[#1BCECE] text-white rounded font-medium disabled:opacity-50 cursor-pointer"
+                          >
+                            {isSavingUser ? "Saving..." : "Save & Select"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <select
+                        value={quickAddAssigneeId}
+                        onChange={(e) => setQuickAddAssigneeId(e.target.value)}
+                        required
+                        className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
+                      >
+                        {usersList.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-duston-dark mb-1">
+                      Add to column / status
+                    </label>
+                    <select
+                      value={quickAddColumn}
+                      onChange={(e) => {
+                        const val = e.target.value as any;
+                        setQuickAddColumn(val);
+                        const today = new Date().toISOString().split("T")[0];
+                        const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+                        const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
+                        const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
+                        if (val === "todo") setQuickAddDeadline(in7Days);
+                        else if (val === "in_progress") setQuickAddDeadline(in3Days);
+                        else if (val === "done") setQuickAddDeadline(today);
+                      }}
+                      className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
+                    >
+                      <option value="todo">Todo</option>
+                      <option value="in_progress">In-Progress</option>
+                      <option value="done">Done</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-duston-dark mb-1">
+                      Deadline
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={quickAddDeadline}
+                      onChange={(e) => setQuickAddDeadline(e.target.value)}
+                      className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-duston-dark mb-1">
+                      Priority
+                    </label>
+                    <select
+                      value={quickAddPriority}
+                      onChange={(e) => setQuickAddPriority(e.target.value as any)}
+                      className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="critical">Critical</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-medium text-duston-dark mb-1">
-                    Priority
+                    Comments / Variance note (optional)
                   </label>
-                  <select
-                    value={quickAddPriority}
-                    onChange={(e) => setQuickAddPriority(e.target.value as any)}
-                    className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
-                  </select>
+                  <textarea
+                    rows={2}
+                    value={quickAddComments}
+                    onChange={(e) => setQuickAddComments(e.target.value)}
+                    placeholder="Optionally explain milestone variances, dependencies, or scope context..."
+                    className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark resize-none"
+                  />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-duston-dark mb-1">
-                  Comments / Variance note (optional)
-                </label>
-                <textarea
-                  rows={2}
-                  value={quickAddComments}
-                  onChange={(e) => setQuickAddComments(e.target.value)}
-                  placeholder="Optionally explain milestone variances, dependencies, or scope context..."
-                  className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-duston-border">
+              {/* Pinned Modal Footer */}
+              <div className="p-3.5 sm:p-4 border-t border-duston-border flex items-center justify-end gap-2 bg-duston-bg/40 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsQuickAddOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-duston-muted hover:text-duston-dark hover:bg-duston-bg rounded-lg transition-colors cursor-pointer"
+                  className="px-4 py-2 text-xs font-medium text-duston-muted hover:text-duston-dark hover:bg-duston-bg rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingQuickAdd || !quickAddTitle.trim()}
-                  className="px-4 py-2 text-xs font-medium bg-[#023542] hover:bg-[#1BCECE] disabled:opacity-50 text-white rounded-lg transition-colors shadow-subtle flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 text-xs font-medium bg-[#023542] hover:bg-[#1BCECE] disabled:opacity-50 text-white rounded-xl transition-colors shadow-subtle flex items-center gap-1.5 cursor-pointer"
                 >
                   {isSubmittingQuickAdd ? "Creating..." : "Create action item"}
                 </button>
