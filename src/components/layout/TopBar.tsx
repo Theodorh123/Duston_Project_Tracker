@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Bell, Menu, Search } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
@@ -49,6 +49,37 @@ export function TopBar({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [items, setItems] = useState(notifications);
+
+  const notifRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to dismiss notifications popover and profile dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setShowNotifications(false);
+        setIsDropdownOpen(false);
+      }
+    }
+
+    if (showNotifications || isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showNotifications, isDropdownOpen]);
 
   // Keep only first name at the Account icon area
   const getFirstName = (fullName?: string | null) => {
@@ -210,7 +241,7 @@ export function TopBar({
           </button>
 
           {/* Notification Bell */}
-          <div className="relative">
+          <div className="relative" ref={notifRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="p-2 rounded-full hover:bg-white border border-transparent hover:border-duston-border text-duston-muted hover:text-duston-dark transition-colors relative"
@@ -275,7 +306,7 @@ export function TopBar({
           </div>
 
           {/* User Profile Avatar Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={profileRef}>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="flex items-center gap-2 p-1 pl-1.5 sm:pl-2 rounded-full hover:bg-white border border-transparent hover:border-duston-border transition-colors"
