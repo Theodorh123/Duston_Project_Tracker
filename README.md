@@ -69,29 +69,34 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## Seed Test Accounts
+## Production Accounts & Access
 
-All accounts use the default password: **`Duston123!`**
+The database is connected to Neon PostgreSQL. Current active executive accounts use password: **`Duston@123!`**
 
-| Name | Email | Role | Entity Visibility | Key Features |
+| Name | Email | Role | Access Scope | Permissions |
 |---|---|---|---|---|
-| **Theophilus Dorh** | `theophilus@duston.com` | `ea` (EA) | Global (All Entities) | EA View, Overdue Queue, Meeting Prep Panel, Executive Briefs |
-| **Elton K. Dusi** | `elton@duston.com` | `ceo` (CEO) | Global (All Entities) | CEO View, Group Heatmap, Top 10 Risks, Weekly Digest |
-| **Test MD** | `md@duston.com` | `md` (MD) | MOSL Group Only | Scoped to MOSL Ltd, MOSL Ghana/Tanzania/Mali/Senegal |
-| **Test HOD** | `hod@duston.com` | `hod` (Head of Dept) | Global (All Entities) | Forecourt automation, CAPEX tracking |
-| **Test Contributor** | `contributor@duston.com` | `contributor` | Global (All Entities) | Personal Todo, Kanban, and Planner views |
+| **System Admin** | `admin@dustongroup.com` | `admin` | Global (All Subsidiaries) | Full system control, user & entity management, data maintenance |
+| **Theophilus Dorh** | `t.dorh@dustongroup.com` | `ea` | Global (All Subsidiaries) | EA View, universal action item delete/edit, meeting registers |
+| **Elton K. Dusi** | `elton.dusi@moslafrica.com` | `ceo` | Global (All Subsidiaries) | CEO View, group heatmap, universal action item delete/edit |
+| **Other Team Members** | `*@dustongroup.com` | `hod` / `md` / `contributor` | Subsidiary-scoped | Edit own created deliverables, view assigned subsidiary projects |
 
 ---
 
-## Key Screens & Features
+## Key Capabilities & Role-Based Permissions
 
-1. **Login (`/login`):** Centered card on warm off-white background with subtle diagonal FlaneLines motif. Features 1-click test user buttons for instant evaluation.
-2. **Dashboard (`/`):** 4 rounded metric cards (Open, Overdue, Due this week, Completed this month), view switcher (Todo, Kanban, Planner), 7-day upcoming meetings, and recent activity feed.
-3. **Projects (`/projects`):** Filterable table/card view with entity brand pills, category and status multi-filters, live search, and slide-in project creation drawer.
-4. **Project Detail (`/projects/[id]`):** Breadcrumbs, meta strip, 4 dedicated tabs (Action Items [List/Kanban], Meetings, Activity audit trail, and Details with inline edits).
-5. **Meetings (`/meetings` & `/meetings/[id]`):** Meeting directory and detail view with attendee stacks, external minutes link, and **Action Register Bulk Parser** (`Item | Responsible | Deadline`).
-6. **Action Item Drawer:** Universal 480px slide-in panel (full-screen on mobile) with inline editing, deadline picker, status/priority dropdowns, auto-saving description, comment bubbles, and activity timeline.
-7. **EA View (`/ea-view`):** Overdue queue sorted by risk score (`days overdue * priority`), chase-up queue, subsidiary health cards, 14-day meeting prep panel, and instant executive brief generator.
-8. **CEO View (`/ceo-view`):** Group health heatmap (Subsidiaries × Categories) colored green/amber/red based on overdue ratio, top 10 critical risks/blockers, and weekly momentum digest.
-9. **Settings (`/settings`):** Manage default view, custom Kanban pipeline columns, WhatsApp notification toggles, digest frequencies, profile details, and security passwords.
-10. **Admin Console (`/admin`):** Role administration, temporary password resets, user activation/deactivation, entity subsidiary hierarchy management, and system-wide activity logs.
+1. **Role-Based Delete & Amend Security**:
+   - **Delete Action Items:** Restricted strictly to **EA**, **Admin**, and **CEO** with confirmation dialog.
+   - **Amend Action Items:** EA, Admin, and CEO can edit any action item across the conglomerate. Other members can **only edit items that originate from them**.
+2. **Action Register Bulk Importer (`/action-items`)**:
+   - Accepts tab-separated, CSV, or Markdown tables directly copied from Word/Excel meeting minutes.
+   - Intelligent auto-mapping for Subsidiary, Project, Action Item, Responsible Party, Status, Deadline, and Priority.
+3. **Data & Maintenance Panel (`/admin`)**:
+   - Real-time database metrics dashboard.
+   - Self-service purging of system notifications and test activity logs.
+4. **Login Screen (`/login`)**:
+   - Integrated show/hide password eye toggle and corporate FlaneLines branding.
+5. **Universal Action Item Drawer**:
+   - Slide-in side drawer with live status/priority pills, deadline calendars, auto-saving variance notes, threaded comments, and audit timeline.
+6. **Dismissible Overlays**:
+   - Notification popover and profile dropdown dismiss automatically when clicking outside or pressing <kbd>Esc</kbd>.
+
