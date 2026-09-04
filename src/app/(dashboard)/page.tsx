@@ -31,10 +31,6 @@ export default async function DashboardPage({
         where: eq(userPreferences.userId, userId),
       }),
       db.query.actionItems.findMany({
-        where: or(
-          eq(actionItems.assigneeId, userId),
-          sql`${actionItems.secondaryAssigneeIds} @> ${JSON.stringify([userId])}::jsonb`
-        ),
         with: {
           project: {
             with: {
@@ -139,6 +135,8 @@ export default async function DashboardPage({
       users={mappedUsers}
       entities={allEnt.map((e) => ({ id: e.id, name: e.name, brandPrimaryColor: e.brandPrimaryColor }))}
       currentUserId={userId}
+      userRole={user?.role}
+      hasGlobalAccess={Boolean(user?.hasGlobalAccess)}
       initialFilter={initialFilter}
     />
   );

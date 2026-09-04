@@ -20,6 +20,8 @@ import {
   FolderPlus,
   Building2,
   MessageSquare,
+  User,
+  Users,
 } from "lucide-react";
 import { cn, formatDate, formatShortDate, isDeadlineOverdue } from "@/lib/utils";
 import Link from "next/link";
@@ -78,6 +80,8 @@ interface DashboardClientProps {
   entities?: Array<{ id: string; name: string; brandPrimaryColor?: string }>;
   users?: Array<{ id: string; name: string }>;
   currentUserId?: string;
+  userRole?: string;
+  hasGlobalAccess?: boolean;
   initialFilter?: "all" | "open" | "overdue" | "due_this_week" | "completed";
 }
 
@@ -92,6 +96,8 @@ export function DashboardClient({
   entities = [],
   users = [],
   currentUserId,
+  userRole,
+  hasGlobalAccess = false,
   initialFilter = "all",
 }: DashboardClientProps) {
   const { selectedEntityId, openActionItem } = useAppShell();
@@ -171,12 +177,33 @@ export function DashboardClient({
     }
   };
 
-  // Filter items by entity chip if selected
-  const filteredItems = selectedEntityId
+  // Helper to test if item belongs to logged-in user (as primary or secondary assignee)
+  const isMyItem = (i: ActionItemSummary) =>
+    i.assigneeId === currentUserId ||
+    Boolean(i.secondaryAssigneeIds && i.secondaryAssigneeIds.includes(currentUserId || ""));
+
+  // Filter items by entity chip if selected from AppShell top bar
+  const entityFilteredItems = selectedEntityId
     ? items.filter((i) => i.entityId === selectedEntityId)
     : items;
 
-  // Derive metrics across all entity-filtered items
+  const myCount = entityFilteredItems.filter(isMyItem).length;
+  const allCount = entityFilteredItems.length;
+
+  // Scope: "all" (All Deliverables) vs "my" (My Tasks)
+  // Default to "all" if user has 0 direct personal items or is admin/ceo/ea/hasGlobalAccess; otherwise "my"
+  const [scope, setScope] = useState<"all" | "my">(() => {
+    if (myCount === 0) return "all";
+    if (hasGlobalAccess || (userRole && ["admin", "ceo", "ea"].includes(userRole))) return "all";
+    return "my";
+  });
+
+  // Filter items by active scope
+  const filteredItems = scope === "my"
+    ? entityFilteredItems.filter(isMyItem)
+    : entityFilteredItems;
+
+  // Derive metrics across active scope items
   const openCount = filteredItems.filter((i) => i.status !== "done").length;
   const overdueCount = filteredItems.filter((i) => isDeadlineOverdue(i.deadline, i.status)).length;
   const todayStr = new Date().toISOString().split("T")[0];
@@ -611,7 +638,7 @@ export function DashboardClient({
       <div className="rounded-2xl bg-[#023542] text-white p-5 sm:p-6 border border-[#03446D] shadow-sm relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-10 pointer-events-none flanelines-bg" />
 
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-medium tracking-tight text-white">
               Duston Project Tracker
@@ -619,6 +646,52 @@ export function DashboardClient({
             <p className="text-xs text-gray-300 mt-0.5">
               Welcome back, {firstName} • {new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", year: "numeric" })}
             </p>
+          </div>
+
+          {/* Scope Selector: All Deliverables vs My Tasks */}
+          <div className="flex items-center gap-1 bg-white/10 p-1 rounded-xl border border-white/20 backdrop-blur-xs shrink-0 self-start sm:self-auto shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setScope("all")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                scope === "all"
+                  ? "bg-white text-[#023542] shadow-sm font-semibold"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              )}
+            >
+              <Building2 size={13} />
+              <span>All Deliverables</span>
+              <span
+                className={cn(
+                  "ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                  scope === "all" ? "bg-[#023542]/15 text-[#023542]" : "bg-white/20 text-white"
+                )}
+              >
+                {allCount}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setScope("my")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                scope === "my"
+                  ? "bg-white text-[#023542] shadow-sm font-semibold"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              )}
+            >
+              <User size={13} />
+              <span>My Tasks</span>
+              <span
+                className={cn(
+                  "ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-semibold",
+                  scope === "my" ? "bg-[#023542]/15 text-[#023542]" : "bg-white/20 text-white"
+                )}
+              >
+                {myCount}
+              </span>
+            </button>
           </div>
         </div>
       </div>
@@ -808,44 +881,76 @@ export function DashboardClient({
           )}
           {/* View Toggle & Action Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white border border-duston-border rounded-2xl p-2.5 shadow-subtle">
-            {/* View Switcher Tabs: 3 equal columns on mobile */}
-            <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-duston-bg/60 sm:bg-transparent p-1 sm:p-0 rounded-xl">
-              <button
-                onClick={() => setCurrentView("todo")}
-                className={cn(
-                  "flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
-                  currentView === "todo"
-                    ? "bg-[#023542] text-white shadow-2xs font-semibold"
-                    : "text-duston-muted hover:text-duston-dark hover:bg-white/80"
-                )}
-              >
-                <ListTodo size={14} strokeWidth={1.5} />
-                <span>Todo</span>
-              </button>
-              <button
-                onClick={() => setCurrentView("kanban")}
-                className={cn(
-                  "flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
-                  currentView === "kanban"
-                    ? "bg-[#023542] text-white shadow-2xs font-semibold"
-                    : "text-duston-muted hover:text-duston-dark hover:bg-white/80"
-                )}
-              >
-                <Columns3 size={14} strokeWidth={1.5} />
-                <span>Board</span>
-              </button>
-              <button
-                onClick={() => setCurrentView("planner")}
-                className={cn(
-                  "flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
-                  currentView === "planner"
-                    ? "bg-[#023542] text-white shadow-2xs font-semibold"
-                    : "text-duston-muted hover:text-duston-dark hover:bg-white/80"
-                )}
-              >
-                <Calendar size={14} strokeWidth={1.5} />
-                <span>Planner</span>
-              </button>
+            {/* View Switcher Tabs & Quick Scope Switcher */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-duston-bg/60 sm:bg-transparent p-1 sm:p-0 rounded-xl">
+                <button
+                  onClick={() => setCurrentView("todo")}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
+                    currentView === "todo"
+                      ? "bg-[#023542] text-white shadow-2xs font-semibold"
+                      : "text-duston-muted hover:text-duston-dark hover:bg-white/80"
+                  )}
+                >
+                  <ListTodo size={14} strokeWidth={1.5} />
+                  <span>Todo</span>
+                </button>
+                <button
+                  onClick={() => setCurrentView("kanban")}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
+                    currentView === "kanban"
+                      ? "bg-[#023542] text-white shadow-2xs font-semibold"
+                      : "text-duston-muted hover:text-duston-dark hover:bg-white/80"
+                  )}
+                >
+                  <Columns3 size={14} strokeWidth={1.5} />
+                  <span>Board</span>
+                </button>
+                <button
+                  onClick={() => setCurrentView("planner")}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer",
+                    currentView === "planner"
+                      ? "bg-[#023542] text-white shadow-2xs font-semibold"
+                      : "text-duston-muted hover:text-duston-dark hover:bg-white/80"
+                  )}
+                >
+                  <Calendar size={14} strokeWidth={1.5} />
+                  <span>Planner</span>
+                </button>
+              </div>
+
+              {/* In-toolbar quick scope switcher */}
+              <div className="hidden md:flex items-center gap-1 bg-duston-bg p-0.5 rounded-xl border border-duston-border text-xs">
+                <button
+                  type="button"
+                  onClick={() => setScope("all")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1",
+                    scope === "all"
+                      ? "bg-[#023542] text-white shadow-xs font-semibold"
+                      : "text-duston-muted hover:text-duston-dark"
+                  )}
+                >
+                  <Building2 size={11} />
+                  <span>All ({allCount})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScope("my")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1",
+                    scope === "my"
+                      ? "bg-[#023542] text-white shadow-xs font-semibold"
+                      : "text-duston-muted hover:text-duston-dark"
+                  )}
+                >
+                  <User size={11} />
+                  <span>My Tasks ({myCount})</span>
+                </button>
+              </div>
             </div>
 
             {/* Action Buttons: 2 columns on mobile, never squished */}
@@ -1011,13 +1116,25 @@ export function DashboardClient({
                     <CheckSquare size={18} />
                   </div>
                   <div className="text-sm font-medium text-duston-dark">
-                    No matching action items
+                    {scope === "my" ? "No personal action items" : "No matching action items"}
                   </div>
                   <p className="text-xs text-duston-muted max-w-sm mx-auto">
                     {metricFilter !== "all" || priorityFilter !== "all"
                       ? "There are no action items matching your active filter criteria."
+                      : scope === "my" && allCount > 0
+                      ? `You currently have no tasks assigned directly to you. There are ${allCount} active deliverable${allCount === 1 ? "" : "s"} across the group.`
                       : "You have no action items recorded."}
                   </p>
+                  {scope === "my" && allCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setScope("all")}
+                      className="px-3.5 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-lg text-xs font-medium transition-colors shadow-2xs cursor-pointer inline-flex items-center gap-1.5"
+                    >
+                      <Building2 size={13} />
+                      <span>Switch to All Group Deliverables ({allCount})</span>
+                    </button>
+                  )}
                   {(metricFilter !== "all" || priorityFilter !== "all") && (
                     <button
                       type="button"
