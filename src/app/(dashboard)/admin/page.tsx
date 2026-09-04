@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { users, entities, activityLog, actionItems, projects, notifications } from "@/lib/db/schema";
 import { eq, desc, count } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { AdminClient, AdminUser, AdminEntity, AdminActivityLog } from "@/components/admin/AdminClient";
+import { AdminClient, AdminUser, AdminEntity, AdminActivityLog, AdminActionItem } from "@/components/admin/AdminClient";
 
 export default async function AdminPage() {
   const session = await auth();
@@ -90,7 +90,48 @@ export default async function AdminPage() {
     createdAt: a.createdAt.toISOString(),
   }));
 
-  // 4. System Counts for Data Maintenance
+  // 4. Action Items (all across group)
+  const allActionItemsList = await db.query.actionItems.findMany({
+    with: {
+      project: {
+        with: {
+          entity: true,
+        },
+      },
+      assignee: true,
+      comments: true,
+    },
+    orderBy: [desc(actionItems.createdAt)],
+  });
+
+  const userNameMap = new Map(allUsers.map((u) => [u.id, u.name]));
+
+  const mappedActionItems: AdminActionItem[] = allActionItemsList.map((it) => {
+    const secIds: string[] = Array.isArray(it.secondaryAssigneeIds)
+      ? (it.secondaryAssigneeIds as string[])
+      : [];
+    const secNames = secIds.map((id) => userNameMap.get(id)).filter(Boolean) as string[];
+
+    return {
+      id: it.id,
+      title: it.title,
+      description: it.description,
+      deadline: it.deadline,
+      status: it.status as any,
+      priority: it.priority as any,
+      assigneeName: it.assignee?.name || "Unassigned",
+      secondaryAssigneeNames: secNames,
+      projectId: it.projectId,
+      projectName: it.project?.name || "Project",
+      entityId: it.project?.entityId,
+      entityName: it.project?.entity?.name || "Subsidiary",
+      entityBrandColor: it.project?.entity?.brandPrimaryColor || "#023542",
+      commentCount: it.comments?.length || 0,
+      createdAt: it.createdAt ? it.createdAt.toISOString() : new Date().toISOString(),
+    };
+  });
+
+  // 5. System Counts for Data Maintenance
   const [userCount] = await db.select({ val: count() }).from(users);
   const [entityCount] = await db.select({ val: count() }).from(entities);
   const [projectCount] = await db.select({ val: count() }).from(projects);
@@ -112,6 +153,7 @@ export default async function AdminPage() {
       initialUsers={mappedUsers}
       initialEntities={mappedEntities}
       initialActivities={mappedActivities}
+      initialActionItems={mappedActionItems}
       initialStats={stats}
     />
   );

@@ -20,8 +20,14 @@ import {
   Trash2,
   AlertCircle,
   Check,
+  ClipboardList,
+  Search,
+  Clock,
+  MessageSquare,
 } from "lucide-react";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
+import { PriorityFlag } from "@/components/ui/PriorityFlag";
+import { useAppShell } from "@/components/layout/AppShell";
 import {
   updateUserRole,
   resetUserPassword,
@@ -67,6 +73,24 @@ export interface AdminActivityLog {
   createdAt: string;
 }
 
+export interface AdminActionItem {
+  id: string;
+  title: string;
+  description?: string | null;
+  deadline: string;
+  status: "not_started" | "in_progress" | "done" | "blocked";
+  priority: "critical" | "high" | "medium" | "low";
+  assigneeName: string;
+  secondaryAssigneeNames?: string[];
+  projectId: string;
+  projectName: string;
+  entityId?: string;
+  entityName: string;
+  entityBrandColor: string;
+  commentCount: number;
+  createdAt: string;
+}
+
 export interface AdminStats {
   users: number;
   entities: number;
@@ -80,6 +104,7 @@ interface AdminClientProps {
   initialUsers: AdminUser[];
   initialEntities: AdminEntity[];
   initialActivities: AdminActivityLog[];
+  initialActionItems?: AdminActionItem[];
   initialStats?: AdminStats;
 }
 
@@ -87,12 +112,18 @@ export function AdminClient({
   initialUsers,
   initialEntities,
   initialActivities,
+  initialActionItems = [],
   initialStats,
 }: AdminClientProps) {
-  const [activeTab, setActiveTab] = useState<"users" | "entities" | "activity" | "maintenance">("users");
+  const { openActionItem } = useAppShell();
+  const [activeTab, setActiveTab] = useState<"users" | "entities" | "action-items" | "activity" | "maintenance">("users");
   const [usersList, setUsersList] = useState(initialUsers);
   const [entitiesList, setEntitiesList] = useState(initialEntities);
   const [activitiesList, setActivitiesList] = useState(initialActivities);
+  const [actionItemsList, setActionItemsList] = useState<AdminActionItem[]>(initialActionItems);
+  const [actionItemSearch, setActionItemSearch] = useState("");
+  const [actionItemStatusFilter, setActionItemStatusFilter] = useState<string>("all");
+  const [actionItemEntityFilter, setActionItemEntityFilter] = useState<string>("all");
   const [stats, setStats] = useState<AdminStats>(
     initialStats || {
       users: initialUsers.length,
@@ -316,6 +347,36 @@ export function AdminClient({
     selectedEventType === "all" ? true : a.eventType === selectedEventType
   );
 
+  const filteredActionItems = (actionItemsList || []).filter((it) => {
+    if (actionItemSearch.trim()) {
+      const q = actionItemSearch.toLowerCase();
+      const matchTitle = it.title.toLowerCase().includes(q);
+      const matchAssignee = it.assigneeName.toLowerCase().includes(q);
+      const matchProject = it.projectName.toLowerCase().includes(q);
+      const matchEntity = it.entityName.toLowerCase().includes(q);
+      const matchCoOwners = it.secondaryAssigneeNames?.some((name) =>
+        name.toLowerCase().includes(q)
+      );
+      if (!matchTitle && !matchAssignee && !matchProject && !matchEntity && !matchCoOwners) {
+        return false;
+      }
+    }
+
+    if (actionItemStatusFilter !== "all") {
+      if (actionItemStatusFilter === "overdue") {
+        if (!isDeadlineOverdue(it.deadline, it.status)) return false;
+      } else if (it.status !== actionItemStatusFilter) {
+        return false;
+      }
+    }
+
+    if (actionItemEntityFilter !== "all") {
+      if (it.entityId !== actionItemEntityFilter) return false;
+    }
+
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -360,6 +421,19 @@ export function AdminClient({
           >
             <Building2 size={14} strokeWidth={1.5} />
             <span>Subsidiaries ({entitiesList.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("action-items")}
+            className={cn(
+              "pb-3 text-xs font-medium border-b-2 flex items-center gap-2 transition-colors",
+              activeTab === "action-items"
+                ? "border-[#023542] text-[#023542]"
+                : "border-transparent text-duston-muted hover:text-duston-dark"
+            )}
+          >
+            <ClipboardList size={14} strokeWidth={1.5} />
+            <span>Action Items ({actionItemsList.length})</span>
           </button>
 
           <button
@@ -580,7 +654,203 @@ export function AdminClient({
         </div>
       )}
 
-      {/* 3. Activity Log Tab */}
+      {/* 3. Action Items Tab */}
+      {activeTab === "action-items" && (
+        <div className="space-y-4">
+          {/* Controls: Search, Status, Entity, Count */}
+          <div className="bg-white border border-duston-border rounded-xl p-3 sm:p-4 shadow-subtle flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-duston-muted"
+              />
+              <input
+                type="text"
+                value={actionItemSearch}
+                onChange={(e) => setActionItemSearch(e.target.value)}
+                placeholder="Search action items, assignees, projects, subsidiaries..."
+                className="w-full pl-9 pr-8 py-1.5 bg-duston-bg/50 border border-duston-border rounded-lg text-xs outline-none focus:border-[#1BCECE] focus:bg-white text-duston-dark placeholder:text-duston-muted"
+              />
+              {actionItemSearch && (
+                <button
+                  type="button"
+                  onClick={() => setActionItemSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-duston-muted hover:text-duston-dark cursor-pointer"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={actionItemStatusFilter}
+                onChange={(e) => setActionItemStatusFilter(e.target.value)}
+                className="bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
+              >
+                <option value="all">All Statuses</option>
+                <option value="not_started">Not Started</option>
+                <option value="in_progress">In Progress</option>
+                <option value="done">Done</option>
+                <option value="overdue">Overdue Only</option>
+              </select>
+
+              <select
+                value={actionItemEntityFilter}
+                onChange={(e) => setActionItemEntityFilter(e.target.value)}
+                className="bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
+              >
+                <option value="all">All Subsidiaries</option>
+                {entitiesList.map((ent) => (
+                  <option key={ent.id} value={ent.id}>
+                    {ent.name}
+                  </option>
+                ))}
+              </select>
+
+              <span className="text-[11px] text-duston-muted ml-auto sm:ml-0 font-medium whitespace-nowrap">
+                Showing {filteredActionItems.length} of {actionItemsList.length} items
+              </span>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[920px] text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
+                    <th className="py-3 px-4">Subsidiary</th>
+                    <th className="py-3 px-4">Project</th>
+                    <th className="py-3 px-4">Action Item</th>
+                    <th className="py-3 px-4">Responsible Party</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Deadline</th>
+                    <th className="py-3 px-4">Priority</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-duston-border">
+                  {filteredActionItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-xs text-duston-muted">
+                        No action items match the current filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredActionItems.map((item) => {
+                      const isOverdue = isDeadlineOverdue(item.deadline, item.status);
+                      return (
+                        <tr
+                          key={item.id}
+                          className="hover:bg-duston-bg/50 transition-colors group cursor-pointer"
+                          onClick={() => openActionItem(item.id)}
+                        >
+                          <td className="py-3 px-4">
+                            <span
+                              className="px-2 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap"
+                              style={{
+                                backgroundColor: `${item.entityBrandColor}15`,
+                                color: item.entityBrandColor,
+                                borderColor: `${item.entityBrandColor}30`,
+                              }}
+                            >
+                              {item.entityName}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-medium text-duston-dark whitespace-nowrap max-w-[160px] truncate">
+                            {item.projectName}
+                          </td>
+                          <td className="py-3 px-4 font-medium text-duston-dark hover:text-[#1BCECE] transition-colors">
+                            <div className="flex items-center gap-2">
+                              <span className="line-clamp-1">{item.title}</span>
+                              {Boolean(item.commentCount && item.commentCount > 0) && (
+                                <span
+                                  className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30 shrink-0"
+                                  title={`${item.commentCount} update${item.commentCount === 1 ? "" : "s"}`}
+                                >
+                                  <MessageSquare size={10} className="text-[#1BCECE]" />
+                                  <span>{item.commentCount}</span>
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-duston-dark whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
+                              <span>{item.assigneeName}</span>
+                              {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+                                <span
+                                  className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
+                                  title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+                                >
+                                  +{item.secondaryAssigneeNames?.length}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap">
+                            <span
+                              className={cn(
+                                "capitalize px-2.5 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center gap-1.5 border",
+                                item.status === "done"
+                                  ? "bg-[#39B54A]/10 text-[#39B54A] border-[#39B54A]/20"
+                                  : item.status === "in_progress"
+                                  ? "bg-[#1BCECE]/10 text-[#023542] border-[#1BCECE]/30"
+                                  : "bg-duston-bg text-duston-muted border-duston-border"
+                              )}
+                            >
+                              <span
+                                className={cn(
+                                  "w-1.5 h-1.5 rounded-full",
+                                  item.status === "done"
+                                    ? "bg-[#39B54A]"
+                                    : item.status === "in_progress"
+                                    ? "bg-[#1BCECE]"
+                                    : "bg-duston-muted"
+                                )}
+                              />
+                              <span>{item.status.replace("_", " ")}</span>
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap">
+                            <span
+                              className={cn(
+                                "px-2 py-0.5 rounded text-[11px] font-medium inline-flex items-center gap-1",
+                                isOverdue
+                                  ? "bg-duston-orange/10 text-duston-orange border border-duston-orange/20"
+                                  : "text-duston-muted"
+                              )}
+                            >
+                              <Clock size={11} />
+                              <span>{formatDate(item.deadline)}</span>
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap">
+                            <PriorityFlag priority={item.priority} />
+                          </td>
+                          <td className="py-3 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => openActionItem(item.id)}
+                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#023542] hover:bg-[#1BCECE] text-white inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                              title="Edit action item"
+                            >
+                              <Edit2 size={11} />
+                              <span>Edit</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Activity Log Tab */}
       {activeTab === "activity" && (
         <div className="space-y-4">
           <div className="bg-white border border-duston-border rounded-xl p-3 shadow-subtle flex items-center gap-3 text-xs">

@@ -56,6 +56,9 @@ export interface ActionItemDetail {
     note?: string | null;
     createdAt: string;
   }>;
+  userRole?: string;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 interface ActionItemDrawerProps {
@@ -124,10 +127,16 @@ export function ActionItemDrawer({
     }
   }, [isOpen]);
 
-  const normalizedRole = (currentUserRole || "").toLowerCase().trim();
-  const isPrivileged = ["admin", "ceo", "ea"].includes(normalizedRole);
-  const canDelete = isPrivileged;
-  const canEdit = isPrivileged || (Boolean(item?.createdBy) && item?.createdBy === currentUserId);
+  const normalizedPropRole = (currentUserRole || "").toLowerCase().trim();
+  const resolvedRole = (item?.userRole || normalizedPropRole).toLowerCase().trim();
+  const isPrivileged =
+    ["admin", "ceo", "ea"].includes(resolvedRole) ||
+    ["admin", "ceo", "ea"].includes(normalizedPropRole);
+  const canDelete = isPrivileged || item?.canDelete === true;
+  const canEdit =
+    isPrivileged ||
+    item?.canEdit === true ||
+    (Boolean(item?.createdBy) && item?.createdBy === currentUserId);
 
   // Close on Escape key
   useEffect(() => {

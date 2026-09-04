@@ -6,12 +6,25 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await auth();
   const { id } = await params;
   const item = await getActionItemById(id);
   if (!item) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  return NextResponse.json(item);
+
+  const userId = session?.user?.id;
+  const userRole = ((session?.user as any)?.role || "").toLowerCase().trim();
+  const isPrivileged = ["admin", "ceo", "ea"].includes(userRole);
+  const canEdit = isPrivileged || (Boolean(item.createdBy) && item.createdBy === userId);
+  const canDelete = isPrivileged;
+
+  return NextResponse.json({
+    ...item,
+    userRole,
+    canEdit,
+    canDelete,
+  });
 }
 
 export async function PATCH(

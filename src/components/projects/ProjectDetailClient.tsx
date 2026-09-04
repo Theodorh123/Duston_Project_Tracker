@@ -516,6 +516,7 @@ export function ProjectDetailClient({
                     <th className="py-3 px-4">Deadline</th>
                     <th className="py-3 px-4">Priority</th>
                     <th className="py-3 px-4">Comments (variance notes)</th>
+                    <th className="py-3 px-3 text-right"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-duston-border">
@@ -615,6 +616,17 @@ export function ProjectDetailClient({
                           </button>
                         )}
                       </td>
+                      <td className="py-3 px-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => openActionItem(item.id)}
+                          className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#023542] hover:bg-[#1BCECE] text-white inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                          title="Edit action item"
+                        >
+                          <Edit2 size={11} />
+                          <span>Edit</span>
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -693,6 +705,7 @@ export function ProjectDetailClient({
                             <th className="py-3 px-4">Deadline</th>
                             <th className="py-3 px-4">Priority</th>
                             <th className="py-3 px-4">Comments (variance notes)</th>
+                            <th className="py-3 px-3 text-right"></th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-duston-border">
@@ -791,6 +804,17 @@ export function ProjectDetailClient({
                                     <span className="text-xs">+</span> Add comment
                                   </button>
                                 )}
+                              </td>
+                              <td className="py-3 px-3 text-right whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={() => openActionItem(item.id)}
+                                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#023542] hover:bg-[#1BCECE] text-white inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                                  title="Edit action item"
+                                >
+                                  <Edit2 size={11} />
+                                  <span>Edit</span>
+                                </button>
                               </td>
                             </tr>
                           ))}
@@ -897,7 +921,20 @@ export function ProjectDetailClient({
                             >
                               <div className="flex items-start justify-between gap-2">
                                 <div className="text-xs font-medium text-duston-dark line-clamp-2">{item.title}</div>
-                                <PriorityFlag priority={item.priority} showLabel={false} />
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <PriorityFlag priority={item.priority} showLabel={false} />
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openActionItem(item.id);
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-duston-bg text-duston-muted hover:text-[#023542] transition-opacity cursor-pointer"
+                                    title="Edit action item"
+                                  >
+                                    <Edit2 size={11} />
+                                  </button>
+                                </div>
                               </div>
                               <div className="flex items-center justify-between text-[11px] gap-2">
                                 <div className="flex items-center gap-1.5 min-w-0">
