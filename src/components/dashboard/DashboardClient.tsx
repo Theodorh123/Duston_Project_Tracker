@@ -1396,6 +1396,18 @@ export function DashboardClient({
                           </button>
                         </div>
                       </div>
+                    ) : projectsList.length === 0 ? (
+                      <div className="p-2.5 bg-duston-bg/60 border border-dashed border-duston-border rounded-lg text-center">
+                        <p className="text-[11px] text-duston-muted mb-1.5">No projects created yet</p>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingProject(true)}
+                          className="inline-flex items-center gap-1 text-xs text-[#023542] hover:text-[#1BCECE] font-semibold cursor-pointer"
+                        >
+                          <FolderPlus size={13} />
+                          + Create a project
+                        </button>
+                      </div>
                     ) : (
                       <select
                         value={quickAddProjectId}

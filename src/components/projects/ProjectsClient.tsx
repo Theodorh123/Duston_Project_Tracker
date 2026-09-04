@@ -141,83 +141,106 @@ export function ProjectsClient({
         </button>
       </div>
 
-      {/* Filter Strip */}
-      <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-          {/* Category Filter */}
-          <div>
-            <label className="block text-duston-muted mb-1 font-medium">Category</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
-            >
-              <option value="all">All categories</option>
-              <option value="capex">CAPEX</option>
-              <option value="financing">Financing</option>
-              <option value="regulatory">Regulatory</option>
-              <option value="commercial">Commercial</option>
-              <option value="operations">Operations</option>
-              <option value="corporate">Corporate</option>
-            </select>
-          </div>
+      {/* Filter Strip - only show if there are projects */}
+      {projectsList.length > 0 && (
+        <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            {/* Category Filter */}
+            <div>
+              <label className="block text-duston-muted mb-1 font-medium">Category</label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
+              >
+                <option value="all">All categories</option>
+                <option value="capex">CAPEX</option>
+                <option value="financing">Financing</option>
+                <option value="regulatory">Regulatory</option>
+                <option value="commercial">Commercial</option>
+                <option value="operations">Operations</option>
+                <option value="corporate">Corporate</option>
+              </select>
+            </div>
 
-          {/* Status Filter */}
-          <div>
-            <label className="block text-duston-muted mb-1 font-medium">Status</label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
-            >
-              <option value="all">All statuses</option>
-              <option value="not_started">Not started</option>
-              <option value="in_progress">In progress</option>
-              <option value="on_hold">On hold</option>
-              <option value="done">Done</option>
-            </select>
-          </div>
+            {/* Status Filter */}
+            <div>
+              <label className="block text-duston-muted mb-1 font-medium">Status</label>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
+              >
+                <option value="all">All statuses</option>
+                <option value="not_started">Not started</option>
+                <option value="in_progress">In progress</option>
+                <option value="on_hold">On hold</option>
+                <option value="done">Done</option>
+              </select>
+            </div>
 
-          {/* Responsible Party Filter */}
-          <div>
-            <label className="block text-duston-muted mb-1 font-medium">Responsible Party</label>
-            <select
-              value={selectedOwner}
-              onChange={(e) => setSelectedOwner(e.target.value)}
-              className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
-            >
-              <option value="all">All responsible parties</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            {/* Responsible Party Filter */}
+            <div>
+              <label className="block text-duston-muted mb-1 font-medium">Responsible Party</label>
+              <select
+                value={selectedOwner}
+                onChange={(e) => setSelectedOwner(e.target.value)}
+                className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
+              >
+                <option value="all">All responsible parties</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          {/* Search Box */}
-          <div>
-            <label className="block text-duston-muted mb-1 font-medium">Search</label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Filter by title..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-duston-border rounded-lg pl-8 pr-3 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
-              />
-              <Search
-                size={14}
-                strokeWidth={1.5}
-                className="absolute left-2.5 top-2.5 text-duston-muted"
-              />
+            {/* Search Box */}
+            <div>
+              <label className="block text-duston-muted mb-1 font-medium">Search</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Filter by title..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white border border-duston-border rounded-lg pl-8 pr-3 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
+                />
+                <Search
+                  size={14}
+                  strokeWidth={1.5}
+                  className="absolute left-2.5 top-2.5 text-duston-muted"
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Projects List: Desktop Table & Mobile Cards */}
-      {filteredProjects.length === 0 ? (
+      {projectsList.length === 0 ? (
+        <div className="bg-white border border-duston-border rounded-2xl p-12 text-center shadow-subtle flanelines-bg space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#023542]/5 text-[#023542] flex items-center justify-center mx-auto mb-2">
+            <FolderKanban size={28} strokeWidth={1.5} />
+          </div>
+          <h3 className="text-base font-semibold text-duston-dark">
+            No projects yet
+          </h3>
+          <p className="text-xs text-duston-muted max-w-sm mx-auto">
+            Get started by creating your first strategic project or initiative for a subsidiary.
+          </p>
+          <div className="pt-2">
+            <button
+              onClick={() => setIsNewDrawerOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#023542] hover:bg-[#023542]/90 text-white rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer"
+            >
+              <Plus size={15} strokeWidth={2} />
+              <span>Create first project</span>
+            </button>
+          </div>
+        </div>
+      ) : filteredProjects.length === 0 ? (
         <div className="bg-white border border-duston-border rounded-xl p-12 text-center shadow-subtle flanelines-bg">
           <FolderKanban size={32} strokeWidth={1.5} className="mx-auto text-duston-muted mb-3" />
           <h3 className="text-sm font-medium text-duston-dark">
@@ -228,7 +251,7 @@ export function ProjectsClient({
           </p>
           <button
             onClick={clearFilters}
-            className="mt-4 px-4 py-2 bg-duston-bg hover:bg-duston-border/60 border border-duston-border text-duston-dark rounded-xl text-xs font-medium transition-colors"
+            className="mt-4 px-4 py-2 bg-duston-bg hover:bg-duston-border/60 border border-duston-border text-duston-dark rounded-xl text-xs font-medium transition-colors cursor-pointer"
           >
             Clear filters
           </button>
