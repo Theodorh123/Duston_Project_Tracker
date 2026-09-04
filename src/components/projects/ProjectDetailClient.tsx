@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -92,6 +92,50 @@ export function ProjectDetailClient({
   const [isNewItemModalOpen, setIsNewItemModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [itemsList, setItemsList] = useState(actionItems);
+
+  useEffect(() => {
+    setItemsList(actionItems);
+  }, [actionItems]);
+
+  useEffect(() => {
+    const handleItemUpdated = (e: Event) => {
+      const updated = (e as CustomEvent).detail;
+      if (!updated || !updated.id) return;
+
+      setItemsList((prev) =>
+        prev.map((it) => {
+          if (it.id !== updated.id) return it;
+          return {
+            ...it,
+            title: updated.title ?? it.title,
+            comments: updated.description !== undefined ? updated.description : it.comments,
+            status: updated.status ?? it.status,
+            priority: updated.priority ?? it.priority,
+            deadline: updated.deadline ?? it.deadline,
+            tag: updated.tag !== undefined ? updated.tag : it.tag,
+            assigneeId: updated.assigneeId ?? it.assigneeId,
+            assigneeName: updated.assigneeName ?? it.assigneeName,
+            secondaryAssigneeIds: updated.secondaryAssigneeIds ?? it.secondaryAssigneeIds,
+            secondaryAssigneeNames: updated.secondaryAssigneeNames ?? it.secondaryAssigneeNames,
+            commentCount: updated.comments?.length ?? updated.commentCount ?? it.commentCount,
+          };
+        })
+      );
+    };
+
+    const handleItemDeleted = (e: Event) => {
+      const deletedId = (e as CustomEvent).detail?.id;
+      if (!deletedId) return;
+      setItemsList((prev) => prev.filter((it) => it.id !== deletedId));
+    };
+
+    window.addEventListener("action-item-updated", handleItemUpdated);
+    window.addEventListener("action-item-deleted", handleItemDeleted);
+    return () => {
+      window.removeEventListener("action-item-updated", handleItemUpdated);
+      window.removeEventListener("action-item-deleted", handleItemDeleted);
+    };
+  }, []);
   const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 

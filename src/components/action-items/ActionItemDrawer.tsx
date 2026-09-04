@@ -19,12 +19,14 @@ import {
   Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
 
 export interface ActionItemDetail {
   id: string;
   projectId: string;
   projectName?: string;
+  entityId?: string;
   entityName?: string;
   entityBrandColor?: string;
   title: string;
@@ -33,6 +35,8 @@ export interface ActionItemDetail {
   assigneeName?: string;
   secondaryAssigneeIds?: string[];
   secondaryAssignees?: Array<{ id: string; name: string }>;
+  secondaryAssigneeNames?: string[];
+  commentCount?: number;
   deadline: string;
   status: "not_started" | "in_progress" | "blocked" | "done" | "postponed";
   priority: "low" | "medium" | "high" | "critical";
@@ -80,6 +84,7 @@ export function ActionItemDrawer({
   currentUserId,
   currentUserRole,
 }: ActionItemDrawerProps) {
+  const router = useRouter();
   const [item, setItem] = useState<ActionItemDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
@@ -235,6 +240,20 @@ export function ActionItemDrawer({
       if (!res.ok) {
         const data = await res.json();
         setErrorMessage(data.error || "Failed to update field");
+      } else {
+        const refreshed = await fetch(`/api/action-items/${item.id}`).then((r) =>
+          r.ok ? r.json() : null
+        );
+        if (refreshed) {
+          setItem(refreshed);
+          if (onUpdate) onUpdate(refreshed);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("action-item-updated", { detail: refreshed })
+            );
+          }
+        }
+        router.refresh();
       }
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to update field");
@@ -286,7 +305,13 @@ export function ActionItemDrawer({
       if (refreshed) {
         setItem(refreshed);
         if (onUpdate) onUpdate(refreshed);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("action-item-updated", { detail: refreshed })
+          );
+        }
       }
+      router.refresh();
       setIsEditModalOpen(false);
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to update action item");
@@ -310,8 +335,13 @@ export function ActionItemDrawer({
       if (res.ok) {
         setShowDeleteConfirm(false);
         if (onDelete) onDelete(item.id);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("action-item-deleted", { detail: { id: item.id } })
+          );
+        }
+        router.refresh();
         onClose();
-        window.location.reload();
       } else {
         const data = await res.json();
         setErrorMessage(data.error || "Failed to delete action item");
@@ -378,7 +408,14 @@ export function ActionItemDrawer({
         );
         if (refreshed) {
           setItem(refreshed);
+          if (onUpdate) onUpdate(refreshed);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("action-item-updated", { detail: refreshed })
+            );
+          }
         }
+        router.refresh();
       }
     } catch {
       // Keep optimistic comment on error

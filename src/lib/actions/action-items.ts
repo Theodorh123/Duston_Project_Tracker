@@ -53,10 +53,13 @@ export async function getActionItemById(id: string) {
       });
     }
 
+    const secondaryNames = secondaryUsers.map((u) => u.name);
+
     return {
       id: item.id,
       projectId: item.projectId,
       projectName: item.project?.name || "Project",
+      entityId: item.project?.entityId,
       entityName: item.project?.entity?.name || "Entity",
       entityBrandColor: item.project?.entity?.brandPrimaryColor || "#023542",
       title: item.title,
@@ -65,6 +68,7 @@ export async function getActionItemById(id: string) {
       assigneeName: item.assignee?.name || "Assignee",
       secondaryAssigneeIds: secIds,
       secondaryAssignees: secondaryUsers,
+      secondaryAssigneeNames: secondaryNames,
       deadline: item.deadline,
       status: item.status,
       priority: item.priority,
@@ -72,6 +76,7 @@ export async function getActionItemById(id: string) {
       sourceMeetingId: item.sourceMeetingId,
       sourceMeetingSubject: item.sourceMeeting?.subject,
       createdBy: item.createdBy,
+      commentCount: item.comments?.length || 0,
       comments: item.comments?.map((c) => {
         const isPrimary = c.userId === item.assigneeId;
         const isSecondary = secIds.includes(c.userId);
@@ -193,6 +198,7 @@ export async function updateActionItem(
     revalidatePath("/");
     revalidatePath("/action-items");
     revalidatePath("/projects");
+    revalidatePath("/admin");
     revalidatePath("/ea-view");
     revalidatePath("/ceo-view");
 
@@ -282,6 +288,7 @@ export async function updateActionItemField(
     revalidatePath("/");
     revalidatePath("/action-items");
     revalidatePath("/projects");
+    revalidatePath("/admin");
     revalidatePath("/ea-view");
     revalidatePath("/ceo-view");
 

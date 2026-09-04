@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppShell } from "../layout/AppShell";
 import {
   Clock,
@@ -98,6 +98,55 @@ export function DashboardClient({
   const [currentView, setCurrentView] = useState<"todo" | "kanban" | "planner">(defaultView);
   const [priorityFilter, setPriorityFilter] = useState<"all" | "critical" | "high" | "medium" | "low">("all");
   const [items, setItems] = useState<ActionItemSummary[]>(initialItems);
+
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
+
+  useEffect(() => {
+    const handleItemUpdated = (e: Event) => {
+      const updated = (e as CustomEvent).detail;
+      if (!updated || !updated.id) return;
+
+      setItems((prev) =>
+        prev.map((it) => {
+          if (it.id !== updated.id) return it;
+          return {
+            ...it,
+            title: updated.title ?? it.title,
+            status: updated.status ?? it.status,
+            priority: updated.priority ?? it.priority,
+            deadline: updated.deadline ?? it.deadline,
+            tag: updated.tag !== undefined ? updated.tag : it.tag,
+            assigneeId: updated.assigneeId ?? it.assigneeId,
+            assigneeName: updated.assigneeName ?? it.assigneeName,
+            secondaryAssigneeIds: updated.secondaryAssigneeIds ?? it.secondaryAssigneeIds,
+            secondaryAssigneeNames: updated.secondaryAssigneeNames ?? it.secondaryAssigneeNames,
+            projectId: updated.projectId ?? it.projectId,
+            projectName: updated.projectName ?? it.projectName,
+            entityId: updated.entityId ?? it.entityId,
+            entityName: updated.entityName ?? it.entityName,
+            entityBrandColor: updated.entityBrandColor ?? it.entityBrandColor,
+            commentCount: updated.comments?.length ?? updated.commentCount ?? it.commentCount,
+          };
+        })
+      );
+    };
+
+    const handleItemDeleted = (e: Event) => {
+      const deletedId = (e as CustomEvent).detail?.id;
+      if (!deletedId) return;
+      setItems((prev) => prev.filter((it) => it.id !== deletedId));
+    };
+
+    window.addEventListener("action-item-updated", handleItemUpdated);
+    window.addEventListener("action-item-deleted", handleItemDeleted);
+    return () => {
+      window.removeEventListener("action-item-updated", handleItemUpdated);
+      window.removeEventListener("action-item-deleted", handleItemDeleted);
+    };
+  }, []);
+
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const router = useRouter();
 

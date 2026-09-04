@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Search,
   Filter,
@@ -72,9 +72,55 @@ export function ActionRegisterClient({
   const [items, setItems] = useState<RegisterItem[]>(initialItems);
 
   // Sync state if props change
-  useMemo(() => {
+  useEffect(() => {
     setItems(initialItems);
   }, [initialItems]);
+
+  // Real-time listener for drawer updates & deletions
+  useEffect(() => {
+    const handleItemUpdated = (e: Event) => {
+      const updated = (e as CustomEvent).detail;
+      if (!updated || !updated.id) return;
+
+      setItems((prev) =>
+        prev.map((it) => {
+          if (it.id !== updated.id) return it;
+          return {
+            ...it,
+            title: updated.title ?? it.title,
+            description: updated.description !== undefined ? updated.description : it.description,
+            status: updated.status ?? it.status,
+            priority: updated.priority ?? it.priority,
+            deadline: updated.deadline ?? it.deadline,
+            tag: updated.tag !== undefined ? updated.tag : it.tag,
+            assigneeId: updated.assigneeId ?? it.assigneeId,
+            assigneeName: updated.assigneeName ?? it.assigneeName,
+            secondaryAssigneeIds: updated.secondaryAssigneeIds ?? it.secondaryAssigneeIds,
+            secondaryAssigneeNames: updated.secondaryAssigneeNames ?? it.secondaryAssigneeNames,
+            projectId: updated.projectId ?? it.projectId,
+            projectName: updated.projectName ?? it.projectName,
+            entityId: updated.entityId ?? it.entityId,
+            entityName: updated.entityName ?? it.entityName,
+            entityBrandColor: updated.entityBrandColor ?? it.entityBrandColor,
+            commentCount: updated.comments?.length ?? updated.commentCount ?? it.commentCount,
+          };
+        })
+      );
+    };
+
+    const handleItemDeleted = (e: Event) => {
+      const deletedId = (e as CustomEvent).detail?.id;
+      if (!deletedId) return;
+      setItems((prev) => prev.filter((it) => it.id !== deletedId));
+    };
+
+    window.addEventListener("action-item-updated", handleItemUpdated);
+    window.addEventListener("action-item-deleted", handleItemDeleted);
+    return () => {
+      window.removeEventListener("action-item-updated", handleItemUpdated);
+      window.removeEventListener("action-item-deleted", handleItemDeleted);
+    };
+  }, []);
 
   // Primary Scope: "my" (My Action Items) vs "global" (All Action Items)
   const searchParams = useSearchParams();
