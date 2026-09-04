@@ -119,7 +119,10 @@ export function ActionRegisterClient({
       }
 
       // 5. Status Filter
-      if (selectedStatus === "open" && item.status === "done") {
+      if (selectedStatus === "not_started" && item.status !== "not_started") {
+        return false;
+      }
+      if (selectedStatus === "open" && item.status !== "not_started") {
         return false;
       }
       if (selectedStatus === "in_progress" && item.status !== "in_progress") {
@@ -206,7 +209,7 @@ export function ActionRegisterClient({
 
   const stats = useMemo(() => {
     const total = scopedAll.length;
-    const open = scopedAll.filter((i) => i.status !== "done").length;
+    const notStarted = scopedAll.filter((i) => i.status === "not_started").length;
     const inProgress = scopedAll.filter((i) => i.status === "in_progress").length;
     const done = scopedAll.filter((i) => i.status === "done").length;
     const overdue = scopedAll.filter((i) => isDeadlineOverdue(i.deadline, i.status)).length;
@@ -214,7 +217,7 @@ export function ActionRegisterClient({
     const high = scopedAll.filter((i) => i.priority === "high" && i.status !== "done").length;
     const medium = scopedAll.filter((i) => i.priority === "medium" && i.status !== "done").length;
     const low = scopedAll.filter((i) => i.priority === "low" && i.status !== "done").length;
-    return { total, open, inProgress, done, overdue, critical, high, medium, low };
+    return { total, notStarted, open: notStarted, inProgress, done, overdue, critical, high, medium, low };
   }, [scopedAll]);
 
   const groupedByPriority = useMemo(() => {
@@ -586,69 +589,124 @@ export function ActionRegisterClient({
 
         {/* Executive KPI Micro-Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-0.5">
+          {/* 1. Total Action Items */}
           <div
             onClick={() => setSelectedStatus("all")}
             className={cn(
-              "p-2.5 rounded-xl border transition-all cursor-pointer",
+              "p-3 rounded-xl border transition-all cursor-pointer group flex flex-col justify-between",
               selectedStatus === "all"
-                ? "bg-[#023542]/5 border-[#023542] ring-1 ring-[#023542]"
-                : "bg-duston-bg/40 border-duston-border/70 hover:border-duston-border"
+                ? "bg-[#023542]/15 border-[#023542] ring-2 ring-[#023542]/25 shadow-xs"
+                : "bg-[#023542]/[0.04] border-[#023542]/15 hover:bg-[#023542]/[0.08] hover:border-[#023542]/35"
             )}
           >
-            <span className="text-[10px] text-duston-muted font-medium block">Total in view</span>
-            <span className="text-lg font-semibold text-duston-dark">{stats.total}</span>
+            <div className="flex items-center justify-between gap-1 mb-1">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#023542] shrink-0" />
+                <span className="text-[11px] font-semibold text-[#023542]">Total Action Items</span>
+              </div>
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-[#023542]/10 text-[#023542]">
+                All
+              </span>
+            </div>
+            <div className="text-2xl font-bold text-[#023542] tracking-tight">
+              {stats.total}
+            </div>
           </div>
 
+          {/* 2. Not Started */}
           <div
-            onClick={() => setSelectedStatus("open")}
+            onClick={() => setSelectedStatus(selectedStatus === "not_started" ? "all" : "not_started")}
             className={cn(
-              "p-2.5 rounded-xl border transition-all cursor-pointer",
-              selectedStatus === "open"
-                ? "bg-[#023542]/5 border-[#023542] ring-1 ring-[#023542]"
-                : "bg-duston-bg/40 border-duston-border/70 hover:border-duston-border"
+              "p-3 rounded-xl border transition-all cursor-pointer group flex flex-col justify-between",
+              selectedStatus === "not_started"
+                ? "bg-amber-100/80 border-[#FBB03B] ring-2 ring-[#FBB03B]/35 shadow-xs"
+                : "bg-amber-50/50 border-amber-200/70 hover:bg-amber-50 hover:border-amber-300"
             )}
           >
-            <span className="text-[10px] text-duston-muted font-medium block">Pending / Open</span>
-            <span className="text-lg font-semibold text-[#023542]">{stats.open}</span>
+            <div className="flex items-center justify-between gap-1 mb-1">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#FBB03B] shrink-0" />
+                <span className="text-[11px] font-semibold text-amber-900">Not Started</span>
+              </div>
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800">
+                {stats.total > 0 ? Math.round((stats.notStarted / stats.total) * 100) : 0}%
+              </span>
+            </div>
+            <div className="text-2xl font-bold text-amber-900 tracking-tight">
+              {stats.notStarted}
+            </div>
           </div>
 
+          {/* 3. In Progress */}
           <div
-            onClick={() => setSelectedStatus("in_progress")}
+            onClick={() => setSelectedStatus(selectedStatus === "in_progress" ? "all" : "in_progress")}
             className={cn(
-              "p-2.5 rounded-xl border transition-all cursor-pointer",
+              "p-3 rounded-xl border transition-all cursor-pointer group flex flex-col justify-between",
               selectedStatus === "in_progress"
-                ? "bg-[#1BCECE]/10 border-[#1BCECE] ring-1 ring-[#1BCECE]"
-                : "bg-duston-bg/40 border-duston-border/70 hover:border-duston-border"
+                ? "bg-cyan-100/80 border-[#1BCECE] ring-2 ring-[#1BCECE]/35 shadow-xs"
+                : "bg-cyan-50/50 border-cyan-100 hover:bg-cyan-50 hover:border-[#1BCECE]/50"
             )}
           >
-            <span className="text-[10px] text-duston-muted font-medium block">In progress</span>
-            <span className="text-lg font-semibold text-[#023542]">{stats.inProgress}</span>
+            <div className="flex items-center justify-between gap-1 mb-1">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#1BCECE] shrink-0" />
+                <span className="text-[11px] font-semibold text-[#023542]">In Progress</span>
+              </div>
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-[#1BCECE]/20 text-[#023542]">
+                {stats.total > 0 ? Math.round((stats.inProgress / stats.total) * 100) : 0}%
+              </span>
+            </div>
+            <div className="text-2xl font-bold text-[#023542] tracking-tight">
+              {stats.inProgress}
+            </div>
           </div>
 
+          {/* 4. Overdue */}
           <div
-            onClick={() => setSelectedStatus("overdue")}
+            onClick={() => setSelectedStatus(selectedStatus === "overdue" ? "all" : "overdue")}
             className={cn(
-              "p-2.5 rounded-xl border transition-all cursor-pointer",
+              "p-3 rounded-xl border transition-all cursor-pointer group flex flex-col justify-between",
               selectedStatus === "overdue"
-                ? "bg-[#F15A24]/10 border-[#F15A24] ring-1 ring-[#F15A24]"
-                : "bg-duston-bg/40 border-duston-border/70 hover:border-duston-border"
+                ? "bg-rose-100/80 border-[#F15A24] ring-2 ring-[#F15A24]/35 shadow-xs"
+                : "bg-rose-50/40 border-rose-100 hover:bg-rose-50 hover:border-[#F15A24]/50"
             )}
           >
-            <span className="text-[10px] text-[#F15A24] font-medium block">Overdue</span>
-            <span className="text-lg font-semibold text-[#F15A24]">{stats.overdue}</span>
+            <div className="flex items-center justify-between gap-1 mb-1">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#F15A24] shrink-0" />
+                <span className="text-[11px] font-semibold text-[#F15A24]">Overdue</span>
+              </div>
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-[#F15A24]/15 text-[#F15A24]">
+                {stats.total > 0 ? Math.round((stats.overdue / stats.total) * 100) : 0}%
+              </span>
+            </div>
+            <div className="text-2xl font-bold text-[#F15A24] tracking-tight">
+              {stats.overdue}
+            </div>
           </div>
 
+          {/* 5. Completed */}
           <div
-            onClick={() => setSelectedStatus("done")}
+            onClick={() => setSelectedStatus(selectedStatus === "done" ? "all" : "done")}
             className={cn(
-              "p-2.5 rounded-xl border transition-all cursor-pointer",
+              "p-3 rounded-xl border transition-all cursor-pointer group flex flex-col justify-between",
               selectedStatus === "done"
-                ? "bg-[#39B54A]/10 border-[#39B54A] ring-1 ring-[#39B54A]"
-                : "bg-duston-bg/40 border-duston-border/70 hover:border-duston-border"
+                ? "bg-emerald-100/80 border-emerald-500 ring-2 ring-emerald-500/35 shadow-xs"
+                : "bg-emerald-50/40 border-emerald-100 hover:bg-emerald-50 hover:border-emerald-400"
             )}
           >
-            <span className="text-[10px] text-[#39B54A] font-medium block">Completed</span>
-            <span className="text-lg font-semibold text-[#39B54A]">{stats.done}</span>
+            <div className="flex items-center justify-between gap-1 mb-1">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                <span className="text-[11px] font-semibold text-emerald-800">Completed</span>
+              </div>
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800">
+                {stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0}%
+              </span>
+            </div>
+            <div className="text-2xl font-bold text-emerald-700 tracking-tight">
+              {stats.done}
+            </div>
           </div>
         </div>
 
@@ -805,7 +863,7 @@ export function ActionRegisterClient({
               className="w-full px-2.5 py-1.5 text-xs bg-duston-bg border border-duston-border rounded-lg text-duston-dark outline-none focus:border-[#1BCECE]"
             >
               <option value="all">All statuses</option>
-              <option value="open">Pending / Open</option>
+              <option value="not_started">Not started</option>
               <option value="in_progress">In progress</option>
               <option value="done">Completed</option>
               <option value="overdue">Overdue only</option>

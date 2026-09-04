@@ -9,6 +9,7 @@ import {
   CalendarDays,
   ShieldAlert,
   BarChart3,
+  PieChart,
   Settings,
   ShieldCheck,
   LogOut,
@@ -39,6 +40,7 @@ export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile 
     ...(isEa ? [{ name: "EA view", href: "/ea-view", icon: ShieldAlert }] : []),
     ...(isCeo ? [{ name: "CEO view", href: "/ceo-view", icon: BarChart3 }] : []),
     { name: "Action register", href: "/action-items", icon: ClipboardList },
+    { name: "Analytics", href: "/analytics", icon: PieChart },
   ];
 
   const settingsNav = [
