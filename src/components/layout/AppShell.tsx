@@ -72,7 +72,7 @@ export function AppShell({ children, user, entities }: AppShellProps) {
             onOpenSearch={() => setIsSearchOpen(true)}
           />
 
-          <main className="flex-1 p-4 lg:p-8 max-w-7xl w-full mx-auto">
+          <main className="flex-1 px-3 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl w-full mx-auto">
             {children}
           </main>
         </div>

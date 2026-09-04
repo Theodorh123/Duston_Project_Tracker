@@ -484,12 +484,156 @@ export function ActionRegisterClient({
     );
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Top Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  const renderMobileCard = (item: RegisterItem, idx: number) => {
+    const isOverdue = isDeadlineOverdue(item.deadline, item.status);
+    const isOutsider =
+      !!item.tag &&
+      (item.tag.toLowerCase().includes("follow-up") ||
+        item.tag.toLowerCase().includes("external") ||
+        item.tag.toLowerCase().includes("counterparty"));
+
+    return (
+      <div
+        key={item.id}
+        onClick={() => openActionItem(item.id)}
+        className={cn(
+          "p-3.5 rounded-xl border transition-all cursor-pointer bg-white hover:border-[#1BCECE] space-y-2.5 shadow-2xs group",
+          item.status === "done" && "opacity-75 bg-duston-bg/40"
+        )}
+      >
+        {/* Top Line: Item #, Priority Flag & Quick Status Toggle */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono font-bold text-duston-muted bg-duston-bg px-1.5 py-0.5 rounded border border-duston-border">
+              #{idx + 1}
+            </span>
+            <PriorityFlag priority={item.priority} />
+          </div>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleStatus(item);
+            }}
+            className={cn(
+              "px-2.5 py-1 rounded-full text-[10px] font-medium inline-flex items-center gap-1.5 transition-all cursor-pointer shrink-0",
+              item.status === "done"
+                ? "bg-[#39B54A]/15 text-[#39B54A] hover:bg-[#39B54A]/25"
+                : item.status === "in_progress"
+                ? "bg-[#1BCECE]/15 text-[#023542] hover:bg-[#1BCECE]/25"
+                : "bg-duston-bg text-duston-muted border border-duston-border hover:bg-duston-border/50"
+            )}
+            title="Toggle status"
+          >
+            <span
+              className={cn(
+                "w-1.5 h-1.5 rounded-full",
+                item.status === "done"
+                  ? "bg-[#39B54A]"
+                  : item.status === "in_progress"
+                  ? "bg-[#1BCECE]"
+                  : "bg-duston-muted"
+              )}
+            />
+            <span>
+              {item.status === "done"
+                ? "Done"
+                : item.status === "in_progress"
+                ? "In progress"
+                : "Not started"}
+            </span>
+          </button>
+        </div>
+
+        {/* Title & Description */}
         <div>
-          <h1 className="text-2xl font-medium text-[#023542] tracking-tight flex items-center gap-2.5">
+          <h4 className="text-xs font-semibold text-duston-dark group-hover:text-[#023542] transition-colors line-clamp-2 leading-relaxed">
+            {item.title}
+          </h4>
+          {item.description && (
+            <p className="text-[11px] text-duston-muted line-clamp-1 mt-0.5">
+              {item.description}
+            </p>
+          )}
+          {item.sourceMeetingSubject && (
+            <div className="mt-1.5">
+              <span className="inline-flex items-center gap-1 text-[10px] text-duston-muted font-medium bg-duston-bg px-2 py-0.5 rounded border border-duston-border/60">
+                <Calendar size={10} />
+                <span className="truncate max-w-[200px]">
+                  Minutes: {item.sourceMeetingSubject}
+                </span>
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Subsidiary & Project Badge */}
+        <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+          <span
+            className="px-2 py-0.5 rounded font-semibold truncate max-w-[130px]"
+            style={{
+              backgroundColor: `${item.entityBrandColor}15`,
+              color: item.entityBrandColor,
+            }}
+          >
+            {item.entityName}
+          </span>
+          <span className="text-duston-muted">•</span>
+          <span className="text-duston-dark font-medium truncate max-w-[160px]">
+            {item.projectName}
+          </span>
+        </div>
+
+        {/* Bottom Line: Assignee / Counterparty + Deadline */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-duston-border/60 text-[11px]">
+          <div className="flex items-center gap-1.5 truncate">
+            {isOutsider ? (
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                {item.tag}
+              </span>
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-[#023542]/10 text-[#023542] text-[9px] font-bold flex items-center justify-center shrink-0">
+                {item.assigneeName
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </div>
+            )}
+            <span className="text-duston-dark font-medium truncate text-xs">
+              {item.assigneeName}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold",
+                isOverdue
+                  ? "bg-duston-orange/10 text-duston-orange border border-duston-orange/20"
+                  : item.status === "done"
+                  ? "text-duston-muted"
+                  : "bg-duston-bg text-duston-dark border border-duston-border"
+              )}
+            >
+              <Clock size={10} />
+              <span>{formatDate(item.deadline)}</span>
+            </span>
+            <ChevronRight size={13} className="text-duston-muted group-hover:translate-x-0.5 transition-transform" />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      {/* Top Header Bar Container */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-white sm:bg-transparent border sm:border-0 border-duston-border rounded-2xl p-4 sm:p-0 shadow-subtle sm:shadow-none">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-medium text-[#023542] tracking-tight flex items-center gap-2.5">
             <span>Action Register</span>
           </h1>
           <p className="text-xs text-duston-muted mt-1">
@@ -497,12 +641,12 @@ export function ActionRegisterClient({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
           {/* Import Register Button */}
           <button
             type="button"
             onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-duston-border text-duston-dark hover:border-[#1BCECE] rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-duston-border text-duston-dark hover:border-[#1BCECE] rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer w-full sm:w-auto"
             title="Import Excel or PDF minutes register"
           >
             <Upload size={14} className="text-[#1BCECE]" />
@@ -513,7 +657,7 @@ export function ActionRegisterClient({
           <button
             type="button"
             onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-duston-border text-duston-dark hover:border-[#023542] rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-duston-border text-duston-dark hover:border-[#023542] rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer w-full sm:w-auto"
             title="Export filtered items to CSV / Excel spreadsheet"
           >
             <Download size={14} className="text-[#023542]" />
@@ -523,15 +667,15 @@ export function ActionRegisterClient({
       </div>
 
       {/* Scope Segmented Switcher & KPI Overview */}
-      <div className="bg-white border border-duston-border rounded-2xl p-4 shadow-subtle space-y-4">
+      <div className="bg-white border border-duston-border rounded-2xl p-3.5 sm:p-4 shadow-subtle space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-duston-border/60 pb-3.5">
-          {/* My Items vs Global Register Toggle */}
-          <div className="flex items-center bg-duston-bg p-1 rounded-xl border border-duston-border self-start">
+          {/* My Items vs Global Register Toggle - 50/50 on Mobile */}
+          <div className="w-full sm:w-auto flex items-center bg-duston-bg p-1 rounded-xl border border-duston-border">
             <button
               type="button"
               onClick={() => setScope("my")}
               className={cn(
-                "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                "flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
                 scope === "my"
                   ? "bg-white text-[#023542] shadow-2xs font-semibold"
                   : "text-duston-muted hover:text-duston-dark"
@@ -555,7 +699,7 @@ export function ActionRegisterClient({
               type="button"
               onClick={() => setScope("global")}
               className={cn(
-                "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                "flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer",
                 scope === "global"
                   ? "bg-white text-[#023542] shadow-2xs font-semibold"
                   : "text-duston-muted hover:text-duston-dark"
@@ -577,7 +721,7 @@ export function ActionRegisterClient({
           </div>
 
           {/* Scope Indicator Note */}
-          <div className="text-[11px] text-duston-muted flex items-center gap-1.5">
+          <div className="text-[11px] text-duston-muted flex items-center gap-1.5 justify-center sm:justify-start">
             <span className="w-1.5 h-1.5 rounded-full bg-[#1BCECE]" />
             <span>
               {scope === "my"
@@ -587,29 +731,34 @@ export function ActionRegisterClient({
           </div>
         </div>
 
-        {/* Executive KPI Micro-Cards */}
+        {/* Executive KPI Micro-Cards - Clean 1 + 2 + 2 Layout on Mobile */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-0.5">
-          {/* 1. Total Action Items */}
+          {/* 1. Total Action Items - Full Width on Mobile (col-span-2) */}
           <div
             onClick={() => setSelectedStatus("all")}
             className={cn(
-              "p-3 rounded-xl border transition-all cursor-pointer group flex flex-col justify-between",
+              "col-span-2 sm:col-span-1 p-3 rounded-xl border transition-all cursor-pointer group flex sm:flex-col justify-between items-center sm:items-stretch",
               selectedStatus === "all"
                 ? "bg-[#023542]/15 border-[#023542] ring-2 ring-[#023542]/25 shadow-xs"
                 : "bg-[#023542]/[0.04] border-[#023542]/15 hover:bg-[#023542]/[0.08] hover:border-[#023542]/35"
             )}
           >
-            <div className="flex items-center justify-between gap-1 mb-1">
+            <div className="flex items-center justify-between gap-1 sm:mb-1">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#023542] shrink-0" />
                 <span className="text-[11px] font-semibold text-[#023542]">Total Action Items</span>
               </div>
-              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-[#023542]/10 text-[#023542]">
+              <span className="hidden sm:inline text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-[#023542]/10 text-[#023542]">
                 All
               </span>
             </div>
-            <div className="text-2xl font-bold text-[#023542] tracking-tight">
-              {stats.total}
+            <div className="flex items-center gap-2">
+              <div className="text-2xl font-bold text-[#023542] tracking-tight">
+                {stats.total}
+              </div>
+              <span className="sm:hidden text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#023542]/10 text-[#023542]">
+                All deliverables
+              </span>
             </div>
           </div>
 
@@ -711,76 +860,78 @@ export function ActionRegisterClient({
         </div>
 
         {/* Interactive Priority Distribution Summary & View Mode Switcher */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-duston-border/60">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-semibold text-duston-muted flex items-center gap-1 mr-1">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-duston-border/60">
+          <div className="space-y-1.5 w-full sm:w-auto">
+            <span className="text-[11px] font-semibold text-duston-muted flex items-center gap-1">
               <Flag size={11} className="text-[#023542]" /> Priority breakdown:
             </span>
-            <button
-              type="button"
-              onClick={() => setSelectedPriority(selectedPriority === "critical" ? "all" : "critical")}
-              className={cn(
-                "px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all cursor-pointer",
-                selectedPriority === "critical"
-                  ? "bg-rose-600 text-white border-rose-600 shadow-xs"
-                  : "bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100"
-              )}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-              <span>Critical:</span>
-              <span className="font-bold">{stats.critical}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedPriority(selectedPriority === "high" ? "all" : "high")}
-              className={cn(
-                "px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all cursor-pointer",
-                selectedPriority === "high"
-                  ? "bg-amber-600 text-white border-amber-600 shadow-xs"
-                  : "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
-              )}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              <span>High:</span>
-              <span className="font-bold">{stats.high}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedPriority(selectedPriority === "medium" ? "all" : "medium")}
-              className={cn(
-                "px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all cursor-pointer",
-                selectedPriority === "medium"
-                  ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                  : "bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100"
-              )}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-              <span>Medium:</span>
-              <span className="font-bold">{stats.medium}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedPriority(selectedPriority === "low" ? "all" : "low")}
-              className={cn(
-                "px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 transition-all cursor-pointer",
-                selectedPriority === "low"
-                  ? "bg-slate-700 text-white border-slate-700 shadow-xs"
-                  : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-              )}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-              <span>Low:</span>
-              <span className="font-bold">{stats.low}</span>
-            </button>
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setSelectedPriority(selectedPriority === "critical" ? "all" : "critical")}
+                className={cn(
+                  "px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-medium border flex items-center justify-center sm:justify-start gap-1.5 transition-all cursor-pointer w-full sm:w-auto",
+                  selectedPriority === "critical"
+                    ? "bg-rose-600 text-white border-rose-600 shadow-xs"
+                    : "bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100"
+                )}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                <span>Critical:</span>
+                <span className="font-bold">{stats.critical}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedPriority(selectedPriority === "high" ? "all" : "high")}
+                className={cn(
+                  "px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-medium border flex items-center justify-center sm:justify-start gap-1.5 transition-all cursor-pointer w-full sm:w-auto",
+                  selectedPriority === "high"
+                    ? "bg-amber-600 text-white border-amber-600 shadow-xs"
+                    : "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
+                )}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <span>High:</span>
+                <span className="font-bold">{stats.high}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedPriority(selectedPriority === "medium" ? "all" : "medium")}
+                className={cn(
+                  "px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-medium border flex items-center justify-center sm:justify-start gap-1.5 transition-all cursor-pointer w-full sm:w-auto",
+                  selectedPriority === "medium"
+                    ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                    : "bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100"
+                )}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                <span>Medium:</span>
+                <span className="font-bold">{stats.medium}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedPriority(selectedPriority === "low" ? "all" : "low")}
+                className={cn(
+                  "px-2.5 py-1.5 sm:py-1 rounded-lg text-xs font-medium border flex items-center justify-center sm:justify-start gap-1.5 transition-all cursor-pointer w-full sm:w-auto",
+                  selectedPriority === "low"
+                    ? "bg-slate-700 text-white border-slate-700 shadow-xs"
+                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                )}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                <span>Low:</span>
+                <span className="font-bold">{stats.low}</span>
+              </button>
+            </div>
           </div>
 
           {/* Table View vs Group by Priority View Toggle */}
-          <div className="flex items-center bg-duston-bg p-0.5 rounded-lg border border-duston-border">
+          <div className="grid grid-cols-2 sm:flex items-center bg-duston-bg p-1 rounded-xl border border-duston-border w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setViewMode("table")}
               className={cn(
-                "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer",
+                "px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer text-center justify-center flex items-center",
                 viewMode === "table"
                   ? "bg-white text-duston-dark shadow-2xs font-semibold"
                   : "text-duston-muted hover:text-duston-dark"
@@ -792,7 +943,7 @@ export function ActionRegisterClient({
               type="button"
               onClick={() => setViewMode("priority")}
               className={cn(
-                "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1",
+                "px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1 text-center",
                 viewMode === "priority"
                   ? "bg-white text-[#023542] shadow-2xs font-semibold"
                   : "text-duston-muted hover:text-duston-dark"
@@ -805,30 +956,31 @@ export function ActionRegisterClient({
         </div>
       </div>
 
+
       {/* Filter Toolbar */}
-      <div className="bg-white border border-duston-border rounded-xl p-3.5 shadow-subtle space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
+      <div className="bg-white border border-duston-border rounded-2xl p-3.5 sm:p-4 shadow-subtle space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-2.5">
           {/* Search */}
-          <div className="sm:col-span-2 relative">
+          <div className="col-span-2 sm:col-span-2 lg:col-span-2 relative">
             <Search size={14} className="absolute left-3 top-2.5 text-duston-muted" />
             <input
               type="text"
               placeholder="Search action items, parties, projects..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-duston-bg border border-duston-border rounded-lg text-duston-dark placeholder:text-duston-muted outline-none focus:border-[#1BCECE] transition-colors"
+              className="w-full pl-8 pr-3 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark placeholder:text-duston-muted outline-none focus:border-[#1BCECE] transition-colors"
             />
           </div>
 
           {/* Subsidiary Filter */}
-          <div>
+          <div className="col-span-1">
             <select
               value={selectedEntity}
               onChange={(e) => {
                 setSelectedEntity(e.target.value);
                 setSelectedProject("all");
               }}
-              className="w-full px-2.5 py-1.5 text-xs bg-duston-bg border border-duston-border rounded-lg text-duston-dark outline-none focus:border-[#1BCECE]"
+              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE]"
             >
               <option value="all">All subsidiaries</option>
               {entities.map((e) => (
@@ -840,11 +992,11 @@ export function ActionRegisterClient({
           </div>
 
           {/* Project Filter */}
-          <div>
+          <div className="col-span-1">
             <select
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
-              className="w-full px-2.5 py-1.5 text-xs bg-duston-bg border border-duston-border rounded-lg text-duston-dark outline-none focus:border-[#1BCECE]"
+              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE]"
             >
               <option value="all">All projects</option>
               {availableProjects.map((p) => (
@@ -856,11 +1008,11 @@ export function ActionRegisterClient({
           </div>
 
           {/* Status Filter */}
-          <div>
+          <div className="col-span-1">
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-2.5 py-1.5 text-xs bg-duston-bg border border-duston-border rounded-lg text-duston-dark outline-none focus:border-[#1BCECE]"
+              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE]"
             >
               <option value="all">All statuses</option>
               <option value="not_started">Not started</option>
@@ -871,11 +1023,11 @@ export function ActionRegisterClient({
           </div>
 
           {/* Deliverable Type (In-house vs Outsider) */}
-          <div>
+          <div className="col-span-1">
             <select
               value={selectedDeliverableType}
               onChange={(e) => setSelectedDeliverableType(e.target.value as any)}
-              className="w-full px-2.5 py-1.5 text-xs bg-duston-bg border border-duston-border rounded-lg text-duston-dark outline-none focus:border-[#1BCECE]"
+              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE]"
             >
               <option value="all">All parties</option>
               <option value="in_house">In-house deliverables</option>
@@ -893,7 +1045,7 @@ export function ActionRegisterClient({
             <button
               type="button"
               onClick={clearFilters}
-              className="text-[11px] text-[#023542] hover:underline font-medium flex items-center gap-1 cursor-pointer"
+              className="text-[11px] text-[#023542] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
             >
               <X size={12} />
               <span>Reset all filters</span>
@@ -902,7 +1054,7 @@ export function ActionRegisterClient({
         )}
       </div>
 
-      {/* Action Register Table */}
+      {/* Action Register Table / Card List */}
       {filteredItems.length === 0 ? (
         <div className="bg-white border border-duston-border rounded-2xl p-12 text-center shadow-subtle space-y-3">
           <div className="w-10 h-10 rounded-xl bg-duston-bg text-duston-muted flex items-center justify-center mx-auto">
@@ -924,7 +1076,13 @@ export function ActionRegisterClient({
         </div>
       ) : viewMode === "table" ? (
         <div className="bg-white border border-duston-border rounded-2xl shadow-subtle overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Mobile Card List (< md) */}
+          <div className="md:hidden p-3 space-y-2.5">
+            {filteredItems.map(renderMobileCard)}
+          </div>
+
+          {/* Desktop Table (>= md) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full min-w-[900px] text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-duston-border bg-duston-bg/70 text-duston-muted font-medium text-[11px]">
@@ -947,7 +1105,7 @@ export function ActionRegisterClient({
           {/* Table Footer Count */}
           <div className="p-3 bg-duston-bg/50 border-t border-duston-border flex items-center justify-between text-[11px] text-duston-muted">
             <span>
-              Showing {filteredItems.length} {filteredItems.length === 1 ? "row" : "rows"} in {scope === "my" ? "Personal Register" : "Global Group Register"}
+              Showing {filteredItems.length} {filteredItems.length === 1 ? "deliverable" : "deliverables"} in {scope === "my" ? "Personal Register" : "Global Group Register"}
             </span>
           </div>
         </div>
@@ -1012,25 +1170,33 @@ export function ActionRegisterClient({
                   No {group.title.toLowerCase()} deliverables match the active filters.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[900px] text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="border-b border-duston-border bg-duston-bg/70 text-duston-muted font-medium text-[11px]">
-                        <th className="py-3 px-3 w-12 text-center">No.</th>
-                        <th className="py-3 px-4 min-w-[260px]">Action Item</th>
-                        <th className="py-3 px-3 w-28">Priority</th>
-                        <th className="py-3 px-4 w-52">Responsible Party / Follow-up</th>
-                        <th className="py-3 px-4 w-36">Deadline</th>
-                        <th className="py-3 px-4 w-32">Status</th>
-                        <th className="py-3 px-4 w-44">Project & Subsidiary</th>
-                        <th className="py-3 px-3 w-10 text-center"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-duston-border/60">
-                      {group.items.map(renderRegisterRow)}
-                    </tbody>
-                  </table>
-                </div>
+                <>
+                  {/* Mobile Card Stack (< md) */}
+                  <div className="md:hidden p-3 space-y-2.5">
+                    {group.items.map(renderMobileCard)}
+                  </div>
+
+                  {/* Desktop Table (>= md) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full min-w-[900px] text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-duston-border bg-duston-bg/70 text-duston-muted font-medium text-[11px]">
+                          <th className="py-3 px-3 w-12 text-center">No.</th>
+                          <th className="py-3 px-4 min-w-[260px]">Action Item</th>
+                          <th className="py-3 px-3 w-28">Priority</th>
+                          <th className="py-3 px-4 w-52">Responsible Party / Follow-up</th>
+                          <th className="py-3 px-4 w-36">Deadline</th>
+                          <th className="py-3 px-4 w-32">Status</th>
+                          <th className="py-3 px-4 w-44">Project & Subsidiary</th>
+                          <th className="py-3 px-3 w-10 text-center"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-duston-border/60">
+                        {group.items.map(renderRegisterRow)}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
           ))}

@@ -6,6 +6,7 @@ import {
   Search,
   Building2,
   ChevronRight,
+  Clock,
 } from "lucide-react";
 import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
 import { useAppShell } from "../layout/AppShell";
@@ -166,22 +167,28 @@ export function AnalyticsClient({
 
   return (
     <div className="space-y-6">
-      {/* Top Header & Context Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Top Header & Context Filters Container */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 bg-white sm:bg-transparent border sm:border-0 border-duston-border rounded-2xl p-4 sm:p-0 shadow-subtle sm:shadow-none">
         <div>
           <h1 className="text-xl font-bold text-[#023542] tracking-tight">
             Analytics
           </h1>
+          <p className="text-xs text-duston-muted mt-0.5">
+            Deliverable completion rates, priority trends, and workstream distributions
+          </p>
         </div>
 
         {/* Global Subsidiary Filter */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-duston-border rounded-xl shadow-subtle text-xs text-duston-dark">
-            <Building2 size={14} className="text-duston-muted shrink-0" />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-1.5 px-3 py-2 sm:py-1.5 bg-duston-bg sm:bg-white border border-duston-border rounded-xl shadow-subtle text-xs text-duston-dark w-full sm:w-auto justify-between sm:justify-start">
+            <div className="flex items-center gap-1.5">
+              <Building2 size={14} className="text-duston-muted shrink-0" />
+              <span className="sm:hidden font-medium text-duston-muted">Filter:</span>
+            </div>
             <select
               value={selectedEntityId || "all"}
               onChange={(e) => setSelectedEntityId(e.target.value === "all" ? null : e.target.value)}
-              className="bg-transparent text-xs font-medium text-duston-dark outline-none cursor-pointer pr-1"
+              className="bg-transparent text-xs font-medium text-duston-dark outline-none cursor-pointer pr-1 flex-1 sm:flex-initial text-right sm:text-left"
             >
               <option value="all">All Subsidiaries ({entities.length})</option>
               {entities.map((ent) => (
@@ -197,7 +204,7 @@ export function AnalyticsClient({
       {/* Visual Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Chart 1: Deliverable Progress Column Bar Chart */}
-        <div className="bg-white border border-duston-border rounded-2xl p-5 shadow-subtle flex flex-col justify-between">
+        <div className="bg-white border border-duston-border rounded-2xl p-4 sm:p-5 shadow-subtle flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-duston-dark">Deliverable Progress</h3>
           </div>
@@ -250,11 +257,11 @@ export function AnalyticsClient({
             </div>
 
             {/* Right Summary Callout */}
-            <div className="w-24 pl-3 flex flex-col justify-center items-center text-center space-y-1">
+            <div className="w-20 sm:w-24 pl-2 sm:pl-3 flex flex-col justify-center items-center text-center space-y-1">
               <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#1BCECE]/20 text-[#023542]">
                 Active
               </span>
-              <div className="text-3xl font-extrabold text-[#023542]">
+              <div className="text-2xl sm:text-3xl font-extrabold text-[#023542]">
                 {inProgressItems.length}
               </div>
               <span className="text-[10px] text-duston-muted font-medium">
@@ -265,7 +272,7 @@ export function AnalyticsClient({
         </div>
 
         {/* Chart 2: Concentric Ring Donut Chart ("Project Completed") */}
-        <div className="bg-white border border-duston-border rounded-2xl p-5 shadow-subtle flex flex-col justify-between">
+        <div className="bg-white border border-duston-border rounded-2xl p-4 sm:p-5 shadow-subtle flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold text-duston-dark">Completion Status</h3>
             <span className="text-[10px] font-medium text-duston-muted">
@@ -273,9 +280,9 @@ export function AnalyticsClient({
             </span>
           </div>
 
-          <div className="flex items-center justify-between gap-2 py-2">
-            {/* Legend Left */}
-            <div className="space-y-3 text-xs flex-1">
+          <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 py-2">
+            {/* Legend */}
+            <div className="space-y-3 text-xs w-full sm:flex-1">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
@@ -483,9 +490,9 @@ export function AnalyticsClient({
             Critical & Pending Workstreams
           </h2>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
             {/* Filter Tabs */}
-            <div className="flex items-center bg-duston-bg p-0.5 rounded-xl border border-duston-border text-[11px]">
+            <div className="flex items-center bg-duston-bg p-0.5 rounded-xl border border-duston-border text-[11px] overflow-x-auto no-scrollbar w-full sm:w-auto">
               {[
                 { id: "all_pending", label: "All Pending", count: tabCounts.all_pending },
                 { id: "overdue", label: "Overdue Only", count: tabCounts.overdue },
@@ -496,7 +503,7 @@ export function AnalyticsClient({
                   key={tab.id}
                   onClick={() => setTableFilter(tab.id as any)}
                   className={cn(
-                    "px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1.5",
+                    "px-2.5 py-1.5 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0",
                     tableFilter === tab.id
                       ? "bg-white text-duston-dark shadow-xs"
                       : "text-duston-muted hover:text-duston-dark"
@@ -518,7 +525,7 @@ export function AnalyticsClient({
             </div>
 
             {/* Search Input */}
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Search
                 size={13}
                 className="absolute left-2.5 top-1/2 -translate-y-1/2 text-duston-muted"
@@ -528,124 +535,209 @@ export function AnalyticsClient({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search workstreams..."
-                className="pl-8 pr-3 py-1.5 text-xs bg-white border border-duston-border rounded-xl text-duston-text outline-none focus:border-[#1BCECE] focus:ring-1 focus:ring-[#1BCECE] w-48 sm:w-56"
+                className="pl-8 pr-3 py-1.5 text-xs bg-white border border-duston-border rounded-xl text-duston-text outline-none focus:border-[#1BCECE] focus:ring-1 focus:ring-[#1BCECE] w-full sm:w-56"
               />
             </div>
           </div>
         </div>
 
-        {/* Data Table */}
+        {/* Data Table / Mobile Card List */}
         {pendingWorkstreams.length === 0 ? (
           <div className="py-12 text-center text-xs text-duston-muted space-y-1">
             <CheckCircle2 size={24} className="mx-auto text-emerald-500 mb-2" />
             <p className="font-semibold text-duston-dark">No pending workstreams</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
-                  <th className="py-3 px-4 w-12 text-center">#</th>
-                  <th className="py-3 px-4">Action Item</th>
-                  <th className="py-3 px-4">Project</th>
-                  <th className="py-3 px-4">Subsidiary</th>
-                  <th className="py-3 px-4">Deadline</th>
-                  <th className="py-3 px-4">Priority</th>
-                  <th className="py-3 px-4">Responsible</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-duston-border">
-                {pendingWorkstreams.map((item, index) => {
-                  const overdue = isDeadlineOverdue(item.deadline, item.status);
-
-                  return (
-                    <tr
-                      key={item.id}
-                      onClick={() => openActionItem(item.id)}
-                      className="hover:bg-duston-bg/50 transition-colors cursor-pointer group"
-                    >
-                      <td className="py-3 px-4 text-center text-duston-muted font-mono text-[11px]">
-                        {index + 1}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-duston-dark group-hover:text-[#1BCECE] transition-colors max-w-sm">
-                          {item.title}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-duston-muted truncate max-w-[140px]">
-                        {item.projectName}
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-duston-dark">
-                          <span
-                            className="w-2 h-2 rounded-full shrink-0"
-                            style={{ backgroundColor: item.entityBrandColor }}
-                          />
-                          {item.entityName}
+          <>
+            {/* Mobile Card List (< md) */}
+            <div className="md:hidden p-3 space-y-2.5">
+              {pendingWorkstreams.map((item, index) => {
+                const overdue = isDeadlineOverdue(item.deadline, item.status);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => openActionItem(item.id)}
+                    className="p-3.5 rounded-xl border border-duston-border bg-white hover:border-[#1BCECE] space-y-2.5 shadow-2xs cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono font-bold text-duston-muted bg-duston-bg px-1.5 py-0.5 rounded border border-duston-border">
+                          #{index + 1}
                         </span>
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <span className={cn(
-                            "text-[11px] font-medium",
-                            overdue ? "text-rose-600 font-bold" : "text-duston-dark"
-                          )}>
-                            {formatDate(item.deadline)}
-                          </span>
-                          {overdue && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
-                              Overdue
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
                         <PriorityFlag priority={item.priority} showLabel />
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap text-duston-muted">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded-full bg-[#023542] text-white flex items-center justify-center text-[9px] font-bold shrink-0">
-                            {item.assigneeName.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="text-[11px] font-medium text-duston-dark truncate max-w-[100px]">
-                            {item.assigneeName}
-                          </span>
+                      </div>
+                      <span
+                        className={cn(
+                          "px-2.5 py-0.5 rounded-full text-[10px] font-medium border capitalize",
+                          item.status === "in_progress" && "bg-cyan-50 text-cyan-900 border-cyan-200",
+                          item.status === "not_started" && "bg-slate-100 text-slate-700 border-slate-200",
+                          item.status === "done" && "bg-emerald-50 text-emerald-700 border-emerald-200",
+                          item.status === "postponed" && "bg-amber-50 text-amber-800 border-amber-200"
+                        )}
+                      >
+                        {item.status.replace("_", " ")}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h4 className="text-xs font-semibold text-duston-dark group-hover:text-[#1BCECE] transition-colors line-clamp-2 leading-relaxed">
+                        {item.title}
+                      </h4>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                      <span
+                        className="px-2 py-0.5 rounded font-semibold truncate max-w-[130px]"
+                        style={{
+                          backgroundColor: `${item.entityBrandColor}15`,
+                          color: item.entityBrandColor,
+                        }}
+                      >
+                        {item.entityName}
+                      </span>
+                      <span className="text-duston-muted">•</span>
+                      <span className="text-duston-dark font-medium truncate max-w-[160px]">
+                        {item.projectName}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-duston-border/60 text-[11px]">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <div className="w-5 h-5 rounded-full bg-[#023542] text-white flex items-center justify-center text-[9px] font-bold shrink-0">
+                          {item.assigneeName.charAt(0).toUpperCase()}
                         </div>
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap capitalize">
+                        <span className="text-duston-dark font-medium truncate text-xs">
+                          {item.assigneeName}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <span
                           className={cn(
-                            "px-2.5 py-0.5 rounded-full text-[10px] font-medium border",
-                            item.status === "in_progress" && "bg-cyan-50 text-cyan-900 border-cyan-200",
-                            item.status === "not_started" && "bg-slate-100 text-slate-700 border-slate-200",
-                            item.status === "done" && "bg-emerald-50 text-emerald-700 border-emerald-200",
-                            item.status === "postponed" && "bg-amber-50 text-amber-800 border-amber-200"
+                            "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold",
+                            overdue
+                              ? "bg-duston-orange/10 text-duston-orange border border-duston-orange/20"
+                              : "bg-duston-bg text-duston-dark border border-duston-border"
                           )}
                         >
-                          {item.status.replace("_", " ")}
+                          <Clock size={10} />
+                          <span>{formatDate(item.deadline)}</span>
                         </span>
-                      </td>
-                      <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openActionItem(item.id);
-                          }}
-                          className="p-1 rounded-lg text-duston-muted hover:text-[#023542] hover:bg-white border border-transparent hover:border-duston-border transition-colors cursor-pointer"
-                          title="View Action Item"
-                        >
-                          <ChevronRight size={15} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        <ChevronRight size={13} className="text-duston-muted group-hover:translate-x-0.5 transition-transform" />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
+                    <th className="py-3 px-4 w-12 text-center">#</th>
+                    <th className="py-3 px-4">Action Item</th>
+                    <th className="py-3 px-4">Project</th>
+                    <th className="py-3 px-4">Subsidiary</th>
+                    <th className="py-3 px-4">Deadline</th>
+                    <th className="py-3 px-4">Priority</th>
+                    <th className="py-3 px-4">Responsible</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-duston-border">
+                  {pendingWorkstreams.map((item, index) => {
+                    const overdue = isDeadlineOverdue(item.deadline, item.status);
+
+                    return (
+                      <tr
+                        key={item.id}
+                        onClick={() => openActionItem(item.id)}
+                        className="hover:bg-duston-bg/50 transition-colors cursor-pointer group"
+                      >
+                        <td className="py-3 px-4 text-center text-duston-muted font-mono text-[11px]">
+                          {index + 1}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-duston-dark group-hover:text-[#1BCECE] transition-colors max-w-sm">
+                            {item.title}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-duston-muted truncate max-w-[140px]">
+                          {item.projectName}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-duston-dark">
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: item.entityBrandColor }}
+                            />
+                            {item.entityName}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <span className={cn(
+                              "text-[11px] font-medium",
+                              overdue ? "text-rose-600 font-bold" : "text-duston-dark"
+                            )}>
+                              {formatDate(item.deadline)}
+                            </span>
+                            {overdue && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                                Overdue
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <PriorityFlag priority={item.priority} showLabel />
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap text-duston-muted">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-5 h-5 rounded-full bg-[#023542] text-white flex items-center justify-center text-[9px] font-bold shrink-0">
+                              {item.assigneeName.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-[11px] font-medium text-duston-dark truncate max-w-[100px]">
+                              {item.assigneeName}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap capitalize">
+                          <span
+                            className={cn(
+                              "px-2.5 py-0.5 rounded-full text-[10px] font-medium border",
+                              item.status === "in_progress" && "bg-cyan-50 text-cyan-900 border-cyan-200",
+                              item.status === "not_started" && "bg-slate-100 text-slate-700 border-slate-200",
+                              item.status === "done" && "bg-emerald-50 text-emerald-700 border-emerald-200",
+                              item.status === "postponed" && "bg-amber-50 text-amber-800 border-amber-200"
+                            )}
+                          >
+                            {item.status.replace("_", " ")}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openActionItem(item.id);
+                            }}
+                            className="p-1 rounded-lg text-duston-muted hover:text-[#023542] hover:bg-white border border-transparent hover:border-duston-border transition-colors cursor-pointer"
+                            title="View Action Item"
+                          >
+                            <ChevronRight size={15} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {/* Table Footer Summary */}
