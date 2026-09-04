@@ -15,7 +15,11 @@ export const metadata: Metadata = {
   title: "Duston Project Tracker",
   description: "Enterprise project, action item, and cross-subsidiary tracking for Duston Group",
   icons: {
-    icon: "/logo-duston-group.png",
+    icon: [
+      { url: "/duston-mark.png", sizes: "any" },
+      { url: "/duston-mark.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: "/duston-mark.png",
   },
 };
 
