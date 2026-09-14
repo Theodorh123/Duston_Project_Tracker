@@ -313,17 +313,9 @@ export function TodoListClient({
       {/* Minimalist Executive Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-duston-border/60 pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-medium tracking-tight text-duston-dark">
-              {viewingUserName}
-            </h1>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#023542]/10 text-[#023542]">
-              {totalOpen} active
-            </span>
-          </div>
-          <p className="text-xs text-duston-muted mt-0.5">
-            Private, distraction-free daily tasks and reminders • Visible only to you
-          </p>
+          <h1 className="text-xl font-medium tracking-tight text-duston-dark">
+            {viewingUserName}
+          </h1>
         </div>
 
         {/* Admin User Selector */}
