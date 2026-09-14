@@ -566,22 +566,29 @@ export function DashboardClient({
     completed: displayedItems.filter((i) => i.status === "done"),
   };
 
-  const renderTaskItemRow = (item: ActionItemSummary) => (
-    <div
-      key={item.id}
-      onClick={() => openActionItem(item.id)}
-      className="py-2.5 flex items-center justify-between hover:bg-duston-bg px-2 rounded-lg cursor-pointer transition-colors"
-    >
-      <div className="flex items-center gap-3 min-w-0">
-        <input
-          type="checkbox"
-          checked={item.status === "done"}
-          onChange={(e) => handleToggleDone(e, item.id, item.status)}
-          onClick={(e) => e.stopPropagation()}
-          className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer shrink-0"
-        />
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+  const renderTaskItemTableRow = (item: ActionItemSummary) => {
+    const isOverdue = isDeadlineOverdue(item.deadline, item.status);
+    const isToday = item.deadline === todayStr;
+
+    return (
+      <tr
+        key={item.id}
+        onClick={() => openActionItem(item.id)}
+        className="hover:bg-duston-bg/60 transition-colors cursor-pointer group"
+      >
+        {/* Checkbox */}
+        <td className="py-2.5 px-3 w-8" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={item.status === "done"}
+            onChange={(e) => handleToggleDone(e, item.id, item.status)}
+            className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer shrink-0"
+          />
+        </td>
+
+        {/* Action Item Title & Priority */}
+        <td className="py-2.5 px-3">
+          <div className="flex items-center gap-2 flex-wrap min-w-[200px]">
             <span
               className={cn(
                 "text-xs font-medium text-duston-dark",
@@ -591,109 +598,159 @@ export function DashboardClient({
               {item.title}
             </span>
             <PriorityFlag priority={item.priority} />
+            {Boolean(item.commentCount && item.commentCount > 0) && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30">
+                <MessageSquare size={10} className="text-[#1BCECE]" />
+                <span>{item.commentCount}</span>
+              </span>
+            )}
+            {item.tag && (
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                {item.tag}
+              </span>
+            )}
           </div>
-          <div className="text-[11px] text-duston-muted flex items-center gap-2 mt-0.5 flex-wrap">
+        </td>
+
+        {/* Subsidiary */}
+        <td className="py-2.5 px-3 whitespace-nowrap">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-duston-bg text-duston-dark border border-duston-border">
             {item.entityBrandColor && (
               <span
                 className="w-1.5 h-1.5 rounded-full shrink-0"
                 style={{ backgroundColor: item.entityBrandColor }}
               />
             )}
-            <span>{item.entityName}</span>
-            <span>•</span>
-            <span className="truncate max-w-[180px]">{item.projectName}</span>
-            {item.assigneeName && (
-              <>
-                <span>•</span>
-                <span>{item.assigneeName}</span>
-                {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
-                  <span
-                    className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
-                    title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
-                  >
-                    +{item.secondaryAssigneeNames?.length}
-                  </span>
-                )}
-              </>
-            )}
-            {Boolean(item.commentCount && item.commentCount > 0) && (
-              <>
-                <span>•</span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30">
-                  <MessageSquare size={10} className="text-[#1BCECE]" />
-                  <span>{item.commentCount}</span>
-                </span>
-              </>
-            )}
-            {item.tag && (
-              <>
-                <span>•</span>
-                <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
-                  {item.tag}
-                </span>
-              </>
+            <span className="truncate max-w-[130px]">{item.entityName}</span>
+          </span>
+        </td>
+
+        {/* Project */}
+        <td className="py-2.5 px-3 whitespace-nowrap">
+          <span className="text-xs text-duston-dark font-medium truncate max-w-[160px] block">
+            {item.projectName}
+          </span>
+        </td>
+
+        {/* Responsible Party */}
+        <td className="py-2.5 px-3 whitespace-nowrap">
+          <div className="flex items-center gap-1.5 text-xs text-duston-dark font-medium">
+            <div className="w-5 h-5 rounded-full bg-[#023542]/10 text-[#023542] text-[9px] font-semibold flex items-center justify-center shrink-0">
+              {item.assigneeName
+                ? item.assigneeName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()
+                : "U"}
+            </div>
+            <span className="truncate max-w-[120px]">{item.assigneeName}</span>
+            {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+              <span
+                className="px-1 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
+                title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+              >
+                +{item.secondaryAssigneeNames?.length}
+              </span>
             )}
           </div>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
-        {/* Inline Status Dropdown */}
-        <div className="relative inline-block">
-          <select
-            value={item.status}
-            onChange={(e) => handleStatusChange(item.id, e.target.value as any)}
+        </td>
+
+        {/* Deadline */}
+        <td className="py-2.5 px-3 whitespace-nowrap">
+          <span
             className={cn(
-              "px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all border outline-none cursor-pointer appearance-none pr-4.5 shadow-2xs",
-              item.status === "done"
-                ? "bg-[#39B54A]/15 text-[#39B54A] border-[#39B54A]/30 hover:bg-[#39B54A]/25"
-                : item.status === "in_progress"
-                ? "bg-[#1BCECE]/15 text-[#023542] border-[#1BCECE]/30 hover:bg-[#1BCECE]/25"
-                : "bg-duston-bg text-duston-dark border-duston-border hover:bg-duston-border/50"
-            )}
-            title="Change status"
-          >
-            <option value="not_started">Not Started</option>
-            <option value="in_progress">In-Progress</option>
-            <option value="done">Done</option>
-          </select>
-          <ChevronDown
-            size={10}
-            className={cn(
-              "absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none",
-              item.status === "done"
-                ? "text-[#39B54A]"
-                : item.status === "in_progress"
-                ? "text-[#023542]"
+              "text-[11px] font-medium px-2 py-0.5 rounded inline-block",
+              isOverdue
+                ? "text-duston-orange bg-duston-orange/10 font-semibold"
+                : isToday
+                ? "text-duston-dark bg-duston-bg border border-duston-border font-semibold"
                 : "text-duston-muted"
             )}
-          />
-        </div>
+          >
+            {isToday ? "Today" : formatShortDate(item.deadline)}
+          </span>
+        </td>
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleOpenSyncToTodo(item);
-          }}
-          className="p-1 text-duston-muted hover:text-[#023542] hover:bg-duston-bg rounded-lg transition-colors cursor-pointer shrink-0"
-          title="Sync to my To-Do list (customizable)"
-        >
-          <CheckSquare size={13} className="hover:text-[#1BCECE]" />
-        </button>
+        {/* Status */}
+        <td className="py-2.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+          <div className="relative inline-block">
+            <select
+              value={item.status}
+              onChange={(e) => handleStatusChange(item.id, e.target.value as any)}
+              className={cn(
+                "px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all border outline-none cursor-pointer appearance-none pr-4.5 shadow-2xs",
+                item.status === "done"
+                  ? "bg-[#39B54A]/15 text-[#39B54A] border-[#39B54A]/30 hover:bg-[#39B54A]/25"
+                  : item.status === "in_progress"
+                  ? "bg-[#1BCECE]/15 text-[#023542] border-[#1BCECE]/30 hover:bg-[#1BCECE]/25"
+                  : "bg-duston-bg text-duston-dark border-duston-border hover:bg-duston-border/50"
+              )}
+              title="Change status"
+            >
+              <option value="not_started">Not Started</option>
+              <option value="in_progress">In-Progress</option>
+              <option value="done">Done</option>
+            </select>
+            <ChevronDown
+              size={10}
+              className={cn(
+                "absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none",
+                item.status === "done"
+                  ? "text-[#39B54A]"
+                  : item.status === "in_progress"
+                  ? "text-[#023542]"
+                  : "text-duston-muted"
+              )}
+            />
+          </div>
+        </td>
 
-        <span
-          className={cn(
-            "text-[11px] font-medium px-2 py-0.5 rounded",
-            isDeadlineOverdue(item.deadline, item.status)
-              ? "text-duston-orange bg-duston-orange/10"
-              : item.deadline === todayStr
-              ? "text-duston-dark bg-duston-bg border border-duston-border"
-              : "text-duston-muted"
-          )}
-        >
-          {item.deadline === todayStr ? "Today" : formatShortDate(item.deadline)}
-        </span>
-      </div>
+        {/* Actions */}
+        <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => handleOpenSyncToTodo(item)}
+              className="p-1 text-duston-muted hover:text-[#023542] hover:bg-duston-bg rounded transition-colors cursor-pointer"
+              title="Sync to my To-Do list (customizable)"
+            >
+              <CheckSquare size={13} className="text-[#1BCECE]" />
+            </button>
+            <button
+              type="button"
+              onClick={() => openActionItem(item.id)}
+              className="p-1 text-duston-muted hover:text-duston-dark hover:bg-duston-bg rounded transition-colors cursor-pointer"
+              title="View details"
+            >
+              <ChevronRight size={13} />
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
+  const renderTaskTable = (taskList: ActionItemSummary[]) => (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left border-collapse min-w-[700px]">
+        <thead>
+          <tr className="border-b border-duston-border text-[10px] font-semibold text-duston-muted uppercase tracking-wider bg-duston-bg/40">
+            <th className="py-2 px-3 w-8"></th>
+            <th className="py-2 px-3">Action Item</th>
+            <th className="py-2 px-3">Subsidiary</th>
+            <th className="py-2 px-3">Project</th>
+            <th className="py-2 px-3">Responsible Party</th>
+            <th className="py-2 px-3">Deadline</th>
+            <th className="py-2 px-3">Status</th>
+            <th className="py-2 px-3 text-right"></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-duston-border/60 text-xs">
+          {taskList.map(renderTaskItemTableRow)}
+        </tbody>
+      </table>
     </div>
   );
 
@@ -907,9 +964,7 @@ export function DashboardClient({
       </div>
 
       {/* Main Two-Column Layout */}
-      <div id="tasks-section" className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-1">
-        {/* Left Column (2/3 width) */}
-        <div className="lg:col-span-2 space-y-4">
+      <div id="tasks-section" className="space-y-4 pt-1">
           {/* Active Metric Filter Banner */}
           {metricFilter !== "all" && (
             <div className="flex items-center justify-between bg-white border border-duston-border rounded-xl px-4 py-2.5 shadow-subtle animate-in fade-in duration-150">
@@ -1071,31 +1126,27 @@ export function DashboardClient({
             <div className="space-y-4">
               {/* Overdue Section */}
               {groupedTodo.overdue.length > 0 && (
-                <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-2.5 border-b border-duston-border bg-duston-orange/5">
                     <span className="w-2 h-2 rounded-full bg-duston-orange" />
-                    <span className="text-xs font-medium text-duston-orange">
+                    <span className="text-xs font-semibold text-duston-orange">
                       Overdue ({groupedTodo.overdue.length})
                     </span>
                   </div>
-                  <div className="divide-y divide-duston-border">
-                    {groupedTodo.overdue.map(renderTaskItemRow)}
-                  </div>
+                  {renderTaskTable(groupedTodo.overdue)}
                 </div>
               )}
 
               {/* Today Section */}
               {groupedTodo.today.length > 0 && (
-                <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-2.5 border-b border-duston-border bg-[#1BCECE]/5">
                     <span className="w-2 h-2 rounded-full bg-[#1BCECE]" />
-                    <span className="text-xs font-medium text-duston-dark">
+                    <span className="text-xs font-semibold text-duston-dark">
                       Due today ({groupedTodo.today.length})
                     </span>
                   </div>
-                  <div className="divide-y divide-duston-border">
-                    {groupedTodo.today.map(renderTaskItemRow)}
-                  </div>
+                  {renderTaskTable(groupedTodo.today)}
                 </div>
               )}
 
@@ -1112,9 +1163,7 @@ export function DashboardClient({
                     No further tasks due this week.
                   </p>
                 ) : (
-                  <div className="divide-y divide-duston-border">
-                    {groupedTodo.thisWeek.map(renderTaskItemRow)}
-                  </div>
+                  {renderTaskTable(groupedTodo.thisWeek)}
                 )}
               </div>
 
@@ -1127,24 +1176,20 @@ export function DashboardClient({
                       Later ({groupedTodo.later.length})
                     </span>
                   </div>
-                  <div className="divide-y divide-duston-border">
-                    {groupedTodo.later.map(renderTaskItemRow)}
-                  </div>
+                  {renderTaskTable(groupedTodo.later)}
                 </div>
               )}
 
               {/* Completed Section */}
               {groupedTodo.completed.length > 0 && (
-                <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-2.5 border-b border-duston-border bg-[#39B54A]/5">
                     <span className="w-2 h-2 rounded-full bg-[#39B54A]" />
                     <span className="text-xs font-semibold text-[#39B54A]">
                       Completed ({groupedTodo.completed.length})
                     </span>
                   </div>
-                  <div className="divide-y divide-duston-border">
-                    {groupedTodo.completed.map(renderTaskItemRow)}
-                  </div>
+                  {renderTaskTable(groupedTodo.completed)}
                 </div>
               )}
 
@@ -1498,45 +1543,6 @@ export function DashboardClient({
               </div>
             </div>
           )}
-        </div>
-
-        {/* Right Column (1/3 width): Recent Activity */}
-        <div className="space-y-6">
-
-          {/* Recent Activity Card */}
-          <div className="bg-white border border-duston-border rounded-xl p-5 shadow-subtle">
-            <div className="flex items-center justify-between mb-4 border-b border-duston-border pb-3">
-              <div className="flex items-center gap-2">
-                <Clock size={16} strokeWidth={1.5} className="text-[#023542]" />
-                <h2 className="text-xs font-medium text-duston-dark">
-                  Recent activity
-                </h2>
-              </div>
-            </div>
-
-            {recentActivities.length === 0 ? (
-              <p className="text-xs text-duston-muted italic py-3 text-center">
-                No recent activity logged.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {recentActivities.slice(0, 8).map((act) => (
-                  <div key={act.id} className="text-xs space-y-0.5 border-b border-duston-border/60 pb-2.5 last:border-0 last:pb-0">
-                    <div className="text-duston-dark font-medium leading-tight">
-                      {act.actorName}{" "}
-                      <span className="text-duston-muted font-normal">
-                        {act.note || "updated an action item"}
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-duston-muted">
-                      {formatDate(act.createdAt)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Quick Add Action Item Modal */}
