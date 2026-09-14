@@ -1151,28 +1151,28 @@ export function DashboardClient({
               )}
 
               {/* This Week Section */}
-              <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="w-2 h-2 rounded-full bg-duston-amber" />
-                  <span className="text-xs font-medium text-duston-dark">
+              <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-duston-border bg-duston-bg/60">
+                  <span className="w-2 h-2 rounded-full bg-[#FBB03B]" />
+                  <span className="text-xs font-semibold text-duston-dark">
                     Due this week ({groupedTodo.thisWeek.length})
                   </span>
                 </div>
                 {groupedTodo.thisWeek.length === 0 ? (
-                  <p className="text-xs text-duston-muted italic py-2">
+                  <p className="text-xs text-duston-muted italic p-4 text-center">
                     No further tasks due this week.
                   </p>
                 ) : (
-                  {renderTaskTable(groupedTodo.thisWeek)}
+                  renderTaskTable(groupedTodo.thisWeek)
                 )}
               </div>
 
               {/* Later Section */}
               {groupedTodo.later.length > 0 && (
-                <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="w-2 h-2 rounded-full bg-duston-muted" />
-                    <span className="text-xs font-medium text-duston-muted">
+                <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-2.5 border-b border-duston-border bg-duston-bg/40">
+                    <span className="w-2 h-2 rounded-full bg-slate-400" />
+                    <span className="text-xs font-semibold text-duston-muted">
                       Later ({groupedTodo.later.length})
                     </span>
                   </div>
