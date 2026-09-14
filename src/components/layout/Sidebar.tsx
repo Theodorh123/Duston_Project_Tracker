@@ -7,6 +7,7 @@ import {
   ClipboardList,
   FolderKanban,
   CalendarDays,
+  CheckSquare,
   ShieldAlert,
   BarChart3,
   PieChart,
@@ -34,6 +35,7 @@ export function Sidebar({ userRole = "contributor", isOpenMobile, onCloseMobile 
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Projects", href: "/projects", icon: FolderKanban },
     { name: "Meetings", href: "/meetings", icon: CalendarDays },
+    { name: "To-Do list", href: "/todos", icon: CheckSquare },
   ];
 
   const viewsNav = [

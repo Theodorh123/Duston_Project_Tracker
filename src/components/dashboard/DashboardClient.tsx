@@ -11,6 +11,7 @@ import {
   Columns3,
   Calendar,
   ChevronRight,
+  ChevronDown,
   ExternalLink,
   Plus,
   X,
@@ -417,18 +418,31 @@ export function DashboardClient({
     setIsSubmittingQuickAdd(false);
   };
 
+  const handleStatusChange = async (itemId: string, newStatus: "not_started" | "in_progress" | "done") => {
+    setItems((prev) =>
+      prev.map((it) => (it.id === itemId ? { ...it, status: newStatus } : it))
+    );
+
+    try {
+      await fetch(`/api/action-items/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("action-item-updated", { detail: { id: itemId, status: newStatus } })
+        );
+      }
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    }
+  };
+
   const handleToggleDone = async (e: React.SyntheticEvent, itemId: string, currentStatus: string) => {
     e.stopPropagation();
     const newStatus = currentStatus === "done" ? "in_progress" : "done";
-    setItems((prev) =>
-      prev.map((it) => (it.id === itemId ? { ...it, status: newStatus as any } : it))
-    );
-
-    await fetch(`/api/action-items/${itemId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus }),
-    });
+    await handleStatusChange(itemId, newStatus);
   };
 
   const handleDropItem = async (
@@ -613,7 +627,39 @@ export function DashboardClient({
           </div>
         </div>
       </div>
-      <div className="text-right shrink-0 ml-2">
+      <div className="flex items-center gap-2 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
+        {/* Inline Status Dropdown */}
+        <div className="relative inline-block">
+          <select
+            value={item.status}
+            onChange={(e) => handleStatusChange(item.id, e.target.value as any)}
+            className={cn(
+              "px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all border outline-none cursor-pointer appearance-none pr-4.5 shadow-2xs",
+              item.status === "done"
+                ? "bg-[#39B54A]/15 text-[#39B54A] border-[#39B54A]/30 hover:bg-[#39B54A]/25"
+                : item.status === "in_progress"
+                ? "bg-[#1BCECE]/15 text-[#023542] border-[#1BCECE]/30 hover:bg-[#1BCECE]/25"
+                : "bg-duston-bg text-duston-dark border-duston-border hover:bg-duston-border/50"
+            )}
+            title="Change status"
+          >
+            <option value="not_started">Not Started</option>
+            <option value="in_progress">In-Progress</option>
+            <option value="done">Done</option>
+          </select>
+          <ChevronDown
+            size={10}
+            className={cn(
+              "absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none",
+              item.status === "done"
+                ? "text-[#39B54A]"
+                : item.status === "in_progress"
+                ? "text-[#023542]"
+                : "text-duston-muted"
+            )}
+          />
+        </div>
+
         <span
           className={cn(
             "text-[11px] font-medium px-2 py-0.5 rounded",

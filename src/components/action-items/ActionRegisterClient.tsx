@@ -13,6 +13,7 @@ import {
   Calendar,
   X,
   ChevronRight,
+  ChevronDown,
   Flag,
   MessageSquare,
   Edit2,
@@ -297,17 +298,16 @@ export function ActionRegisterClient({
 
   const isPrivileged = ["admin", "ceo", "ea"].includes(userRole || "");
 
-  // Quick toggle item status (Done <-> In Progress)
-  const handleToggleStatus = async (item: RegisterItem) => {
+  // Quick change item status (Not Started / In-Progress / Done) with instant local & global refresh
+  const handleChangeStatus = async (item: RegisterItem, newStatus: string) => {
     const canEdit = isPrivileged || (Boolean(item.createdBy) && item.createdBy === currentUserId);
     if (!canEdit) {
       alert("Permission denied: Only EA, Admin, CEO, or the person who created this action item can amend its status.");
       return;
     }
 
-    const newStatus = item.status === "done" ? "in_progress" : "done";
     setItems((prev) =>
-      prev.map((it) => (it.id === item.id ? { ...it, status: newStatus } : it))
+      prev.map((it) => (it.id === item.id ? { ...it, status: newStatus as any } : it))
     );
 
     try {
@@ -319,13 +319,23 @@ export function ActionRegisterClient({
         );
         return;
       }
-      router.refresh();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("action-item-updated", { detail: { id: item.id, status: newStatus } })
+        );
+      }
     } catch (err) {
-      console.error("Failed to toggle status:", err);
+      console.error("Failed to update status:", err);
       setItems((prev) =>
         prev.map((it) => (it.id === item.id ? { ...it, status: item.status } : it))
       );
     }
+  };
+
+  // Quick toggle item status (Done <-> In Progress)
+  const handleToggleStatus = async (item: RegisterItem) => {
+    const next = item.status === "done" ? "in_progress" : "done";
+    await handleChangeStatus(item, next);
   };
 
   // Export filtered register to CSV
@@ -397,6 +407,7 @@ export function ActionRegisterClient({
       (item.tag.toLowerCase().includes("follow-up") ||
         item.tag.toLowerCase().includes("external") ||
         item.tag.toLowerCase().includes("counterparty"));
+    const canEdit = isPrivileged || (Boolean(item.createdBy) && item.createdBy === currentUserId);
 
     return (
       <tr
@@ -517,37 +528,38 @@ export function ActionRegisterClient({
 
         {/* 6. Status with Inline Quick Toggle */}
         <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => handleToggleStatus(item)}
-            className={cn(
-              "px-2.5 py-1 rounded-full text-[10px] font-medium inline-flex items-center gap-1.5 transition-all cursor-pointer",
-              item.status === "done"
-                ? "bg-[#39B54A]/15 text-[#39B54A] hover:bg-[#39B54A]/25"
-                : item.status === "in_progress"
-                ? "bg-[#1BCECE]/15 text-[#023542] hover:bg-[#1BCECE]/25"
-                : "bg-duston-bg text-duston-muted border border-duston-border hover:bg-duston-border/50"
-            )}
-            title="Toggle status"
-          >
-            <span
+          <div className="relative inline-block">
+            <select
+              value={item.status}
+              disabled={!canEdit}
+              onChange={(e) => handleChangeStatus(item, e.target.value)}
               className={cn(
-                "w-1.5 h-1.5 rounded-full",
+                "px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all border outline-none cursor-pointer appearance-none pr-5.5 shadow-2xs",
                 item.status === "done"
-                  ? "bg-[#39B54A]"
+                  ? "bg-[#39B54A]/15 text-[#39B54A] border-[#39B54A]/30 hover:bg-[#39B54A]/25"
                   : item.status === "in_progress"
-                  ? "bg-[#1BCECE]"
-                  : "bg-duston-muted"
+                  ? "bg-[#1BCECE]/15 text-[#023542] border-[#1BCECE]/30 hover:bg-[#1BCECE]/25"
+                  : "bg-duston-bg text-duston-dark border-duston-border hover:bg-duston-border/50",
+                !canEdit && "opacity-75 cursor-not-allowed"
+              )}
+              title={canEdit ? "Click to change status" : "Status (read-only)"}
+            >
+              <option value="not_started">Not Started</option>
+              <option value="in_progress">In-Progress</option>
+              <option value="done">Done</option>
+            </select>
+            <ChevronDown
+              size={11}
+              className={cn(
+                "absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none",
+                item.status === "done"
+                  ? "text-[#39B54A]"
+                  : item.status === "in_progress"
+                  ? "text-[#023542]"
+                  : "text-duston-muted"
               )}
             />
-            <span>
-              {item.status === "done"
-                ? "Done"
-                : item.status === "in_progress"
-                ? "In progress"
-                : "Not started"}
-            </span>
-          </button>
+          </div>
         </td>
 
         {/* 7. Project & Subsidiary */}

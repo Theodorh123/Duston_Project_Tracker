@@ -146,6 +146,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     references: [userPreferences.userId],
   }),
   notifications: many(notifications),
+  todos: many(userTodos),
 }));
 
 // 3. User Entity Access
@@ -446,6 +447,31 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+// 12. User To-Dos (Personal To-Do List with Reminders)
+export const userTodos = pgTable("user_todos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  notes: text("notes"),
+  isCompleted: boolean("is_completed").notNull().default(false),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  dueDate: date("due_date"),
+  reminderTime: timestamp("reminder_time", { withTimezone: true }),
+  priority: priorityEnum("priority").notNull().default("medium"),
+  category: text("category").default("General"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const userTodosRelations = relations(userTodos, ({ one }) => ({
+  user: one(users, {
+    fields: [userTodos.userId],
+    references: [users.id],
+  }),
+}));
+
 // Types
 export type Entity = typeof entities.$inferSelect;
 export type NewEntity = typeof entities.$inferInsert;
@@ -462,3 +488,5 @@ export type Comment = typeof comments.$inferSelect;
 export type ActivityLogItem = typeof activityLog.$inferSelect;
 export type UserPreference = typeof userPreferences.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type UserTodo = typeof userTodos.$inferSelect;
+export type NewUserTodo = typeof userTodos.$inferInsert;
