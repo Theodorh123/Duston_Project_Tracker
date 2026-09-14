@@ -304,17 +304,17 @@ export function TodoListClient({
       {/* Minimal Quick-Add Bar */}
       <form
         onSubmit={handleCreateTodo}
-        className="bg-white border border-duston-border rounded-2xl p-2.5 sm:p-3 shadow-subtle space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2 transition-all focus-within:border-[#023542] focus-within:ring-2 focus-within:ring-[#023542]/10"
+        className="bg-white border border-duston-border rounded-xl px-3 py-2 shadow-2xs space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2 transition-colors focus-within:border-[#023542]"
       >
         {/* Action Title Input */}
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <CheckSquare size={16} className="text-[#1BCECE] shrink-0 ml-1" />
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          <CheckSquare size={16} className="text-[#1BCECE] shrink-0" />
           <input
             type="text"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="Action to be done... (press Enter to add)"
-            className="w-full text-xs sm:text-sm bg-transparent border-none focus:ring-0 placeholder:text-duston-muted/70 text-duston-dark font-medium"
+            className="w-full text-xs sm:text-sm bg-transparent border-0 border-none outline-none focus:outline-none focus:ring-0 placeholder:text-duston-muted/70 text-duston-dark font-medium p-0 m-0 shadow-none"
           />
         </div>
 

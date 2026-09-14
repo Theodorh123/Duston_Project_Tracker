@@ -988,36 +988,6 @@ export function DashboardClient({
                   <span>Planner</span>
                 </button>
               </div>
-
-              {/* In-toolbar quick scope switcher */}
-              <div className="hidden md:flex items-center gap-1 bg-duston-bg p-0.5 rounded-xl border border-duston-border text-xs">
-                <button
-                  type="button"
-                  onClick={() => setScope("all")}
-                  className={cn(
-                    "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1",
-                    scope === "all"
-                      ? "bg-[#023542] text-white shadow-xs font-semibold"
-                      : "text-duston-muted hover:text-duston-dark"
-                  )}
-                >
-                  <Building2 size={11} />
-                  <span>All ({allCount})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScope("my")}
-                  className={cn(
-                    "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1",
-                    scope === "my"
-                      ? "bg-[#023542] text-white shadow-xs font-semibold"
-                      : "text-duston-muted hover:text-duston-dark"
-                  )}
-                >
-                  <User size={11} />
-                  <span>My Tasks ({myCount})</span>
-                </button>
-              </div>
             </div>
 
             {/* Action Buttons: 2 columns on mobile, never squished */}
