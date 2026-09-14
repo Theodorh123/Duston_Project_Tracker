@@ -592,7 +592,7 @@ export function DashboardClient({
             <span
               className={cn(
                 "text-xs font-medium text-duston-dark",
-                item.status === "done" && "line-through text-duston-muted"
+                item.status === "done" && "text-duston-muted"
               )}
             >
               {item.title}

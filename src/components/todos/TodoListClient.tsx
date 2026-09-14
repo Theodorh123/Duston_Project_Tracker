@@ -532,7 +532,7 @@ export function TodoListClient({
                       onClick={() => handleStartEdit(todo)}
                       className={cn(
                         "text-xs font-medium cursor-pointer hover:underline text-duston-dark",
-                        todo.status === "done" && "line-through text-duston-muted"
+                        todo.status === "done" && "text-duston-muted"
                       )}
                       title="Click to edit action"
                     >
