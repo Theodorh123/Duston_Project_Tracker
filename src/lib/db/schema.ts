@@ -453,6 +453,9 @@ export const userTodos = pgTable("user_todos", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  entityId: uuid("entity_id")
+    .notNull()
+    .references(() => entities.id, { onDelete: "cascade" }),
   projectId: uuid("project_id").references(() => projects.id, {
     onDelete: "set null",
   }),
@@ -473,6 +476,10 @@ export const userTodosRelations = relations(userTodos, ({ one }) => ({
   user: one(users, {
     fields: [userTodos.userId],
     references: [users.id],
+  }),
+  entity: one(entities, {
+    fields: [userTodos.entityId],
+    references: [entities.id],
   }),
   project: one(projects, {
     fields: [userTodos.projectId],

@@ -8,8 +8,7 @@ import {
   Trash2,
   ChevronDown,
   User,
-  Folder,
-  Edit2,
+  Building2,
   Check,
   X,
 } from "lucide-react";
@@ -23,16 +22,21 @@ import {
   getUserTodos,
 } from "@/lib/actions/todos";
 
+export interface EntityOption {
+  id: string;
+  name: string;
+  brandPrimaryColor?: string;
+}
+
 export interface ProjectOption {
   id: string;
   name: string;
   entityId: string;
-  entityName: string;
-  entityBrandColor?: string;
 }
 
 interface TodoListClientProps {
   initialTodos: TodoItemData[];
+  entities: EntityOption[];
   projects: ProjectOption[];
   currentUserId: string;
   currentUserName: string;
@@ -43,6 +47,7 @@ interface TodoListClientProps {
 
 export function TodoListClient({
   initialTodos,
+  entities = [],
   projects = [],
   currentUserId,
   currentUserName,
@@ -57,6 +62,7 @@ export function TodoListClient({
 
   // Minimal Quick-Add State
   const [newTitle, setNewTitle] = useState("");
+  const [newEntityId, setNewEntityId] = useState<string>(entities[0]?.id || "");
   const [newProjectId, setNewProjectId] = useState<string>("");
   const [newDeadline, setNewDeadline] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,11 +70,24 @@ export function TodoListClient({
   // Inline Editing State
   const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+  const [editEntityId, setEditEntityId] = useState<string>("");
   const [editProjectId, setEditProjectId] = useState<string>("");
   const [editDeadline, setEditDeadline] = useState<string>("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const todayStr = new Date().toISOString().split("T")[0];
+
+  // Available projects for the currently selected new subsidiary
+  const availableProjectsForNew = useMemo(() => {
+    if (!newEntityId) return [];
+    return projects.filter((p) => p.entityId === newEntityId);
+  }, [projects, newEntityId]);
+
+  // Available projects for edit subsidiary
+  const availableProjectsForEdit = useMemo(() => {
+    if (!editEntityId) return [];
+    return projects.filter((p) => p.entityId === editEntityId);
+  }, [projects, editEntityId]);
 
   // Admin switch team member
   const handleSwitchUser = async (targetUserId: string) => {
@@ -89,10 +108,11 @@ export function TodoListClient({
   // Create Todo
   const handleCreateTodo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    if (!newTitle.trim() || !newEntityId) return;
 
     setIsSubmitting(true);
     const targetUser = isAdmin && selectedUserFilter !== currentUserId ? selectedUserFilter : currentUserId;
+    const selectedEnt = entities.find((e) => e.id === newEntityId);
     const selectedProj = projects.find((p) => p.id === newProjectId);
 
     const tempId = "temp-" + Date.now();
@@ -100,10 +120,11 @@ export function TodoListClient({
       id: tempId,
       userId: targetUser,
       title: newTitle.trim(),
+      entityId: newEntityId,
+      entityName: selectedEnt?.name || "Subsidiary",
+      entityBrandColor: selectedEnt?.brandPrimaryColor || null,
       projectId: newProjectId || null,
       projectName: selectedProj?.name || null,
-      entityName: selectedProj?.entityName || null,
-      entityBrandColor: selectedProj?.entityBrandColor || null,
       dueDate: newDeadline || null,
       status: "not_started",
       isCompleted: false,
@@ -121,6 +142,7 @@ export function TodoListClient({
     try {
       const res = await createTodo({
         title: optimisticItem.title,
+        entityId: optimisticItem.entityId,
         projectId: optimisticItem.projectId,
         dueDate: optimisticItem.dueDate,
         status: "not_started",
@@ -185,16 +207,18 @@ export function TodoListClient({
   const handleStartEdit = (todo: TodoItemData) => {
     setEditingTodoId(todo.id);
     setEditTitle(todo.title);
+    setEditEntityId(todo.entityId);
     setEditProjectId(todo.projectId || "");
     setEditDeadline(todo.dueDate || "");
   };
 
   // Save Edit
   const handleSaveEdit = async (todoId: string) => {
-    if (!editTitle.trim()) return;
+    if (!editTitle.trim() || !editEntityId) return;
     setIsSavingEdit(true);
 
-    const selectedProj = projects.find((p) => p.id === editProjectId);
+    const selectedEnt = entities.find((e) => e.id === editEntityId);
+    const selectedProj = projects.find((p) => p.id === editProjectId && p.entityId === editEntityId);
 
     setTodos((prev) =>
       prev.map((t) =>
@@ -202,10 +226,11 @@ export function TodoListClient({
           ? {
               ...t,
               title: editTitle.trim(),
-              projectId: editProjectId || null,
-              projectName: selectedProj?.name || null,
-              entityName: selectedProj?.entityName || null,
-              entityBrandColor: selectedProj?.entityBrandColor || null,
+              entityId: editEntityId,
+              entityName: selectedEnt?.name || "Subsidiary",
+              entityBrandColor: selectedEnt?.brandPrimaryColor || null,
+              projectId: selectedProj ? selectedProj.id : null,
+              projectName: selectedProj ? selectedProj.name : null,
               dueDate: editDeadline || null,
             }
           : t
@@ -217,7 +242,8 @@ export function TodoListClient({
     try {
       await updateTodo(todoId, {
         title: editTitle.trim(),
-        projectId: editProjectId || null,
+        entityId: editEntityId,
+        projectId: selectedProj ? selectedProj.id : null,
         dueDate: editDeadline || null,
       });
     } catch (err) {
@@ -280,6 +306,7 @@ export function TodoListClient({
         onSubmit={handleCreateTodo}
         className="bg-white border border-duston-border rounded-2xl p-2.5 sm:p-3 shadow-subtle space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2 transition-all focus-within:border-[#023542] focus-within:ring-2 focus-within:ring-[#023542]/10"
       >
+        {/* Action Title Input */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <CheckSquare size={16} className="text-[#1BCECE] shrink-0 ml-1" />
           <input
@@ -292,16 +319,37 @@ export function TodoListClient({
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+          {/* Required Subsidiary */}
+          <div className="relative">
+            <select
+              value={newEntityId}
+              onChange={(e) => {
+                setNewEntityId(e.target.value);
+                setNewProjectId(""); // reset project if subsidiary changes
+              }}
+              required
+              className="text-xs py-1.5 px-2.5 rounded-lg border border-duston-border bg-duston-bg/40 text-duston-dark focus:outline-none focus:border-[#023542] cursor-pointer appearance-none pr-6 font-medium max-w-[150px] truncate"
+              title="Required Subsidiary"
+            >
+              {entities.map((ent) => (
+                <option key={ent.id} value={ent.id}>
+                  {ent.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
+          </div>
+
           {/* Optional Project */}
           <div className="relative">
             <select
               value={newProjectId}
               onChange={(e) => setNewProjectId(e.target.value)}
-              className="text-xs py-1.5 px-2.5 rounded-lg border border-duston-border bg-duston-bg/40 text-duston-dark focus:outline-none focus:border-[#023542] cursor-pointer appearance-none pr-6 font-medium max-w-[160px] truncate"
-              title="Optional project"
+              className="text-xs py-1.5 px-2.5 rounded-lg border border-duston-border bg-duston-bg/40 text-duston-dark focus:outline-none focus:border-[#023542] cursor-pointer appearance-none pr-6 font-medium max-w-[140px] truncate"
+              title="Optional Project"
             >
               <option value="">No Project</option>
-              {projects.map((p) => (
+              {availableProjectsForNew.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
@@ -324,7 +372,7 @@ export function TodoListClient({
           {/* Add Button */}
           <button
             type="submit"
-            disabled={isSubmitting || !newTitle.trim()}
+            disabled={isSubmitting || !newTitle.trim() || !newEntityId}
             className="px-3.5 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white disabled:opacity-40 rounded-lg text-xs font-medium transition-colors shadow-2xs cursor-pointer flex items-center gap-1 shrink-0"
           >
             <Plus size={13} strokeWidth={2} />
@@ -401,19 +449,38 @@ export function TodoListClient({
                     autoFocus
                   />
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Edit Subsidiary (Required) */}
+                      <select
+                        value={editEntityId}
+                        onChange={(e) => {
+                          setEditEntityId(e.target.value);
+                          setEditProjectId("");
+                        }}
+                        required
+                        className="text-xs p-1.5 rounded-lg border border-duston-border bg-white text-duston-dark focus:outline-none font-medium"
+                      >
+                        {entities.map((ent) => (
+                          <option key={ent.id} value={ent.id}>
+                            {ent.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Edit Project (Optional) */}
                       <select
                         value={editProjectId}
                         onChange={(e) => setEditProjectId(e.target.value)}
                         className="text-xs p-1.5 rounded-lg border border-duston-border bg-white text-duston-dark focus:outline-none"
                       >
                         <option value="">No Project</option>
-                        {projects.map((p) => (
+                        {availableProjectsForEdit.map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.name}
                           </option>
                         ))}
                       </select>
+
                       <input
                         type="date"
                         value={editDeadline}
@@ -425,7 +492,7 @@ export function TodoListClient({
                       <button
                         type="button"
                         onClick={() => handleSaveEdit(todo.id)}
-                        disabled={isSavingEdit || !editTitle.trim()}
+                        disabled={isSavingEdit || !editTitle.trim() || !editEntityId}
                         className="px-2.5 py-1 bg-[#023542] text-white text-xs rounded-lg font-medium hover:bg-[#1BCECE] transition-colors flex items-center gap-1 cursor-pointer"
                       >
                         <Check size={12} />
@@ -452,7 +519,7 @@ export function TodoListClient({
                   todo.status === "done" && "bg-duston-bg/20"
                 )}
               >
-                {/* Left: Checkbox & Title */}
+                {/* Left: Checkbox, Title, Subsidiary & Optional Project */}
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <input
                     type="checkbox"
@@ -472,8 +539,8 @@ export function TodoListClient({
                       {todo.title}
                     </span>
 
-                    {/* Optional Project Pill */}
-                    {todo.projectName && (
+                    {/* Required Subsidiary Pill */}
+                    {todo.entityName && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-duston-bg text-duston-dark border border-duston-border shrink-0">
                         {todo.entityBrandColor && (
                           <span
@@ -481,7 +548,14 @@ export function TodoListClient({
                             style={{ backgroundColor: todo.entityBrandColor }}
                           />
                         )}
-                        <span className="truncate max-w-[130px]">{todo.projectName}</span>
+                        <span className="truncate max-w-[120px]">{todo.entityName}</span>
+                      </span>
+                    )}
+
+                    {/* Optional Project Pill */}
+                    {todo.projectName && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#023542]/5 text-[#023542] border border-[#023542]/15 shrink-0">
+                        <span className="truncate max-w-[130px]">• {todo.projectName}</span>
                       </span>
                     )}
                   </div>

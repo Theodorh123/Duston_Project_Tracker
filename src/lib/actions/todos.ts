@@ -2,7 +2,7 @@
 
 import { db } from "../db";
 import { userTodos, users, projects, entities } from "../db/schema";
-import { eq, desc, asc, and } from "drizzle-orm";
+import { eq, desc, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 
@@ -11,10 +11,11 @@ export interface TodoItemData {
   userId: string;
   userName?: string;
   title: string;
+  entityId: string;
+  entityName: string;
+  entityBrandColor?: string | null;
   projectId?: string | null;
   projectName?: string | null;
-  entityName?: string | null;
-  entityBrandColor?: string | null;
   dueDate?: string | null;
   status: "not_started" | "in_progress" | "done";
   isCompleted: boolean;
@@ -40,11 +41,8 @@ export async function getUserTodos(targetUserId?: string): Promise<{ success: bo
       where: eq(userTodos.userId, queryUserId),
       with: {
         user: true,
-        project: {
-          with: {
-            entity: true,
-          },
-        },
+        entity: true,
+        project: true,
       },
       orderBy: [
         asc(userTodos.isCompleted),
@@ -66,10 +64,11 @@ export async function getUserTodos(targetUserId?: string): Promise<{ success: bo
         userId: item.userId,
         userName: item.user?.name || "User",
         title: item.title,
+        entityId: item.entityId,
+        entityName: item.entity?.name || "Subsidiary",
+        entityBrandColor: item.entity?.brandPrimaryColor || null,
         projectId: item.projectId,
         projectName: item.project?.name || null,
-        entityName: item.project?.entity?.name || null,
-        entityBrandColor: item.project?.entity?.brandPrimaryColor || null,
         dueDate: item.dueDate,
         status: statusValue,
         isCompleted: statusValue === "done",
@@ -87,6 +86,7 @@ export async function getUserTodos(targetUserId?: string): Promise<{ success: bo
 
 export async function createTodo(data: {
   title: string;
+  entityId: string;
   projectId?: string | null;
   dueDate?: string | null;
   status?: "not_started" | "in_progress" | "done";
@@ -108,6 +108,10 @@ export async function createTodo(data: {
       return { success: false, error: "Action is required" };
     }
 
+    if (!data.entityId) {
+      return { success: false, error: "Subsidiary is required" };
+    }
+
     const statusValue = data.status || "not_started";
     const isCompleted = statusValue === "done";
 
@@ -116,6 +120,7 @@ export async function createTodo(data: {
       .values({
         userId: assignedUserId,
         title: data.title.trim(),
+        entityId: data.entityId,
         projectId: data.projectId || null,
         dueDate: data.dueDate || null,
         status: statusValue as any,
@@ -124,20 +129,18 @@ export async function createTodo(data: {
       })
       .returning();
 
-    // Fetch project info if attached
-    let projectName: string | null = null;
-    let entityName: string | null = null;
-    let entityBrandColor: string | null = null;
+    // Fetch entity and optional project details
+    const ent = await db.query.entities.findFirst({
+      where: eq(entities.id, newTodo.entityId),
+    });
 
+    let projectName: string | null = null;
     if (newTodo.projectId) {
       const proj = await db.query.projects.findFirst({
         where: eq(projects.id, newTodo.projectId),
-        with: { entity: true },
       });
       if (proj) {
         projectName = proj.name;
-        entityName = proj.entity?.name || null;
-        entityBrandColor = proj.entity?.brandPrimaryColor || null;
       }
     }
 
@@ -150,10 +153,11 @@ export async function createTodo(data: {
         id: newTodo.id,
         userId: newTodo.userId,
         title: newTodo.title,
+        entityId: newTodo.entityId,
+        entityName: ent?.name || "Subsidiary",
+        entityBrandColor: ent?.brandPrimaryColor || null,
         projectId: newTodo.projectId,
         projectName,
-        entityName,
-        entityBrandColor,
         dueDate: newTodo.dueDate,
         status: (newTodo.status as any) || statusValue,
         isCompleted,
@@ -227,6 +231,7 @@ export async function updateTodo(
   todoId: string,
   data: {
     title?: string;
+    entityId?: string;
     projectId?: string | null;
     dueDate?: string | null;
     status?: "not_started" | "in_progress" | "done";
@@ -259,6 +264,7 @@ export async function updateTodo(
     };
 
     if (data.title !== undefined) updatePayload.title = data.title.trim();
+    if (data.entityId !== undefined) updatePayload.entityId = data.entityId;
     if (data.projectId !== undefined) updatePayload.projectId = data.projectId || null;
     if (data.dueDate !== undefined) updatePayload.dueDate = data.dueDate || null;
     if (data.status !== undefined) {
