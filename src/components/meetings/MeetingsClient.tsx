@@ -28,6 +28,7 @@ interface MeetingsClientProps {
   projects?: Array<{ id: string; name: string; entityId: string; entityName?: string }>;
   users: Array<{ id: string; name: string }>;
   currentUserId: string;
+  userRole?: string;
 }
 
 export function MeetingsClient({
@@ -36,12 +37,15 @@ export function MeetingsClient({
   projects = [],
   users,
   currentUserId,
+  userRole,
 }: MeetingsClientProps) {
   const router = useRouter();
   const { selectedEntityId } = useAppShell();
   const [selectedAttendee, setSelectedAttendee] = useState<string>("all");
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const canImportRegister = Boolean(userRole && ["admin", "ea"].includes(userRole));
 
   const filteredMeetings = useMemo(() => {
     return meetings.filter((m) => {
@@ -65,14 +69,16 @@ export function MeetingsClient({
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <button
-            onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 bg-white border border-duston-border hover:border-[#023542] text-duston-dark rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer"
-            title="Import action register from Excel or PDF"
-          >
-            <FileSpreadsheet size={15} className="text-[#1BCECE]" />
-            <span>Import register</span>
-          </button>
+          {canImportRegister && (
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2 bg-white border border-duston-border hover:border-[#023542] text-duston-dark rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+              title="Import action register from Excel or PDF"
+            >
+              <FileSpreadsheet size={15} className="text-[#1BCECE]" />
+              <span>Import action item register</span>
+            </button>
+          )}
 
           <button
             onClick={() => setIsNewMeetingOpen(true)}

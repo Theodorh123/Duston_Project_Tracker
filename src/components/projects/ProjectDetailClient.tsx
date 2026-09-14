@@ -74,6 +74,7 @@ interface ProjectDetailProps {
   }>;
   users: Array<{ id: string; name: string }>;
   currentUserId: string;
+  userRole?: string;
 }
 
 export function ProjectDetailClient({
@@ -83,6 +84,7 @@ export function ProjectDetailClient({
   activityLogs,
   users,
   currentUserId,
+  userRole,
 }: ProjectDetailProps) {
   const { openActionItem } = useAppShell();
   const router = useRouter();
@@ -92,6 +94,8 @@ export function ProjectDetailClient({
   const [isNewItemModalOpen, setIsNewItemModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [itemsList, setItemsList] = useState(actionItems);
+
+  const canImportRegister = Boolean(userRole && ["admin", "ea"].includes(userRole));
 
   useEffect(() => {
     setItemsList(actionItems);
@@ -357,14 +361,16 @@ export function ProjectDetailClient({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsImportModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 border border-duston-border bg-white text-duston-dark hover:border-[#023542] rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer"
-              title="Import action register from Excel (.xlsx, .csv) or PDF"
-            >
-              <FileSpreadsheet size={15} className="text-[#1BCECE]" />
-              <span>Import register</span>
-            </button>
+            {canImportRegister && (
+              <button
+                onClick={() => setIsImportModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 border border-duston-border bg-white text-duston-dark hover:border-[#023542] rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+                title="Import action register from Excel (.xlsx, .csv) or PDF"
+              >
+                <FileSpreadsheet size={15} className="text-[#1BCECE]" />
+                <span>Import action item register</span>
+              </button>
+            )}
             <button
               onClick={() => setActiveTab("details")}
               className="px-3.5 py-2 border border-duston-border bg-white text-duston-dark hover:bg-duston-bg rounded-xl text-xs font-medium transition-colors"

@@ -369,7 +369,7 @@ export function ImportRegisterModal({
             </div>
             <div>
               <h2 className="text-sm font-semibold text-duston-dark">
-                Import Action Register
+                Import Action Item Register
               </h2>
               <p className="text-[11px] text-duston-muted">
                 Extract deliverables from Excel (.xlsx, .csv), PDF minutes, or tabular text

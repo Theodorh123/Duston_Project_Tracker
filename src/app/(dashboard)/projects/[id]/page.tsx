@@ -135,6 +135,7 @@ export default async function ProjectDetailPage({
       }))}
       users={allUsers.map((u) => ({ id: u.id, name: u.name }))}
       currentUserId={userId}
+      userRole={(session?.user as any)?.role}
     />
   );
 }

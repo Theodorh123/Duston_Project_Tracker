@@ -31,6 +31,7 @@ import { createActionItem } from "@/lib/actions/action-items";
 import { quickCreateUser, quickCreateEntity } from "@/lib/actions/admin";
 import { createProject } from "@/lib/actions/projects";
 import { ImportRegisterModal } from "@/components/action-items/ImportRegisterModal";
+import { SyncToTodoModal } from "@/components/todos/SyncToTodoModal";
 import { PriorityFlag } from "@/components/ui/PriorityFlag";
 
 export interface ActionItemSummary {
@@ -102,6 +103,7 @@ export function DashboardClient({
   initialFilter = "all",
 }: DashboardClientProps) {
   const { selectedEntityId, openActionItem } = useAppShell();
+  const canImportRegister = Boolean(userRole && ["admin", "ea"].includes(userRole));
   const [currentView, setCurrentView] = useState<"todo" | "kanban" | "planner">(defaultView);
   const [priorityFilter, setPriorityFilter] = useState<"all" | "critical" | "high" | "medium" | "low">("all");
   const [items, setItems] = useState<ActionItemSummary[]>(initialItems);
@@ -230,6 +232,13 @@ export function DashboardClient({
 
   // Quick Add Task modal state
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [syncModalItem, setSyncModalItem] = useState<ActionItemSummary | null>(null);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+
+  const handleOpenSyncToTodo = (item: ActionItemSummary) => {
+    setSyncModalItem(item);
+    setIsSyncModalOpen(true);
+  };
   const [quickAddTitle, setQuickAddTitle] = useState("");
   const [quickAddComments, setQuickAddComments] = useState("");
   const [quickAddProjectId, setQuickAddProjectId] = useState(projects[0]?.id || "");
@@ -660,6 +669,18 @@ export function DashboardClient({
           />
         </div>
 
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleOpenSyncToTodo(item);
+          }}
+          className="p-1 text-duston-muted hover:text-[#023542] hover:bg-duston-bg rounded-lg transition-colors cursor-pointer shrink-0"
+          title="Sync to my To-Do list (customizable)"
+        >
+          <CheckSquare size={13} className="hover:text-[#1BCECE]" />
+        </button>
+
         <span
           className={cn(
             "text-[11px] font-medium px-2 py-0.5 rounded",
@@ -1001,14 +1022,16 @@ export function DashboardClient({
 
             {/* Action Buttons: 2 columns on mobile, never squished */}
             <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
-              <button
-                onClick={() => setIsImportModalOpen(true)}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 bg-white border border-duston-border hover:border-[#023542] text-duston-dark rounded-xl sm:rounded-lg text-xs font-medium transition-colors shadow-2xs cursor-pointer"
-                title="Import action register from Excel (.xlsx, .csv) or PDF"
-              >
-                <FileSpreadsheet size={14} className="text-[#1BCECE] shrink-0" />
-                <span>Import register</span>
-              </button>
+              {canImportRegister && (
+                <button
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 bg-white border border-duston-border hover:border-[#023542] text-duston-dark rounded-xl sm:rounded-lg text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+                  title="Import action register from Excel (.xlsx, .csv) or PDF"
+                >
+                  <FileSpreadsheet size={14} className="text-[#1BCECE] shrink-0" />
+                  <span>Import action item register</span>
+                </button>
+              )}
               <button
                 onClick={() => handleOpenQuickAdd("not_started")}
                 className="flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl sm:rounded-lg text-xs font-medium transition-colors shadow-subtle cursor-pointer whitespace-nowrap"

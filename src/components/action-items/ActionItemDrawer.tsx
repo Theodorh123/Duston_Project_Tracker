@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   X,
+  CheckSquare,
   Calendar,
   Clock,
   CheckCircle2,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { SyncToTodoModal } from "@/components/todos/SyncToTodoModal";
 import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
 
 export interface ActionItemDetail {
@@ -92,6 +94,7 @@ export function ActionItemDrawer({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [availableUsers, setAvailableUsers] = useState<Array<{ id: string; name: string }>>([]);
   const [availableProjects, setAvailableProjects] = useState<
@@ -477,6 +480,15 @@ export function ActionItemDrawer({
               </button>
             )}
             <button
+                type="button"
+                onClick={() => setIsSyncModalOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#023542]/5 text-[#023542] hover:bg-[#1BCECE]/20 hover:text-[#023542] border border-[#023542]/15 transition-colors cursor-pointer"
+                title="Sync to my personal To-Do list (customizable)"
+              >
+                <CheckSquare size={13} className="text-[#1BCECE]" />
+                <span>Sync to My To-Do</span>
+              </button>
+              <button
               onClick={onClose}
               className="p-1.5 rounded-lg text-duston-muted hover:text-duston-dark hover:bg-white border border-transparent hover:border-duston-border transition-colors cursor-pointer"
               aria-label="Close drawer"

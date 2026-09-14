@@ -84,6 +84,7 @@ export default async function MeetingsPage() {
       projects={scopedProjects}
       users={allUsers.map((u) => ({ id: u.id, name: u.name }))}
       currentUserId={userId}
+      userRole={(session?.user as any)?.role}
     />
   );
 }
