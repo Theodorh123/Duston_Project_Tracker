@@ -447,14 +447,18 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
-// 12. User To-Dos (Personal To-Do List with Reminders)
+// 12. User To-Dos (Minimal Personal To-Do List)
 export const userTodos = pgTable("user_todos", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").references(() => projects.id, {
+    onDelete: "set null",
+  }),
   title: text("title").notNull(),
   notes: text("notes"),
+  status: actionItemStatusEnum("status").notNull().default("not_started"),
   isCompleted: boolean("is_completed").notNull().default(false),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   dueDate: date("due_date"),
@@ -469,6 +473,10 @@ export const userTodosRelations = relations(userTodos, ({ one }) => ({
   user: one(users, {
     fields: [userTodos.userId],
     references: [users.id],
+  }),
+  project: one(projects, {
+    fields: [userTodos.projectId],
+    references: [projects.id],
   }),
 }));
 
