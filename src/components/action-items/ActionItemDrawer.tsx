@@ -763,13 +763,23 @@ export function ActionItemDrawer({
 
               {/* Status */}
               <div>
-                <label className="block text-duston-muted mb-1 font-medium">Status</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-duston-muted font-medium">Status</label>
+                  {isDeadlineOverdue(item.deadline, item.status) && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-duston-orange bg-duston-orange/15 border border-duston-orange/30 px-1.5 py-0.2 rounded">
+                      Overdue
+                    </span>
+                  )}
+                </div>
                 <select
                   value={item.status}
                   disabled={!canEdit}
                   onChange={(e) => handleFieldChange("status", e.target.value)}
                   className={cn(
-                    "w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]",
+                    "w-full bg-white border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]",
+                    isDeadlineOverdue(item.deadline, item.status)
+                      ? "border-duston-orange text-duston-orange font-medium"
+                      : "border-duston-border",
                     !canEdit && "opacity-60 cursor-not-allowed bg-slate-50"
                   )}
                 >

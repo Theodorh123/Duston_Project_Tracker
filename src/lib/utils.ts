@@ -110,3 +110,50 @@ export function getPriorityWeight(priority: string): number {
       return 1;
   }
 }
+
+export function getActionItemEffectiveStatus(
+  status: string,
+  deadline?: string | Date | null | undefined
+): "done" | "overdue" | "in_progress" | "not_started" | "postponed" | "blocked" {
+  if (status === "done" || status === "cancelled") return "done";
+  if (isDeadlineOverdue(deadline, status)) return "overdue";
+  if (status === "in_progress") return "in_progress";
+  if (status === "blocked") return "blocked";
+  if (status === "postponed") return "postponed";
+  return "not_started";
+}
+
+export function getActionItemStatusLabel(
+  status: string,
+  deadline?: string | Date | null | undefined
+): string {
+  if (status === "done") return "Done";
+  if (isDeadlineOverdue(deadline, status)) return "Overdue";
+  if (status === "in_progress") return "In-Progress";
+  if (status === "not_started") return "Not Started";
+  if (status === "postponed") return "Postponed";
+  if (status === "blocked") return "Blocked";
+  return status.replace("_", " ");
+}
+
+export function getActionItemStatusBadgeClasses(
+  status: string,
+  deadline?: string | Date | null | undefined
+): string {
+  if (status === "done") {
+    return "bg-[#39B54A]/15 text-[#39B54A] border-[#39B54A]/30";
+  }
+  if (isDeadlineOverdue(deadline, status)) {
+    return "bg-duston-orange/15 text-duston-orange border-duston-orange/30 font-semibold";
+  }
+  if (status === "in_progress") {
+    return "bg-[#1BCECE]/15 text-[#023542] border-[#1BCECE]/30";
+  }
+  if (status === "postponed") {
+    return "bg-amber-50 text-amber-800 border-amber-200";
+  }
+  if (status === "blocked") {
+    return "bg-rose-100 text-rose-800 border-rose-200";
+  }
+  return "bg-duston-bg text-duston-dark border-duston-border";
+}

@@ -3,7 +3,14 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronRight, ExternalLink, MapPin, Video, Flag, MessageSquare } from "lucide-react";
-import { cn, formatDate, isDeadlineOverdue, isTbaDeadline } from "@/lib/utils";
+import {
+  cn,
+  formatDate,
+  isDeadlineOverdue,
+  isTbaDeadline,
+  getActionItemStatusLabel,
+  getActionItemStatusBadgeClasses,
+} from "@/lib/utils";
 import { useAppShell } from "../layout/AppShell";
 import { PriorityFlag } from "@/components/ui/PriorityFlag";
 
@@ -149,8 +156,13 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
         </span>
       </td>
       <td className="py-3 px-4">
-        <span className="capitalize px-2 py-0.5 rounded-full text-[10px] font-medium bg-duston-bg border border-duston-border text-duston-text">
-          {item.status.replace("_", " ")}
+        <span
+          className={cn(
+            "capitalize px-2 py-0.5 rounded-full text-[10px] font-medium border",
+            getActionItemStatusBadgeClasses(item.status, item.deadline)
+          )}
+        >
+          {getActionItemStatusLabel(item.status, item.deadline)}
         </span>
       </td>
     </tr>

@@ -19,7 +19,16 @@ import {
   UserPlus,
   X,
 } from "lucide-react";
-import { cn, formatDate, formatShortDate, isDeadlineOverdue, isTbaDeadline, TBA_DEADLINE } from "@/lib/utils";
+import {
+  cn,
+  formatDate,
+  formatShortDate,
+  isDeadlineOverdue,
+  isTbaDeadline,
+  TBA_DEADLINE,
+  getActionItemStatusLabel,
+  getActionItemStatusBadgeClasses,
+} from "@/lib/utils";
 import { useAppShell } from "../layout/AppShell";
 import { updateProject } from "@/lib/actions/projects";
 import { createActionItem } from "@/lib/actions/action-items";
@@ -634,8 +643,13 @@ export function ProjectDetailClient({
                         </div>
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
-                        <span className="capitalize px-2 py-0.5 rounded bg-duston-bg border border-duston-border text-[11px] text-duston-text">
-                          {item.status.replace("_", " ")}
+                        <span
+                          className={cn(
+                            "capitalize px-2 py-0.5 rounded text-[11px] border font-medium",
+                            getActionItemStatusBadgeClasses(item.status, item.deadline)
+                          )}
+                        >
+                          {getActionItemStatusLabel(item.status, item.deadline)}
                         </span>
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
@@ -825,8 +839,13 @@ export function ProjectDetailClient({
                                 </div>
                               </td>
                               <td className="py-3 px-4 whitespace-nowrap">
-                                <span className="capitalize px-2 py-0.5 rounded bg-duston-bg border border-duston-border text-[11px] text-duston-text">
-                                  {item.status.replace("_", " ")}
+                                <span
+                                  className={cn(
+                                    "capitalize px-2 py-0.5 rounded text-[11px] border font-medium",
+                                    getActionItemStatusBadgeClasses(item.status, item.deadline)
+                                  )}
+                                >
+                                  {getActionItemStatusLabel(item.status, item.deadline)}
                                 </span>
                               </td>
                               <td className="py-3 px-4 whitespace-nowrap">
@@ -987,7 +1006,14 @@ export function ProjectDetailClient({
                               )}
                             >
                               <div className="flex items-start justify-between gap-2">
-                                <div className="text-xs font-medium text-duston-dark line-clamp-2">{item.title}</div>
+                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                  {isDeadlineOverdue(item.deadline, item.status) && (
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-duston-orange bg-duston-orange/10 px-1.5 py-0.5 rounded border border-duston-orange/30 shrink-0">
+                                      OVERDUE
+                                    </span>
+                                  )}
+                                  <div className="text-xs font-medium text-duston-dark line-clamp-2">{item.title}</div>
+                                </div>
                                 <div className="flex items-center gap-1 shrink-0">
                                   <PriorityFlag priority={item.priority} showLabel={false} />
                                   <button

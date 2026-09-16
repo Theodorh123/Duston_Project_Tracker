@@ -186,7 +186,7 @@ export function ActionRegisterClient({
       if (selectedStatus === "not_started" && item.status !== "not_started") {
         return false;
       }
-      if (selectedStatus === "open" && item.status !== "not_started") {
+      if (selectedStatus === "open" && item.status === "done") {
         return false;
       }
       if (selectedStatus === "in_progress" && item.status !== "in_progress") {
@@ -361,7 +361,7 @@ export function ActionRegisterClient({
       `"${it.assigneeName.replace(/"/g, '""')}"`,
       it.tag ? `"${it.tag.replace(/"/g, '""')}"` : '""',
       isTbaDeadline(it.deadline) ? '"To Be Actioned"' : it.deadline,
-      it.status,
+      isDeadlineOverdue(it.deadline, it.status) ? "Overdue" : it.status,
       it.priority,
       `"${it.projectName.replace(/"/g, '""')}"`,
       `"${it.entityName.replace(/"/g, '""')}"`,
@@ -532,11 +532,18 @@ export function ActionRegisterClient({
         <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
           <div className="relative inline-block">
             <select
-              value={item.status}
-              onChange={(e) => handleChangeStatus(item, e.target.value)}
+              value={isOverdue ? "overdue" : item.status}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val !== "overdue") {
+                  handleChangeStatus(item, val);
+                }
+              }}
               className={cn(
                 "px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all border outline-none cursor-pointer appearance-none pr-5.5 shadow-2xs",
-                item.status === "done"
+                isOverdue
+                  ? "bg-duston-orange/15 text-duston-orange border-duston-orange/30 font-semibold"
+                  : item.status === "done"
                   ? "bg-[#39B54A]/15 text-[#39B54A] border-[#39B54A]/30 hover:bg-[#39B54A]/25"
                   : item.status === "in_progress"
                   ? "bg-[#1BCECE]/15 text-[#023542] border-[#1BCECE]/30 hover:bg-[#1BCECE]/25"
@@ -544,6 +551,7 @@ export function ActionRegisterClient({
               )}
               title="Change status"
             >
+              {isOverdue && <option value="overdue">Overdue</option>}
               <option value="not_started">Not Started</option>
               <option value="in_progress">In-Progress</option>
               <option value="done">Done</option>
@@ -552,7 +560,9 @@ export function ActionRegisterClient({
               size={11}
               className={cn(
                 "absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none",
-                item.status === "done"
+                isOverdue
+                  ? "text-duston-orange"
+                  : item.status === "done"
                   ? "text-[#39B54A]"
                   : item.status === "in_progress"
                   ? "text-[#023542]"
@@ -642,7 +652,9 @@ export function ActionRegisterClient({
             }}
             className={cn(
               "px-2.5 py-1 rounded-full text-[10px] font-medium inline-flex items-center gap-1.5 transition-all cursor-pointer shrink-0",
-              item.status === "done"
+              isOverdue
+                ? "bg-duston-orange/15 text-duston-orange border border-duston-orange/30 font-semibold"
+                : item.status === "done"
                 ? "bg-[#39B54A]/15 text-[#39B54A] hover:bg-[#39B54A]/25"
                 : item.status === "in_progress"
                 ? "bg-[#1BCECE]/15 text-[#023542] hover:bg-[#1BCECE]/25"
@@ -653,7 +665,9 @@ export function ActionRegisterClient({
             <span
               className={cn(
                 "w-1.5 h-1.5 rounded-full",
-                item.status === "done"
+                isOverdue
+                  ? "bg-duston-orange"
+                  : item.status === "done"
                   ? "bg-[#39B54A]"
                   : item.status === "in_progress"
                   ? "bg-[#1BCECE]"
@@ -661,7 +675,9 @@ export function ActionRegisterClient({
               )}
             />
             <span>
-              {item.status === "done"
+              {isOverdue
+                ? "Overdue"
+                : item.status === "done"
                 ? "Done"
                 : item.status === "in_progress"
                 ? "In progress"

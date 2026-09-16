@@ -8,7 +8,14 @@ import {
   ChevronRight,
   Clock,
 } from "lucide-react";
-import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
+import {
+  cn,
+  formatDate,
+  isDeadlineOverdue,
+  isTbaDeadline,
+  getActionItemStatusLabel,
+  getActionItemStatusBadgeClasses,
+} from "@/lib/utils";
 import { useAppShell } from "../layout/AppShell";
 import { PriorityFlag } from "@/components/ui/PriorityFlag";
 
@@ -569,13 +576,10 @@ export function AnalyticsClient({
                       <span
                         className={cn(
                           "px-2.5 py-0.5 rounded-full text-[10px] font-medium border capitalize",
-                          item.status === "in_progress" && "bg-cyan-50 text-cyan-900 border-cyan-200",
-                          item.status === "not_started" && "bg-slate-100 text-slate-700 border-slate-200",
-                          item.status === "done" && "bg-emerald-50 text-emerald-700 border-emerald-200",
-                          item.status === "postponed" && "bg-amber-50 text-amber-800 border-amber-200"
+                          getActionItemStatusBadgeClasses(item.status, item.deadline)
                         )}
                       >
-                        {item.status.replace("_", " ")}
+                        {getActionItemStatusLabel(item.status, item.deadline)}
                       </span>
                     </div>
 
@@ -617,6 +621,8 @@ export function AnalyticsClient({
                             "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold",
                             overdue
                               ? "bg-duston-orange/10 text-duston-orange border border-duston-orange/20"
+                              : isTbaDeadline(item.deadline)
+                              ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
                               : "bg-duston-bg text-duston-dark border border-duston-border"
                           )}
                         >
@@ -679,14 +685,20 @@ export function AnalyticsClient({
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
-                            <span className={cn(
-                              "text-[11px] font-medium",
-                              overdue ? "text-rose-600 font-bold" : "text-duston-dark"
-                            )}>
+                            <span
+                              className={cn(
+                                "text-[11px] font-medium",
+                                overdue
+                                  ? "text-duston-orange font-bold"
+                                  : isTbaDeadline(item.deadline)
+                                  ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold px-2 py-0.5 rounded"
+                                  : "text-duston-dark"
+                              )}
+                            >
                               {formatDate(item.deadline)}
                             </span>
                             {overdue && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-duston-orange/15 text-duston-orange border border-duston-orange/30">
                                 Overdue
                               </span>
                             )}
@@ -709,13 +721,10 @@ export function AnalyticsClient({
                           <span
                             className={cn(
                               "px-2.5 py-0.5 rounded-full text-[10px] font-medium border",
-                              item.status === "in_progress" && "bg-cyan-50 text-cyan-900 border-cyan-200",
-                              item.status === "not_started" && "bg-slate-100 text-slate-700 border-slate-200",
-                              item.status === "done" && "bg-emerald-50 text-emerald-700 border-emerald-200",
-                              item.status === "postponed" && "bg-amber-50 text-amber-800 border-amber-200"
+                              getActionItemStatusBadgeClasses(item.status, item.deadline)
                             )}
                           >
-                            {item.status.replace("_", " ")}
+                            {getActionItemStatusLabel(item.status, item.deadline)}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right whitespace-nowrap">

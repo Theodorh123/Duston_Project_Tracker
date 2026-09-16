@@ -25,7 +25,7 @@ import {
   Clock,
   MessageSquare,
 } from "lucide-react";
-import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
+import { cn, formatDate, isDeadlineOverdue, isTbaDeadline } from "@/lib/utils";
 import { PriorityFlag } from "@/components/ui/PriorityFlag";
 import { useAppShell } from "@/components/layout/AppShell";
 import {
@@ -839,7 +839,9 @@ export function AdminClient({
                             <span
                               className={cn(
                                 "capitalize px-2.5 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center gap-1.5 border",
-                                item.status === "done"
+                                isOverdue
+                                  ? "bg-duston-orange/15 text-duston-orange border-duston-orange/30 font-semibold"
+                                  : item.status === "done"
                                   ? "bg-[#39B54A]/10 text-[#39B54A] border-[#39B54A]/20"
                                   : item.status === "in_progress"
                                   ? "bg-[#1BCECE]/10 text-[#023542] border-[#1BCECE]/30"
@@ -849,14 +851,16 @@ export function AdminClient({
                               <span
                                 className={cn(
                                   "w-1.5 h-1.5 rounded-full",
-                                  item.status === "done"
+                                  isOverdue
+                                    ? "bg-duston-orange"
+                                    : item.status === "done"
                                     ? "bg-[#39B54A]"
                                     : item.status === "in_progress"
                                     ? "bg-[#1BCECE]"
                                     : "bg-duston-muted"
                                 )}
                               />
-                              <span>{item.status.replace("_", " ")}</span>
+                              <span>{isOverdue ? "Overdue" : item.status.replace("_", " ")}</span>
                             </span>
                           </td>
                           <td className="py-3 px-4 whitespace-nowrap">
@@ -864,7 +868,9 @@ export function AdminClient({
                               className={cn(
                                 "px-2 py-0.5 rounded text-[11px] font-medium inline-flex items-center gap-1",
                                 isOverdue
-                                  ? "bg-duston-orange/10 text-duston-orange border border-duston-orange/20"
+                                  ? "bg-duston-orange/10 text-duston-orange border border-duston-orange/20 font-semibold"
+                                  : isTbaDeadline(item.deadline)
+                                  ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
                                   : "text-duston-muted"
                               )}
                             >

@@ -14,7 +14,7 @@ import {
   X,
   FolderPlus,
 } from "lucide-react";
-import { cn, formatShortDate, isDeadlineOverdue } from "@/lib/utils";
+import { cn, formatShortDate, isDeadlineOverdue, isTbaDeadline } from "@/lib/utils";
 import {
   TodoItemData,
   createTodo,
@@ -684,7 +684,7 @@ export function TodoListClient({
                 {/* Right: Deadline & Status Dropdown & Delete */}
                 <div className="flex items-center gap-2 shrink-0">
                   {/* Deadline Badge */}
-                  {todo.dueDate && (
+                  {todo.dueDate ? (
                     <span
                       className={cn(
                         "text-[11px] font-medium px-2 py-0.5 rounded shrink-0",
@@ -692,10 +692,16 @@ export function TodoListClient({
                           ? "text-duston-orange bg-duston-orange/10 font-semibold"
                           : isToday
                           ? "text-duston-dark bg-duston-bg border border-duston-border font-semibold"
+                          : isTbaDeadline(todo.dueDate)
+                          ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
                           : "text-duston-muted"
                       )}
                     >
                       {isToday ? "Today" : formatShortDate(todo.dueDate)}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded shrink-0 bg-amber-50 text-amber-800 border border-amber-200/80">
+                      To Be Actioned
                     </span>
                   )}
 
@@ -708,12 +714,15 @@ export function TodoListClient({
                         "px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all border outline-none cursor-pointer appearance-none pr-4.5 shadow-2xs",
                         todo.status === "done"
                           ? "bg-[#39B54A]/15 text-[#39B54A] border-[#39B54A]/30 hover:bg-[#39B54A]/25"
+                          : isOverdue
+                          ? "bg-duston-orange/15 text-duston-orange border-duston-orange/30 font-semibold"
                           : todo.status === "in_progress"
                           ? "bg-[#1BCECE]/15 text-[#023542] border-[#1BCECE]/30 hover:bg-[#1BCECE]/25"
                           : "bg-duston-bg text-duston-dark border-duston-border hover:bg-duston-border/50"
                       )}
                       title="Change status"
                     >
+                      {isOverdue && <option value="not_started">Overdue</option>}
                       <option value="not_started">Not Started</option>
                       <option value="in_progress">In-Progress</option>
                       <option value="done">Done</option>

@@ -692,11 +692,18 @@ export function DashboardClient({
         <td className="py-2.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
           <div className="relative inline-block">
             <select
-              value={item.status}
-              onChange={(e) => handleStatusChange(item.id, e.target.value as any)}
+              value={isOverdue ? "overdue" : item.status}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val !== "overdue") {
+                  handleStatusChange(item.id, val as any);
+                }
+              }}
               className={cn(
-                "px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all border outline-none cursor-pointer appearance-none pr-4.5 shadow-2xs",
-                item.status === "done"
+                "px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-all border outline-none cursor-pointer appearance-none pr-5.5 shadow-2xs",
+                isOverdue
+                  ? "bg-duston-orange/15 text-duston-orange border-duston-orange/30 font-semibold"
+                  : item.status === "done"
                   ? "bg-[#39B54A]/15 text-[#39B54A] border-[#39B54A]/30 hover:bg-[#39B54A]/25"
                   : item.status === "in_progress"
                   ? "bg-[#1BCECE]/15 text-[#023542] border-[#1BCECE]/30 hover:bg-[#1BCECE]/25"
@@ -704,6 +711,7 @@ export function DashboardClient({
               )}
               title="Change status"
             >
+              {isOverdue && <option value="overdue">Overdue</option>}
               <option value="not_started">Not Started</option>
               <option value="in_progress">In-Progress</option>
               <option value="done">Done</option>
@@ -711,8 +719,10 @@ export function DashboardClient({
             <ChevronDown
               size={10}
               className={cn(
-                "absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none",
-                item.status === "done"
+                "absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none",
+                isOverdue
+                  ? "text-duston-orange"
+                  : item.status === "done"
                   ? "text-[#39B54A]"
                   : item.status === "in_progress"
                   ? "text-[#023542]"
@@ -1354,7 +1364,14 @@ export function DashboardClient({
                                 <div className="text-xs font-medium text-duston-dark line-clamp-2">
                                   {item.title}
                                 </div>
-                                <PriorityFlag priority={item.priority} showLabel={false} />
+                                <div className="flex items-center gap-1 shrink-0">
+                                  {isDeadlineOverdue(item.deadline, item.status) && (
+                                    <span className="px-1.5 py-0.2 rounded text-[8px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                                      OVERDUE
+                                    </span>
+                                  )}
+                                  <PriorityFlag priority={item.priority} showLabel={false} />
+                                </div>
                               </div>
                               <div className="flex items-center justify-between text-[11px] gap-1">
                                 <div className="flex items-center gap-1.5 truncate max-w-[170px]">
