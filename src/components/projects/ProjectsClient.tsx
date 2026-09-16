@@ -8,6 +8,7 @@ import { cn, formatDate } from "@/lib/utils";
 import { NewProjectDrawer } from "./NewProjectDrawer";
 import { useAppShell } from "../layout/AppShell";
 import { updateProject } from "@/lib/actions/projects";
+import { DropdownFilter } from "@/components/ui/DropdownFilter";
 
 export interface ProjectListItem {
   id: string;
@@ -161,63 +162,67 @@ export function ProjectsClient({
 
       {/* Filter Strip - only show if there are projects */}
       {projectsList.length > 0 && (
-        <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            {/* Category Filter */}
-            <div>
-              <label className="block text-duston-dark mb-1 font-semibold">Category</label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
-                title="Filter by Category"
-              >
-                <option value="all">Category: All</option>
-                <option value="capex">CAPEX</option>
-                <option value="financing">Financing</option>
-                <option value="regulatory">Regulatory</option>
-                <option value="commercial">Commercial</option>
-                <option value="operations">Operations</option>
-                <option value="corporate">Corporate</option>
-              </select>
-            </div>
+        <div className="bg-white border border-duston-border rounded-xl p-3.5 sm:p-4 shadow-subtle flex flex-wrap items-center gap-3 text-xs">
+          {/* Category Filter */}
+          <DropdownFilter
+            label="Category"
+            value={selectedCategory}
+            options={[
+              { value: "all", label: "All categories" },
+              { value: "capex", label: "CAPEX" },
+              { value: "financing", label: "Financing" },
+              { value: "regulatory", label: "Regulatory" },
+              { value: "commercial", label: "Commercial" },
+              { value: "operations", label: "Operations" },
+              { value: "corporate", label: "Corporate" },
+            ]}
+            onChange={(val) => setSelectedCategory(val)}
+          />
 
-            {/* Status Filter */}
-            <div>
-              <label className="block text-duston-dark mb-1 font-semibold">Status</label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
-                title="Filter by Status"
-              >
-                <option value="all">Status: All</option>
-                <option value="not_started">Not started</option>
-                <option value="in_progress">In progress</option>
-                <option value="on_hold">On hold</option>
-                <option value="done">Done</option>
-              </select>
-            </div>
+          {/* Status Filter */}
+          <DropdownFilter
+            label="Status"
+            value={selectedStatus}
+            options={[
+              { value: "all", label: "All statuses" },
+              { value: "not_started", label: "Not started", dotColor: "#94a3b8" },
+              { value: "in_progress", label: "In progress", dotColor: "#1BCECE" },
+              { value: "on_hold", label: "On hold", dotColor: "#f59e0b" },
+              { value: "done", label: "Done", dotColor: "#39B54A" },
+            ]}
+            onChange={(val) => setSelectedStatus(val)}
+          />
 
-            {/* Search Box */}
-            <div>
-              <label className="block text-duston-muted mb-1 font-medium">Search</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Filter by title..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white border border-duston-border rounded-lg pl-8 pr-3 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
-                />
-                <Search
-                  size={14}
-                  strokeWidth={1.5}
-                  className="absolute left-2.5 top-2.5 text-duston-muted"
-                />
-              </div>
-            </div>
+          {/* Search Box */}
+          <div className="relative flex-1 min-w-[200px]">
+            <input
+              type="text"
+              placeholder="Search projects..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-duston-bg border border-duston-border rounded-xl pl-8 pr-3 py-1.5 text-xs text-duston-dark placeholder:text-duston-muted outline-none focus:border-[#1BCECE]"
+            />
+            <Search
+              size={13}
+              strokeWidth={1.5}
+              className="absolute left-2.5 top-2 text-duston-muted"
+            />
           </div>
+
+          {(selectedCategory !== "all" || selectedStatus !== "all" || searchQuery.trim()) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCategory("all");
+                setSelectedStatus("all");
+                setSearchQuery("");
+              }}
+              className="text-xs text-[#023542] hover:underline font-medium flex items-center gap-1 cursor-pointer"
+            >
+              <X size={12} />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
       )}
 

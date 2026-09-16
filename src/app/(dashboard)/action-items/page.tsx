@@ -46,11 +46,18 @@ export default async function ActionRegisterPage() {
 
   const scopedEntities = allEnt
     .filter((e) => allowedEntityIds.includes(e.id))
-    .map((e) => ({ id: e.id, name: e.name }));
+    .map((e) => ({ id: e.id, name: e.name, brandPrimaryColor: e.brandPrimaryColor }));
+
+  const entityNameMap = new Map(allEnt.map((e) => [e.id, e.name]));
 
   const scopedProjects = allProj
     .filter((p) => allowedEntityIds.includes(p.entityId))
-    .map((p) => ({ id: p.id, name: p.name, entityId: p.entityId }));
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      entityId: p.entityId,
+      entityName: entityNameMap.get(p.entityId) || "Subsidiary",
+    }));
 
   const scopedUsers = allUsers.map((u) => ({ id: u.id, name: u.name }));
 

@@ -21,6 +21,7 @@ import { cn, formatDate, formatShortDate, getDaysOverdue, getPriorityWeight } fr
 import { useAppShell } from "../layout/AppShell";
 import { updateActionItemField } from "@/lib/actions/action-items";
 import { PriorityFlag } from "@/components/ui/PriorityFlag";
+import { DropdownFilter } from "@/components/ui/DropdownFilter";
 
 export interface QueueItem {
   id: string;
@@ -455,21 +456,22 @@ export function EaViewClient({
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 text-xs">
-          <div className="flex-1 flex items-center gap-2">
-            <span className="text-duston-dark font-semibold shrink-0">Subsidiary:</span>
-            <select
+          <div className="flex-1">
+            <DropdownFilter
+              label="Subsidiary"
               value={selectedEntityForBrief}
-              onChange={(e) => setSelectedEntityForBrief(e.target.value)}
-              className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
-            >
-              {entities.map((e) => (
-                <option key={e.id} value={e.id}>{e.name}</option>
-              ))}
-            </select>
+              options={entities.map((e) => ({
+                value: e.id,
+                label: e.name,
+              }))}
+              onChange={(val) => setSelectedEntityForBrief(val)}
+              className="w-full"
+              enableSearch={entities.length > 5}
+            />
           </div>
           <button
             onClick={handleGenerateBrief}
-            className="px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-lg font-medium transition-colors shrink-0 cursor-pointer"
+            className="px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl font-medium transition-colors shrink-0 cursor-pointer shadow-2xs"
           >
             Generate brief
           </button>

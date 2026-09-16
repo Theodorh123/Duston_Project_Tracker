@@ -24,6 +24,7 @@ import {
   getUserTodos,
 } from "@/lib/actions/todos";
 import { createQuickProject } from "@/lib/actions/projects";
+import { DropdownFilter } from "@/components/ui/DropdownFilter";
 
 export interface EntityOption {
   id: string;
@@ -370,28 +371,23 @@ export function TodoListClient({
 
         {/* Admin Team Switcher */}
         {isAdmin && (
-          <div className="flex items-center gap-1.5 bg-white border border-duston-border rounded-xl px-2.5 py-1 text-xs shadow-2xs">
-            <span className="text-[11px] font-semibold text-duston-dark flex items-center gap-1">
-              <User size={12} className="text-[#023542]" />
-              <span className="hidden sm:inline">To-Do List:</span>
-            </span>
-            <select
-              value={selectedUserFilter}
-              onChange={(e) => handleSwitchUser(e.target.value)}
-              className="text-xs text-duston-dark bg-transparent border-none focus:ring-0 cursor-pointer font-medium pr-1"
-            >
-              <option value={currentUserId}>My To-Do List (Admin)</option>
-              <optgroup label="Team Members">
-                {allUsers
-                  .filter((u) => u.id !== currentUserId)
-                  .map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} ({u.role})
-                    </option>
-                  ))}
-              </optgroup>
-            </select>
-          </div>
+          <DropdownFilter
+            label="To-Do List"
+            value={selectedUserFilter}
+            options={[
+              { value: currentUserId, label: "My To-Do List (Admin)" },
+              ...allUsers
+                .filter((u) => u.id !== currentUserId)
+                .map((u) => ({
+                  value: u.id,
+                  label: u.name,
+                  sublabel: u.role,
+                })),
+            ]}
+            onChange={(val) => handleSwitchUser(val)}
+            icon={<User size={12} />}
+            align="right"
+          />
         )}
       </div>
 
@@ -413,67 +409,47 @@ export function TodoListClient({
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
-          {/* Required Subsidiary */}
-          <div className="relative flex items-center bg-duston-bg/60 border border-duston-border rounded-lg px-2.5 py-1 text-xs">
-            <span className="text-[11px] font-semibold text-duston-dark shrink-0 mr-1.5 flex items-center gap-1">
-              <Building2 size={11} className="text-[#023542]" />
-              <span>Subsidiary:</span>
-            </span>
-            <select
-              value={newEntityId}
-              onChange={(e) => {
-                setNewEntityId(e.target.value);
-                setNewProjectId(""); // reset project if subsidiary changes
-              }}
-              required
-              className="text-xs bg-transparent text-duston-dark focus:outline-none cursor-pointer appearance-none pr-4 font-medium max-w-[130px] truncate"
-              title="Subsidiary"
-            >
-              {entities.map((ent) => (
-                <option key={ent.id} value={ent.id}>
-                  {ent.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
-          </div>
+          {/* Required Subsidiary Dropdown */}
+          <DropdownFilter
+            label="Subsidiary"
+            value={newEntityId}
+            options={entities.map((ent) => ({
+              value: ent.id,
+              label: ent.name,
+              dotColor: ent.brandPrimaryColor,
+            }))}
+            onChange={(val) => {
+              setNewEntityId(val);
+              setNewProjectId("");
+            }}
+            icon={<Building2 size={11} />}
+            enableSearch={entities.length > 5}
+          />
 
-          {/* Optional Project or Add New */}
-          <div className="relative flex items-center bg-duston-bg/60 border border-duston-border rounded-lg px-2.5 py-1 text-xs">
-            <span className="text-[11px] font-semibold text-duston-dark shrink-0 mr-1.5">
-              Project:
-            </span>
-            <select
-              value={newProjectId}
-              onChange={(e) => {
-                if (e.target.value === "__NEW_PROJECT__") {
-                  openNewProjectModal(newEntityId, "new");
-                } else {
-                  setNewProjectId(e.target.value);
-                }
-              }}
-              className="text-xs bg-transparent text-duston-dark focus:outline-none cursor-pointer appearance-none pr-4 font-medium max-w-[130px] truncate"
-              title="Project"
-            >
-              <option value="">No Project</option>
-              <option value="__NEW_PROJECT__" className="text-[#023542] font-semibold bg-[#1BCECE]/10">
-                + Add new project...
-              </option>
-              {availableProjectsForNew.length > 0 && (
-                <optgroup label="Existing Projects">
-                  {availableProjectsForNew.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
-            <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
-          </div>
+          {/* Optional Project Dropdown */}
+          <DropdownFilter
+            label="Project"
+            value={newProjectId}
+            options={[
+              { value: "", label: "No Project" },
+              { value: "__NEW_PROJECT__", label: "+ Add new project..." },
+              ...availableProjectsForNew.map((p) => ({
+                value: p.id,
+                label: p.name,
+              })),
+            ]}
+            onChange={(val) => {
+              if (val === "__NEW_PROJECT__") {
+                openNewProjectModal(newEntityId, "new");
+              } else {
+                setNewProjectId(val);
+              }
+            }}
+            enableSearch={availableProjectsForNew.length > 5}
+          />
 
           {/* Target Deadline */}
-          <div className="relative flex items-center bg-duston-bg/60 border border-duston-border rounded-lg px-2.5 py-1 text-xs">
+          <div className="relative flex items-center bg-white border border-duston-border rounded-xl px-2.5 py-1.5 text-xs shadow-2xs">
             <span className="text-[11px] font-semibold text-duston-dark shrink-0 mr-1.5 flex items-center gap-1">
               <Calendar size={11} className="text-[#023542]" />
               <span className="hidden sm:inline">Target Deadline:</span>
@@ -570,56 +546,43 @@ export function TodoListClient({
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
                       {/* Edit Subsidiary (Required) */}
-                      <div className="relative flex items-center bg-white border border-duston-border rounded-lg px-2 py-1 text-xs">
-                        <span className="text-[10px] font-semibold text-duston-dark mr-1">Subsidiary:</span>
-                        <select
-                          value={editEntityId}
-                          onChange={(e) => {
-                            setEditEntityId(e.target.value);
-                            setEditProjectId("");
-                          }}
-                          required
-                          className="text-xs bg-transparent text-duston-dark focus:outline-none font-medium pr-3 appearance-none"
-                        >
-                          {entities.map((ent) => (
-                            <option key={ent.id} value={ent.id}>
-                              {ent.name}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown size={9} className="absolute right-1 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
-                      </div>
+                      <DropdownFilter
+                        label="Subsidiary"
+                        value={editEntityId}
+                        options={entities.map((ent) => ({
+                          value: ent.id,
+                          label: ent.name,
+                          dotColor: ent.brandPrimaryColor,
+                        }))}
+                        onChange={(val) => {
+                          setEditEntityId(val);
+                          setEditProjectId("");
+                        }}
+                        icon={<Building2 size={11} />}
+                        enableSearch={entities.length > 5}
+                      />
 
                       {/* Edit Project (Optional or Add New) */}
-                      <div className="relative flex items-center bg-white border border-duston-border rounded-lg px-2 py-1 text-xs">
-                        <span className="text-[10px] font-semibold text-duston-dark mr-1">Project:</span>
-                        <select
-                          value={editProjectId}
-                          onChange={(e) => {
-                            if (e.target.value === "__NEW_PROJECT__") {
-                              openNewProjectModal(editEntityId, "edit");
-                            } else {
-                              setEditProjectId(e.target.value);
-                            }
-                          }}
-                          className="text-xs bg-transparent text-duston-dark focus:outline-none appearance-none pr-3 font-medium max-w-[130px] truncate"
-                        >
-                          <option value="">No Project</option>
-                          <option value="__NEW_PROJECT__" className="text-[#023542] font-semibold bg-[#1BCECE]/10">
-                            + Add new project...
-                          </option>
-                          {availableProjectsForEdit.length > 0 && (
-                            <optgroup label="Existing Projects">
-                              {availableProjectsForEdit.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.name}
-                                </option>
-                              ))}
-                            </optgroup>
-                          )}
-                        </select>
-                        <ChevronDown size={9} className="absolute right-1 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
-                      </div>
+                      <DropdownFilter
+                        label="Project"
+                        value={editProjectId}
+                        options={[
+                          { value: "", label: "No Project" },
+                          { value: "__NEW_PROJECT__", label: "+ Add new project..." },
+                          ...availableProjectsForEdit.map((p) => ({
+                            value: p.id,
+                            label: p.name,
+                          })),
+                        ]}
+                        onChange={(val) => {
+                          if (val === "__NEW_PROJECT__") {
+                            openNewProjectModal(editEntityId, "edit");
+                          } else {
+                            setEditProjectId(val);
+                          }
+                        }}
+                        enableSearch={availableProjectsForEdit.length > 5}
+                      />
 
                       {/* Edit Target Deadline */}
                       <div className="relative flex items-center bg-white border border-duston-border rounded-lg px-2 py-1 text-xs">

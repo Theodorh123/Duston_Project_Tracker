@@ -7,6 +7,7 @@ import { cn, formatDate } from "@/lib/utils";
 import { NewMeetingModal } from "./NewMeetingModal";
 import { ImportRegisterModal } from "../action-items/ImportRegisterModal";
 import { useAppShell } from "../layout/AppShell";
+import { DropdownFilter } from "@/components/ui/DropdownFilter";
 
 export interface MeetingListItem {
   id: string;
@@ -91,20 +92,27 @@ export function MeetingsClient({
       </div>
 
       {/* Filter Strip */}
-      <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle flex flex-wrap items-center gap-4 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="text-duston-dark font-semibold">Attendee:</span>
-          <select
-            value={selectedAttendee}
-            onChange={(e) => setSelectedAttendee(e.target.value)}
-            className="bg-white border border-duston-border rounded-lg px-2.5 py-1 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
+      <div className="bg-white border border-duston-border rounded-xl p-3.5 sm:p-4 shadow-subtle flex items-center justify-between gap-4 text-xs">
+        <DropdownFilter
+          label="Attendee"
+          value={selectedAttendee}
+          options={[
+            { value: "all", label: "All attendees" },
+            ...users.map((u) => ({ value: u.id, label: u.name })),
+          ]}
+          onChange={(val) => setSelectedAttendee(val)}
+          enableSearch={true}
+        />
+
+        {selectedAttendee !== "all" && (
+          <button
+            type="button"
+            onClick={() => setSelectedAttendee("all")}
+            className="text-xs text-[#023542] hover:underline font-medium cursor-pointer"
           >
-            <option value="all">Attendee: All attendees</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
-          </select>
-        </div>
+            Reset filter
+          </button>
+        )}
       </div>
 
       {/* Meetings List */}

@@ -28,6 +28,7 @@ import {
 import { cn, formatDate, isDeadlineOverdue, isTbaDeadline } from "@/lib/utils";
 import { PriorityFlag } from "@/components/ui/PriorityFlag";
 import { useAppShell } from "@/components/layout/AppShell";
+import { DropdownFilter } from "@/components/ui/DropdownFilter";
 import {
   updateUserRole,
   resetUserPassword,
@@ -730,32 +731,33 @@ export function AdminClient({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <select
+              <DropdownFilter
+                label="Status"
                 value={actionItemStatusFilter}
-                onChange={(e) => setActionItemStatusFilter(e.target.value)}
-                className="bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer font-medium"
-                title="Filter by Status"
-              >
-                <option value="all">Status: All</option>
-                <option value="not_started">Status: Not Started</option>
-                <option value="in_progress">Status: In Progress</option>
-                <option value="done">Status: Done</option>
-                <option value="overdue">Status: Overdue Only</option>
-              </select>
+                options={[
+                  { value: "all", label: "All statuses" },
+                  { value: "not_started", label: "Not Started", dotColor: "#94a3b8" },
+                  { value: "in_progress", label: "In Progress", dotColor: "#1BCECE" },
+                  { value: "done", label: "Done", dotColor: "#39B54A" },
+                  { value: "overdue", label: "Overdue Only", dotColor: "#F15A24" },
+                ]}
+                onChange={(val) => setActionItemStatusFilter(val)}
+              />
 
-              <select
+              <DropdownFilter
+                label="Subsidiary"
                 value={actionItemEntityFilter}
-                onChange={(e) => setActionItemEntityFilter(e.target.value)}
-                className="bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer font-medium"
-                title="Filter by Subsidiary"
-              >
-                <option value="all">Subsidiary: All</option>
-                {entitiesList.map((ent) => (
-                  <option key={ent.id} value={ent.id}>
-                    Subsidiary: {ent.name}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: "all", label: "All subsidiaries" },
+                  ...entitiesList.map((ent) => ({
+                    value: ent.id,
+                    label: ent.name,
+                    dotColor: ent.brandPrimaryColor,
+                  })),
+                ]}
+                onChange={(val) => setActionItemEntityFilter(val)}
+                enableSearch={entitiesList.length > 5}
+              />
 
               <span className="text-[11px] text-duston-muted ml-auto sm:ml-0 font-medium whitespace-nowrap">
                 Showing {filteredActionItems.length} of {actionItemsList.length} items
@@ -908,20 +910,28 @@ export function AdminClient({
       {/* 4. Activity Log Tab */}
       {activeTab === "activity" && (
         <div className="space-y-4">
-          <div className="bg-white border border-duston-border rounded-xl p-3 shadow-subtle flex items-center gap-3 text-xs">
-            <span className="text-duston-dark font-semibold">Event filter:</span>
-            <select
+          <div className="bg-white border border-duston-border rounded-xl p-3 shadow-subtle flex items-center justify-between text-xs">
+            <DropdownFilter
+              label="Event"
               value={selectedEventType}
-              onChange={(e) => setSelectedEventType(e.target.value)}
-              className="bg-white border border-duston-border rounded-lg px-2.5 py-1 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
-              title="Filter by Event"
-            >
-              <option value="all">Event: All events</option>
-              <option value="created">Event: Created</option>
-              <option value="status_change">Event: Status change</option>
-              <option value="reassign">Event: Reassign</option>
-              <option value="comment_added">Event: Comment added</option>
-            </select>
+              options={[
+                { value: "all", label: "All events" },
+                { value: "created", label: "Created" },
+                { value: "status_change", label: "Status change" },
+                { value: "reassign", label: "Reassign" },
+                { value: "comment_added", label: "Comment added" },
+              ]}
+              onChange={(val) => setSelectedEventType(val)}
+            />
+            {selectedEventType !== "all" && (
+              <button
+                type="button"
+                onClick={() => setSelectedEventType("all")}
+                className="text-xs text-[#023542] hover:underline font-medium cursor-pointer"
+              >
+                Reset filter
+              </button>
+            )}
           </div>
 
           <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">

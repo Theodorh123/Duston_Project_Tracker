@@ -5,6 +5,7 @@ import { Bell, Menu, Search, Building2, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { DropdownFilter } from "@/components/ui/DropdownFilter";
 
 export interface EntityFilter {
   id: string;
@@ -137,41 +138,27 @@ export function TopBar({
   };
 
   const renderSubsidiaryDropdown = () => {
+    const subsidiaryOptions = [
+      { value: "", label: "All subsidiaries" },
+      ...entities.map((entity) => ({
+        value: entity.id,
+        label: entity.name,
+        dotColor: entity.brandPrimaryColor,
+      })),
+    ];
+
     return (
-      <div className="relative flex items-center shrink-0">
-        <label htmlFor="global-subsidiary-select" className="sr-only">
-          Subsidiary
-        </label>
-        <div className="relative flex items-center">
-          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] font-semibold text-duston-dark pointer-events-none z-10">
-            <Building2 size={13} className="text-[#023542]" />
-            <span className="hidden sm:inline">Subsidiary:</span>
-          </span>
-          <select
-            id="global-subsidiary-select"
-            value={selectedEntityId || ""}
-            onChange={(e) => onSelectEntity(e.target.value || null)}
-            className={cn(
-              "text-xs py-1.5 pl-7 sm:pl-23 pr-7 bg-white border rounded-xl font-medium text-duston-dark outline-none transition-all cursor-pointer appearance-none shadow-2xs max-w-[170px] sm:max-w-[220px] truncate",
-              selectedEntityId
-                ? "border-[#1BCECE] ring-1 ring-[#1BCECE]/20 bg-white"
-                : "border-duston-border hover:border-[#1BCECE]"
-            )}
-            title="Filter by Subsidiary"
-          >
-            <option value="">All subsidiaries</option>
-            {entities.map((entity) => (
-              <option key={entity.id} value={entity.id}>
-                {entity.name}
-              </option>
-            ))}
-          </select>
-          <ChevronDown
-            size={11}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none"
-          />
-        </div>
-      </div>
+      <DropdownFilter
+        label="Subsidiary"
+        value={selectedEntityId || ""}
+        options={subsidiaryOptions}
+        onChange={(val) => onSelectEntity(val || null)}
+        icon={<Building2 size={13} />}
+        align="right"
+        className="shrink-0"
+        menuClassName="w-64"
+        enableSearch={entities.length > 5}
+      />
     );
   };
 

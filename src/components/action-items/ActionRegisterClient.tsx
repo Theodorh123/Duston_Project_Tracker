@@ -25,6 +25,7 @@ import { useAppShell } from "../layout/AppShell";
 import { updateActionItemField } from "@/lib/actions/action-items";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PriorityFlag } from "@/components/ui/PriorityFlag";
+import { DropdownFilter } from "@/components/ui/DropdownFilter";
 
 export interface RegisterItem {
   id: string;
@@ -52,8 +53,8 @@ export interface RegisterItem {
 
 interface ActionRegisterClientProps {
   items: RegisterItem[];
-  entities: Array<{ id: string; name: string }>;
-  projects: Array<{ id: string; name: string; entityId: string }>;
+  entities: Array<{ id: string; name: string; brandPrimaryColor?: string }>;
+  projects: Array<{ id: string; name: string; entityId: string; entityName?: string }>;
   users: Array<{ id: string; name: string }>;
   currentUserId: string;
   currentUserName: string;
@@ -1148,69 +1149,75 @@ export function ActionRegisterClient({
 
           {/* Subsidiary Filter */}
           <div className="col-span-1">
-            <select
+            <DropdownFilter
+              label="Subsidiary"
               value={selectedEntity}
-              onChange={(e) => {
-                setSelectedEntity(e.target.value);
+              options={[
+                { value: "all", label: "All subsidiaries" },
+                ...entities.map((e) => ({
+                  value: e.id,
+                  label: e.name,
+                  dotColor: e.brandPrimaryColor,
+                })),
+              ]}
+              onChange={(val) => {
+                setSelectedEntity(val);
                 setSelectedProject("all");
               }}
-              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE] font-medium"
-              title="Filter by Subsidiary"
-            >
-              <option value="all">Subsidiary: All</option>
-              {entities.map((e) => (
-                <option key={e.id} value={e.id}>
-                  Subsidiary: {e.name}
-                </option>
-              ))}
-            </select>
+              enableSearch={entities.length > 5}
+              className="w-full"
+            />
           </div>
 
           {/* Project Filter */}
           <div className="col-span-1">
-            <select
+            <DropdownFilter
+              label="Project"
               value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE] font-medium"
-              title="Filter by Project"
-            >
-              <option value="all">Project: All</option>
-              {availableProjects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  Project: {p.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "all", label: "All projects" },
+                ...availableProjects.map((p) => ({
+                  value: p.id,
+                  label: p.name,
+                  sublabel: p.entityName,
+                })),
+              ]}
+              onChange={(val) => setSelectedProject(val)}
+              enableSearch={true}
+              className="w-full"
+            />
           </div>
 
           {/* Status Filter */}
           <div className="col-span-1">
-            <select
+            <DropdownFilter
+              label="Status"
               value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE] font-medium"
-              title="Filter by Status"
-            >
-              <option value="all">Status: All</option>
-              <option value="not_started">Status: Not started</option>
-              <option value="in_progress">Status: In progress</option>
-              <option value="done">Status: Completed</option>
-              <option value="overdue">Status: Overdue only</option>
-            </select>
+              options={[
+                { value: "all", label: "All statuses" },
+                { value: "not_started", label: "Not started", dotColor: "#94a3b8" },
+                { value: "in_progress", label: "In progress", dotColor: "#1BCECE" },
+                { value: "done", label: "Completed", dotColor: "#39B54A" },
+                { value: "overdue", label: "Overdue only", dotColor: "#F15A24" },
+              ]}
+              onChange={(val) => setSelectedStatus(val)}
+              className="w-full"
+            />
           </div>
 
           {/* Deliverable Type (In-house vs Outsider) */}
           <div className="col-span-1">
-            <select
+            <DropdownFilter
+              label="Party"
               value={selectedDeliverableType}
-              onChange={(e) => setSelectedDeliverableType(e.target.value as any)}
-              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE] font-medium"
-              title="Filter by Responsible Party"
-            >
-              <option value="all">Party: All</option>
-              <option value="in_house">Party: In-house</option>
-              <option value="outsider">Party: Outsider</option>
-            </select>
+              options={[
+                { value: "all", label: "All parties" },
+                { value: "in_house", label: "In-house team" },
+                { value: "outsider", label: "Outsider / Counterparty" },
+              ]}
+              onChange={(val) => setSelectedDeliverableType(val as any)}
+              className="w-full"
+            />
           </div>
         </div>
 
