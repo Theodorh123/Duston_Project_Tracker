@@ -69,3 +69,42 @@ export async function updateProject(id: string, data: Partial<CreateProjectInput
     return { success: false, error: err.message };
   }
 }
+
+export async function createQuickProject(data: { name: string; entityId: string; targetDate?: string }) {
+  try {
+    if (!data.name?.trim() || !data.entityId) {
+      return { success: false, error: "Project name and subsidiary are required." };
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    const target = data.targetDate || new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const [project] = await db
+      .insert(projects)
+      .values({
+        entityId: data.entityId,
+        name: data.name.trim(),
+        category: "operations",
+        status: "not_started",
+        priority: "medium",
+        startDate: today,
+        targetDate: target,
+      })
+      .returning();
+
+    invalidateMetadataCache();
+    revalidatePath("/projects");
+    revalidatePath("/todos");
+    revalidatePath("/");
+    return {
+      success: true,
+      project: {
+        id: project.id,
+        name: project.name,
+        entityId: project.entityId,
+      },
+    };
+  } catch (err: any) {
+    console.error("createQuickProject error:", err);
+    return { success: false, error: err.message };
+  }
+}
+

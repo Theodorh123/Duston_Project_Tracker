@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   CheckSquare,
   Plus,
@@ -11,6 +11,7 @@ import {
   Building2,
   Check,
   X,
+  FolderPlus,
 } from "lucide-react";
 import { cn, formatShortDate, isDeadlineOverdue } from "@/lib/utils";
 import {
@@ -21,6 +22,7 @@ import {
   deleteTodo,
   getUserTodos,
 } from "@/lib/actions/todos";
+import { createQuickProject } from "@/lib/actions/projects";
 
 export interface EntityOption {
   id: string;
@@ -56,9 +58,15 @@ export function TodoListClient({
   allUsers = [],
 }: TodoListClientProps) {
   const [todos, setTodos] = useState<TodoItemData[]>(initialTodos);
+  const [projectList, setProjectList] = useState<ProjectOption[]>(projects);
   const [activeTab, setActiveTab] = useState<"all" | "active" | "done">("all");
   const [selectedUserFilter, setSelectedUserFilter] = useState<string>(currentUserId);
   const [isLoadingUserTodos, setIsLoadingUserTodos] = useState(false);
+
+  // Sync projectList when props change
+  useEffect(() => {
+    setProjectList(projects);
+  }, [projects]);
 
   // Minimal Quick-Add State
   const [newTitle, setNewTitle] = useState("");
@@ -75,19 +83,76 @@ export function TodoListClient({
   const [editDeadline, setEditDeadline] = useState<string>("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+  // New Project Modal State
+  const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
+  const [newProjectModalEntityId, setNewProjectModalEntityId] = useState<string>("");
+  const [newProjectModalName, setNewProjectModalName] = useState("");
+  const [newProjectTargetField, setNewProjectTargetField] = useState<"new" | "edit">("new");
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [projectCreateError, setProjectCreateError] = useState<string | null>(null);
+
   const todayStr = new Date().toISOString().split("T")[0];
 
   // Available projects for the currently selected new subsidiary
   const availableProjectsForNew = useMemo(() => {
     if (!newEntityId) return [];
-    return projects.filter((p) => p.entityId === newEntityId);
-  }, [projects, newEntityId]);
+    return projectList.filter((p) => p.entityId === newEntityId);
+  }, [projectList, newEntityId]);
 
   // Available projects for edit subsidiary
   const availableProjectsForEdit = useMemo(() => {
     if (!editEntityId) return [];
-    return projects.filter((p) => p.entityId === editEntityId);
-  }, [projects, editEntityId]);
+    return projectList.filter((p) => p.entityId === editEntityId);
+  }, [projectList, editEntityId]);
+
+  const openNewProjectModal = (entityId: string, target: "new" | "edit") => {
+    setNewProjectModalEntityId(entityId || entities[0]?.id || "");
+    setNewProjectModalName("");
+    setNewProjectTargetField(target);
+    setProjectCreateError(null);
+    setIsNewProjectModalOpen(true);
+  };
+
+  const handleCreateNewProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProjectModalName.trim() || !newProjectModalEntityId) return;
+
+    setIsCreatingProject(true);
+    setProjectCreateError(null);
+
+    try {
+      const res = await createQuickProject({
+        name: newProjectModalName.trim(),
+        entityId: newProjectModalEntityId,
+      });
+
+      if (res.success && res.project) {
+        const created: ProjectOption = {
+          id: res.project.id,
+          name: res.project.name,
+          entityId: res.project.entityId,
+        };
+
+        setProjectList((prev) => [created, ...prev]);
+
+        if (newProjectTargetField === "new") {
+          setNewEntityId(created.entityId);
+          setNewProjectId(created.id);
+        } else {
+          setEditEntityId(created.entityId);
+          setEditProjectId(created.id);
+        }
+
+        setIsNewProjectModalOpen(false);
+      } else {
+        setProjectCreateError(res.error || "Failed to create project");
+      }
+    } catch (err: any) {
+      setProjectCreateError(err.message || "Failed to create project");
+    } finally {
+      setIsCreatingProject(false);
+    }
+  };
 
   // Admin switch team member
   const handleSwitchUser = async (targetUserId: string) => {
@@ -113,7 +178,7 @@ export function TodoListClient({
     setIsSubmitting(true);
     const targetUser = isAdmin && selectedUserFilter !== currentUserId ? selectedUserFilter : currentUserId;
     const selectedEnt = entities.find((e) => e.id === newEntityId);
-    const selectedProj = projects.find((p) => p.id === newProjectId);
+    const selectedProj = projectList.find((p) => p.id === newProjectId);
 
     const tempId = "temp-" + Date.now();
     const optimisticItem: TodoItemData = {
@@ -218,7 +283,7 @@ export function TodoListClient({
     setIsSavingEdit(true);
 
     const selectedEnt = entities.find((e) => e.id === editEntityId);
-    const selectedProj = projects.find((p) => p.id === editProjectId && p.entityId === editEntityId);
+    const selectedProj = projectList.find((p) => p.id === editProjectId && p.entityId === editEntityId);
 
     setTodos((prev) =>
       prev.map((t) =>
@@ -340,20 +405,33 @@ export function TodoListClient({
             <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
           </div>
 
-          {/* Optional Project */}
+          {/* Optional Project or Add New */}
           <div className="relative">
             <select
               value={newProjectId}
-              onChange={(e) => setNewProjectId(e.target.value)}
-              className="text-xs py-1.5 px-2.5 rounded-lg border border-duston-border bg-duston-bg/40 text-duston-dark focus:outline-none focus:border-[#023542] cursor-pointer appearance-none pr-6 font-medium max-w-[140px] truncate"
-              title="Optional Project"
+              onChange={(e) => {
+                if (e.target.value === "__NEW_PROJECT__") {
+                  openNewProjectModal(newEntityId, "new");
+                } else {
+                  setNewProjectId(e.target.value);
+                }
+              }}
+              className="text-xs py-1.5 px-2.5 rounded-lg border border-duston-border bg-duston-bg/40 text-duston-dark focus:outline-none focus:border-[#023542] cursor-pointer appearance-none pr-6 font-medium max-w-[150px] truncate"
+              title="Project (Optional or Add New)"
             >
               <option value="">No Project</option>
-              {availableProjectsForNew.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
+              <option value="__NEW_PROJECT__" className="text-[#023542] font-semibold bg-[#1BCECE]/10">
+                + Add new project...
+              </option>
+              {availableProjectsForNew.length > 0 && (
+                <optgroup label="Existing Projects">
+                  {availableProjectsForNew.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
             <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
           </div>
@@ -467,19 +545,35 @@ export function TodoListClient({
                         ))}
                       </select>
 
-                      {/* Edit Project (Optional) */}
-                      <select
-                        value={editProjectId}
-                        onChange={(e) => setEditProjectId(e.target.value)}
-                        className="text-xs p-1.5 rounded-lg border border-duston-border bg-white text-duston-dark focus:outline-none"
-                      >
-                        <option value="">No Project</option>
-                        {availableProjectsForEdit.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
+                      {/* Edit Project (Optional or Add New) */}
+                      <div className="relative">
+                        <select
+                          value={editProjectId}
+                          onChange={(e) => {
+                            if (e.target.value === "__NEW_PROJECT__") {
+                              openNewProjectModal(editEntityId, "edit");
+                            } else {
+                              setEditProjectId(e.target.value);
+                            }
+                          }}
+                          className="text-xs p-1.5 rounded-lg border border-duston-border bg-white text-duston-dark focus:outline-none appearance-none pr-5 font-medium max-w-[140px] truncate"
+                        >
+                          <option value="">No Project</option>
+                          <option value="__NEW_PROJECT__" className="text-[#023542] font-semibold bg-[#1BCECE]/10">
+                            + Add new project...
                           </option>
-                        ))}
-                      </select>
+                          {availableProjectsForEdit.length > 0 && (
+                            <optgroup label="Existing Projects">
+                              {availableProjectsForEdit.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
+                        </select>
+                        <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
+                      </div>
 
                       <input
                         type="date"
@@ -626,6 +720,107 @@ export function TodoListClient({
           })
         )}
       </div>
+
+      {/* New Project Modal */}
+      {isNewProjectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div
+            className="bg-white rounded-2xl shadow-xl border border-duston-border w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-duston-border flex items-center justify-between bg-duston-bg/30">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#1BCECE]/15 flex items-center justify-center text-[#023542]">
+                  <Building2 size={15} />
+                </div>
+                <div>
+                  <h3 className="text-xs font-semibold text-duston-dark">
+                    Add New Project
+                  </h3>
+                  <p className="text-[10px] text-duston-muted">
+                    Create a project and attach it to your to-do
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsNewProjectModalOpen(false)}
+                className="p-1 text-duston-muted hover:text-duston-dark rounded-lg cursor-pointer"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateNewProject} className="p-4 space-y-3.5">
+              {projectCreateError && (
+                <div className="p-2 bg-rose-50 border border-rose-200 text-rose-700 text-[11px] rounded-lg">
+                  {projectCreateError}
+                </div>
+              )}
+
+              {/* Target Subsidiary */}
+              <div>
+                <label className="block text-[11px] font-medium text-duston-dark mb-1">
+                  Subsidiary *
+                </label>
+                <select
+                  value={newProjectModalEntityId}
+                  onChange={(e) => setNewProjectModalEntityId(e.target.value)}
+                  required
+                  className="w-full text-xs p-2 rounded-lg border border-duston-border bg-white text-duston-dark focus:outline-none focus:border-[#023542] font-medium cursor-pointer"
+                >
+                  {entities.map((ent) => (
+                    <option key={ent.id} value={ent.id}>
+                      {ent.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Project Name */}
+              <div>
+                <label className="block text-[11px] font-medium text-duston-dark mb-1">
+                  Project Name *
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  required
+                  placeholder="e.g. EBID Trade Finance Facility"
+                  value={newProjectModalName}
+                  onChange={(e) => setNewProjectModalName(e.target.value)}
+                  className="w-full text-xs p-2 rounded-lg border border-duston-border focus:outline-none focus:border-[#023542] text-duston-dark font-medium"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsNewProjectModalOpen(false)}
+                  className="px-3 py-1.5 border border-duston-border text-duston-muted hover:text-duston-dark text-xs rounded-lg font-medium cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingProject || !newProjectModalName.trim()}
+                  className="px-3 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white text-xs rounded-lg font-medium transition-colors disabled:opacity-40 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                >
+                  {isCreatingProject ? (
+                    <span>Creating...</span>
+                  ) : (
+                    <>
+                      <Plus size={13} />
+                      <span>Create Project</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
