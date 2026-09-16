@@ -19,7 +19,7 @@ import {
   UserPlus,
   X,
 } from "lucide-react";
-import { cn, formatDate, formatShortDate, isDeadlineOverdue } from "@/lib/utils";
+import { cn, formatDate, formatShortDate, isDeadlineOverdue, isTbaDeadline, TBA_DEADLINE } from "@/lib/utils";
 import { useAppShell } from "../layout/AppShell";
 import { updateProject } from "@/lib/actions/projects";
 import { createActionItem } from "@/lib/actions/action-items";
@@ -199,6 +199,7 @@ export function ProjectDetailClient({
   const [newItemDeadline, setNewItemDeadline] = useState(
     new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]
   );
+  const [isNewItemDeadlineTba, setIsNewItemDeadlineTba] = useState(false);
   const [newItemStatus, setNewItemStatus] = useState<"not_started" | "in_progress" | "done">("not_started");
   const [newItemPriority, setNewItemPriority] = useState<"low" | "medium" | "high" | "critical">("medium");
   const [newItemComments, setNewItemComments] = useState("");
@@ -208,26 +209,33 @@ export function ProjectDetailClient({
   const [varianceText, setVarianceText] = useState("");
   const [isSavingVariance, setIsSavingVariance] = useState(false);
 
-  const handleSaveVariance = async () => {
-    if (!editingVarianceItem) return;
+  const handleOpenVarianceModal = (item: { id: string; title: string; comments: string }) => {
+    setEditingVarianceItem(item);
+    setVarianceText(item.comments || "");
+  };
+
+  const handleSaveVarianceModal = async () => {
+    if (!editingVarianceItem || isSavingVariance) return;
     setIsSavingVariance(true);
     try {
       const res = await fetch(`/api/action-items/${editingVarianceItem.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description: varianceText }),
+        body: JSON.stringify({ description: varianceText.trim() || null }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || "Permission denied: Only EA, Admin, CEO, or the creator can amend this action item.");
-        return;
+      if (res.ok) {
+        setItemsList((prev) =>
+          prev.map((it) =>
+            it.id === editingVarianceItem.id
+              ? { ...it, comments: varianceText.trim() || null }
+              : it
+          )
+        );
+        setEditingVarianceItem(null);
+        router.refresh();
       }
-      setItemsList((prev) =>
-        prev.map((it) => (it.id === editingVarianceItem.id ? { ...it, comments: varianceText } : it))
-      );
-      setEditingVarianceItem(null);
     } catch (err) {
-      console.error("Failed to update variance note:", err);
+      console.error("Failed to save variance note:", err);
     } finally {
       setIsSavingVariance(false);
     }
@@ -273,13 +281,18 @@ export function ProjectDetailClient({
     e.preventDefault();
     if (!newItemTitle.trim()) return;
 
+    const resolvedDeadline =
+      isNewItemDeadlineTba || !newItemDeadline.trim()
+        ? TBA_DEADLINE
+        : newItemDeadline;
+
     const res = await createActionItem({
       projectId: project.id,
       title: newItemTitle.trim(),
       description: newItemComments.trim() || undefined,
       assigneeId: newItemAssignee,
       secondaryAssigneeIds: newItemSecondaryAssignees,
-      deadline: newItemDeadline,
+      deadline: resolvedDeadline,
       status: newItemStatus,
       priority: newItemPriority,
       createdBy: currentUserId,
@@ -631,6 +644,8 @@ export function ProjectDetailClient({
                             "px-2 py-0.5 rounded text-[11px] font-medium",
                             isDeadlineOverdue(item.deadline, item.status)
                               ? "bg-duston-orange/10 text-duston-orange"
+                              : isTbaDeadline(item.deadline)
+                              ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
                               : "text-duston-muted"
                           )}
                         >
@@ -820,6 +835,8 @@ export function ProjectDetailClient({
                                     "px-2 py-0.5 rounded text-[11px] font-medium",
                                     isDeadlineOverdue(item.deadline, item.status)
                                       ? "bg-duston-orange/10 text-duston-orange"
+                                      : isTbaDeadline(item.deadline)
+                                      ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
                                       : "text-duston-muted"
                                   )}
                                 >
@@ -1012,6 +1029,8 @@ export function ProjectDetailClient({
                                     "text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0",
                                     isDeadlineOverdue(item.deadline, item.status)
                                       ? "bg-duston-orange/10 text-duston-orange"
+                                      : isTbaDeadline(item.deadline)
+                                      ? "bg-amber-50 text-amber-800 border border-amber-200/70 font-semibold"
                                       : "bg-duston-bg text-duston-muted border border-duston-border"
                                   )}
                                 >
@@ -1337,14 +1356,46 @@ export function ProjectDetailClient({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-duston-muted mb-1 font-medium">Deadline</label>
-                    <input
-                      type="date"
-                      required
-                      value={newItemDeadline}
-                      onChange={(e) => setNewItemDeadline(e.target.value)}
-                      className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-duston-muted font-medium text-xs">
+                        Deadline <span className="text-rose-500">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsNewItemDeadlineTba((prev) => !prev)}
+                        className={cn(
+                          "text-[10px] font-medium px-1.5 py-0.2 rounded transition-colors cursor-pointer",
+                          isNewItemDeadlineTba
+                            ? "bg-amber-100 text-amber-800 font-semibold"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        )}
+                      >
+                        {isNewItemDeadlineTba ? "✓ To Be Actioned" : "To Be Actioned"}
+                      </button>
+                    </div>
+                    {isNewItemDeadlineTba ? (
+                      <div className="w-full bg-amber-50/70 border border-amber-200 rounded-lg p-2 text-amber-800 text-xs font-semibold flex items-center justify-between">
+                        <span className="truncate">To Be Actioned</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsNewItemDeadlineTba(false);
+                            setNewItemDeadline(new Date().toISOString().split("T")[0]);
+                          }}
+                          className="text-[10px] text-amber-700 underline font-normal hover:text-amber-900 ml-1 cursor-pointer shrink-0"
+                        >
+                          Set date
+                        </button>
+                      </div>
+                    ) : (
+                      <input
+                        type="date"
+                        required
+                        value={newItemDeadline}
+                        onChange={(e) => setNewItemDeadline(e.target.value)}
+                        className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -1419,7 +1470,7 @@ export function ProjectDetailClient({
               </button>
               <button
                 type="button"
-                onClick={handleSaveVariance}
+                onClick={handleSaveVarianceModal}
                 disabled={isSavingVariance}
                 className="px-4 py-2 rounded-xl bg-[#023542] hover:bg-[#1BCECE] text-white text-xs font-medium transition-colors disabled:opacity-50 shadow-subtle cursor-pointer"
               >

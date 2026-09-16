@@ -5,6 +5,7 @@ import { meetings, meetingAttendees, actionItems, activityLog, users, projects }
 import { eq, desc, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { sendWhatsApp } from "../services/whatsapp";
+import { TBA_DEADLINE, isTbaDeadline } from "@/lib/utils";
 
 export interface CreateMeetingInput {
   entityId: string;
@@ -73,7 +74,12 @@ export async function createMeeting(data: CreateMeetingInput) {
           if (parts.length >= 2) {
             const title = parts[0];
             const responsible = parts[1]?.toLowerCase();
-            const deadlineRaw = parts[2] || new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
+            const rawD = (parts[2] || "").trim();
+            const isTba =
+              !rawD ||
+              isTbaDeadline(rawD) ||
+              ["tba", "tbd", "to be actioned", "pending", "none"].includes(rawD.toLowerCase());
+            const deadlineRaw = isTba ? TBA_DEADLINE : rawD;
 
             // Match assignee by name or email
             const matchedUser =

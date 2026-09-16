@@ -18,7 +18,7 @@ import {
   MessageSquare,
   Edit2,
 } from "lucide-react";
-import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
+import { cn, formatDate, isDeadlineOverdue, isTbaDeadline, TBA_DEADLINE } from "@/lib/utils";
 import { ImportRegisterModal } from "./ImportRegisterModal";
 import { SyncToTodoModal } from "@/components/todos/SyncToTodoModal";
 import { useAppShell } from "../layout/AppShell";
@@ -360,7 +360,7 @@ export function ActionRegisterClient({
       `"${it.title.replace(/"/g, '""')}"`,
       `"${it.assigneeName.replace(/"/g, '""')}"`,
       it.tag ? `"${it.tag.replace(/"/g, '""')}"` : '""',
-      it.deadline,
+      isTbaDeadline(it.deadline) ? '"To Be Actioned"' : it.deadline,
       it.status,
       it.priority,
       `"${it.projectName.replace(/"/g, '""')}"`,
@@ -518,6 +518,8 @@ export function ActionRegisterClient({
                 ? "bg-duston-orange/10 text-duston-orange border border-duston-orange/20"
                 : item.status === "done"
                 ? "text-duston-muted"
+                : isTbaDeadline(item.deadline)
+                ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
                 : "bg-duston-bg text-duston-dark border border-duston-border/70"
             )}
           >
@@ -767,6 +769,8 @@ export function ActionRegisterClient({
                   ? "bg-duston-orange/10 text-duston-orange border border-duston-orange/20"
                   : item.status === "done"
                   ? "text-duston-muted"
+                  : isTbaDeadline(item.deadline)
+                  ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
                   : "bg-duston-bg text-duston-dark border border-duston-border"
               )}
             >

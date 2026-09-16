@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronRight, ExternalLink, MapPin, Video, Flag, MessageSquare } from "lucide-react";
-import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
+import { cn, formatDate, isDeadlineOverdue, isTbaDeadline } from "@/lib/utils";
 import { useAppShell } from "../layout/AppShell";
 import { PriorityFlag } from "@/components/ui/PriorityFlag";
 
@@ -137,8 +137,12 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
       <td className="py-3 px-4 text-duston-muted">
         <span
           className={cn(
-            isDeadlineOverdue(item.deadline, item.status) &&
-              "text-duston-orange font-medium"
+            "px-2 py-0.5 rounded text-[11px] font-medium",
+            isDeadlineOverdue(item.deadline, item.status)
+              ? "bg-duston-orange/10 text-duston-orange"
+              : isTbaDeadline(item.deadline)
+              ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
+              : "text-duston-muted"
           )}
         >
           {formatDate(item.deadline)}

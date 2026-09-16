@@ -19,7 +19,7 @@ import {
   Briefcase,
   Layers,
 } from "lucide-react";
-import { cn, formatShortDate } from "@/lib/utils";
+import { cn, formatShortDate, isTbaDeadline, TBA_DEADLINE } from "@/lib/utils";
 import { bulkCreateActionItems } from "@/lib/actions/action-items";
 import { useRouter } from "next/navigation";
 
@@ -216,24 +216,32 @@ export function ImportRegisterModal({
       setUploadedDocs(data.documents || []);
       setWarnings(data.warnings || []);
 
-      const stagingList: StagingActionItem[] = (data.items || []).map((it: any) => ({
-        id: it.id || Math.random().toString(),
-        selected: true,
-        itemNumber: it.itemNumber,
-        sourceDocument: it.sourceDocument,
-        title: it.title,
-        rawResponsible: it.rawResponsible || "",
-        assigneeId: it.matchedUserId || currentUserId,
-        coAssignees: it.coAssignees || [],
-        isExternal: it.isExternal || false,
-        needsInternalLead: it.needsInternalLead || (!it.matchedUserId && !it.isExternal),
-        rawDeadline: it.rawDeadline || "",
-        deadline: it.parsedDeadline || new Date().toISOString().split("T")[0],
-        isDeadlineTBA: it.isDeadlineTBA || false,
-        priority: it.priority || "medium",
-        status: "not_started",
-        notes: it.notes,
-      }));
+      const stagingList: StagingActionItem[] = (data.items || []).map((it: any) => {
+        const isTba = Boolean(
+          it.isDeadlineTBA ||
+          !it.parsedDeadline ||
+          isTbaDeadline(it.parsedDeadline) ||
+          isTbaDeadline(it.rawDeadline)
+        );
+        return {
+          id: it.id || Math.random().toString(),
+          selected: true,
+          itemNumber: it.itemNumber,
+          sourceDocument: it.sourceDocument,
+          title: it.title,
+          rawResponsible: it.rawResponsible || "",
+          assigneeId: it.matchedUserId || currentUserId,
+          coAssignees: it.coAssignees || [],
+          isExternal: it.isExternal || false,
+          needsInternalLead: it.needsInternalLead || (!it.matchedUserId && !it.isExternal),
+          rawDeadline: it.rawDeadline || "",
+          deadline: isTba ? TBA_DEADLINE : (it.parsedDeadline || TBA_DEADLINE),
+          isDeadlineTBA: isTba,
+          priority: it.priority || "medium",
+          status: "not_started",
+          notes: it.notes,
+        };
+      });
 
       setItems(stagingList);
       setStep("review");
@@ -259,31 +267,40 @@ export function ImportRegisterModal({
         body: formData,
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to extract items.");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to parse pasted text");
       }
 
-      setMeetingSubject(data.documentTitle || "Imported Action Register");
+      const data = await res.json();
+      setUploadedDocs([]);
       setWarnings(data.warnings || []);
 
-      const stagingList: StagingActionItem[] = (data.items || []).map((it: any) => ({
-        id: it.id || Math.random().toString(),
-        selected: true,
-        itemNumber: it.itemNumber,
-        title: it.title,
-        rawResponsible: it.rawResponsible || "",
-        assigneeId: it.matchedUserId || currentUserId,
-        coAssignees: it.coAssignees || [],
-        isExternal: it.isExternal || false,
-        needsInternalLead: it.needsInternalLead || (!it.matchedUserId && !it.isExternal),
-        rawDeadline: it.rawDeadline || "",
-        deadline: it.parsedDeadline || new Date().toISOString().split("T")[0],
-        isDeadlineTBA: it.isDeadlineTBA || false,
-        priority: it.priority || "medium",
-        status: "not_started",
-        notes: it.notes,
-      }));
+      const stagingList: StagingActionItem[] = (data.items || []).map((it: any) => {
+        const isTba = Boolean(
+          it.isDeadlineTBA ||
+          !it.parsedDeadline ||
+          isTbaDeadline(it.parsedDeadline) ||
+          isTbaDeadline(it.rawDeadline)
+        );
+        return {
+          id: it.id || Math.random().toString(),
+          selected: true,
+          itemNumber: it.itemNumber,
+          title: it.title,
+          rawResponsible: it.rawResponsible || "",
+          assigneeId: it.matchedUserId || currentUserId,
+          coAssignees: it.coAssignees || [],
+          isExternal: it.isExternal || false,
+          needsInternalLead: it.needsInternalLead || (!it.matchedUserId && !it.isExternal),
+          rawDeadline: it.rawDeadline || "",
+          deadline: isTba ? TBA_DEADLINE : (it.parsedDeadline || TBA_DEADLINE),
+          isDeadlineTBA: isTba,
+          priority: it.priority || "medium",
+          status: "not_started",
+          notes: it.notes,
+        };
+      });
 
       setItems(stagingList);
       setStep("review");
@@ -928,16 +945,50 @@ export function ImportRegisterModal({
 
                         {/* Deadline Date Input */}
                         <td className="py-2 px-3">
-                          <input
-                            type="date"
-                            value={item.deadline}
-                            onChange={(e) => {
-                              const updated = [...items];
-                              updated[idx].deadline = e.target.value;
-                              setItems(updated);
-                            }}
-                            className="w-full bg-white border border-duston-border rounded-lg px-2 py-1.5 text-xs text-duston-text outline-none focus:border-[#1BCECE]"
-                          />
+                          {item.isDeadlineTBA || isTbaDeadline(item.deadline) ? (
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center text-[10px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                                To Be Actioned
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...items];
+                                  updated[idx].isDeadlineTBA = false;
+                                  updated[idx].deadline = new Date().toISOString().split("T")[0];
+                                  setItems(updated);
+                                }}
+                                className="text-[10px] text-amber-700 underline block hover:text-amber-900 cursor-pointer"
+                              >
+                                Set specific date
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-1">
+                              <input
+                                type="date"
+                                value={item.deadline}
+                                onChange={(e) => {
+                                  const updated = [...items];
+                                  updated[idx].deadline = e.target.value;
+                                  setItems(updated);
+                                }}
+                                className="w-full bg-white border border-duston-border rounded-lg px-2 py-1.5 text-xs text-duston-text outline-none focus:border-[#1BCECE]"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...items];
+                                  updated[idx].isDeadlineTBA = true;
+                                  updated[idx].deadline = TBA_DEADLINE;
+                                  setItems(updated);
+                                }}
+                                className="text-[10px] text-slate-500 hover:text-amber-800 underline block cursor-pointer"
+                              >
+                                Mark To Be Actioned
+                              </button>
+                            </div>
+                          )}
                           {item.rawDeadline && item.rawDeadline !== item.deadline && (
                             <span
                               className={cn(
@@ -948,7 +999,7 @@ export function ImportRegisterModal({
                               )}
                               title={item.rawDeadline}
                             >
-                              {item.rawDeadline}
+                              Raw: {item.rawDeadline}
                             </span>
                           )}
                         </td>

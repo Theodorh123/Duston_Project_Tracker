@@ -21,8 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { SyncToTodoModal } from "@/components/todos/SyncToTodoModal";
-import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
+import { cn, formatDate, isDeadlineOverdue, isTbaDeadline, TBA_DEADLINE } from "@/lib/utils";
 
 export interface ActionItemDetail {
   id: string;
@@ -113,6 +112,7 @@ export function ActionItemDrawer({
     status: "not_started" as "not_started" | "in_progress" | "blocked" | "done" | "postponed",
     priority: "medium" as "low" | "medium" | "high" | "critical",
     deadline: "",
+    isDeadlineTba: false,
     tag: "",
     description: "",
   });
@@ -262,6 +262,7 @@ export function ActionItemDrawer({
 
   const openEditModal = () => {
     if (!item) return;
+    const isTba = isTbaDeadline(item.deadline);
     setEditFormData({
       title: item.title || "",
       projectId: item.projectId || "",
@@ -269,7 +270,8 @@ export function ActionItemDrawer({
       secondaryAssigneeIds: item.secondaryAssigneeIds ? [...item.secondaryAssigneeIds] : [],
       status: item.status,
       priority: item.priority,
-      deadline: item.deadline ? item.deadline.slice(0, 10) : "",
+      deadline: isTba ? "" : (item.deadline ? item.deadline.slice(0, 10) : ""),
+      isDeadlineTba: isTba,
       tag: item.tag || "",
       description: item.description || "",
     });
@@ -283,6 +285,11 @@ export function ActionItemDrawer({
       setErrorMessage("Action item title is required.");
       return;
     }
+    const resolvedDeadline =
+      editFormData.isDeadlineTba || !editFormData.deadline.trim()
+        ? TBA_DEADLINE
+        : editFormData.deadline;
+
     setIsSavingAll(true);
     setErrorMessage(null);
 
@@ -290,7 +297,10 @@ export function ActionItemDrawer({
       const res = await fetch(`/api/action-items/${item.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editFormData),
+        body: JSON.stringify({
+          ...editFormData,
+          deadline: resolvedDeadline,
+        }),
       });
 
       if (!res.ok) {
@@ -791,20 +801,52 @@ export function ActionItemDrawer({
 
               {/* Deadline */}
               <div>
-                <label className="block text-duston-muted mb-1 font-medium">Deadline</label>
-                <input
-                  type="date"
-                  value={item.deadline}
-                  disabled={!canEdit}
-                  onChange={(e) => handleFieldChange("deadline", e.target.value)}
-                  className={cn(
-                    "w-full bg-white border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]",
-                    isDeadlineOverdue(item.deadline, item.status)
-                      ? "border-duston-orange text-duston-orange"
-                      : "border-duston-border",
-                    !canEdit && "opacity-60 cursor-not-allowed bg-slate-50"
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-duston-muted font-medium">Deadline</label>
+                  {isTbaDeadline(item.deadline) ? (
+                    <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 border border-amber-200/80 px-1.5 py-0.2 rounded">
+                      To Be Actioned
+                    </span>
+                  ) : null}
+                </div>
+                <div className="space-y-1">
+                  <input
+                    type="date"
+                    value={isTbaDeadline(item.deadline) ? "" : item.deadline}
+                    disabled={!canEdit}
+                    onChange={(e) => handleFieldChange("deadline", e.target.value || TBA_DEADLINE)}
+                    className={cn(
+                      "w-full bg-white border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]",
+                      isDeadlineOverdue(item.deadline, item.status)
+                        ? "border-duston-orange text-duston-orange"
+                        : "border-duston-border",
+                      !canEdit && "opacity-60 cursor-not-allowed bg-slate-50"
+                    )}
+                  />
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleFieldChange(
+                          "deadline",
+                          isTbaDeadline(item.deadline)
+                            ? new Date().toISOString().split("T")[0]
+                            : TBA_DEADLINE
+                        )
+                      }
+                      className={cn(
+                        "text-[10px] font-medium px-2 py-0.5 rounded transition-colors w-full text-center cursor-pointer",
+                        isTbaDeadline(item.deadline)
+                          ? "bg-amber-100/70 text-amber-800 hover:bg-amber-200"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      )}
+                    >
+                      {isTbaDeadline(item.deadline)
+                        ? "✓ Marked To Be Actioned (Click to set date)"
+                        : "Set to: To Be Actioned"}
+                    </button>
                   )}
-                />
+                </div>
               </div>
 
               {/* Tag */}
@@ -1147,14 +1189,55 @@ export function ActionItemDrawer({
               {/* Deadline & Tag Row */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-duston-dark mb-1">Deadline</label>
-                  <input
-                    type="date"
-                    required
-                    value={editFormData.deadline}
-                    onChange={(e) => setEditFormData({ ...editFormData, deadline: e.target.value })}
-                    className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-duston-dark outline-none focus:border-[#1BCECE]"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-semibold text-duston-dark text-xs">
+                      Deadline <span className="text-rose-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          isDeadlineTba: !prev.isDeadlineTba,
+                          deadline: !prev.isDeadlineTba ? "" : prev.deadline,
+                        }))
+                      }
+                      className={cn(
+                        "text-[10px] font-medium px-1.5 py-0.2 rounded transition-colors cursor-pointer",
+                        editFormData.isDeadlineTba
+                          ? "bg-amber-100 text-amber-800 font-semibold"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      )}
+                    >
+                      {editFormData.isDeadlineTba ? "✓ To Be Actioned" : "To Be Actioned"}
+                    </button>
+                  </div>
+                  {editFormData.isDeadlineTba ? (
+                    <div className="w-full bg-amber-50/70 border border-amber-200 rounded-xl px-3 py-2 text-amber-800 text-xs font-semibold flex items-center justify-between">
+                      <span className="truncate">To Be Actioned</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            isDeadlineTba: false,
+                            deadline: new Date().toISOString().split("T")[0],
+                          }))
+                        }
+                        className="text-[10px] text-amber-700 underline font-normal hover:text-amber-900 ml-1 cursor-pointer shrink-0"
+                      >
+                        Set date
+                      </button>
+                    </div>
+                  ) : (
+                    <input
+                      type="date"
+                      required
+                      value={editFormData.deadline}
+                      onChange={(e) => setEditFormData({ ...editFormData, deadline: e.target.value })}
+                      className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-duston-dark outline-none focus:border-[#1BCECE]"
+                    />
+                  )}
                 </div>
 
                 <div>

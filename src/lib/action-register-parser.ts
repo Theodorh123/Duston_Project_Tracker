@@ -47,10 +47,19 @@ export function resolveDeadline(rawDeadline: string, baseDate?: Date): {
   const lower = clean.toLowerCase();
 
   // If blank or TBA
-  if (!clean || lower === "tba" || lower === "tbd" || lower.includes("pending") || lower.includes("to be agreed")) {
+  if (
+    !clean ||
+    lower === "tba" ||
+    lower === "tbd" ||
+    lower === "to be actioned" ||
+    lower === "to_be_actioned" ||
+    lower.includes("to be actioned") ||
+    lower.includes("pending") ||
+    lower.includes("to be agreed")
+  ) {
     return {
-      parsedDate: format(addDays(base, 14), "yyyy-MM-dd"),
-      rawText: clean || "TBA",
+      parsedDate: "2099-12-31",
+      rawText: clean || "To Be Actioned",
       isTBA: true,
     };
   }

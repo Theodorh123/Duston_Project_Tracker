@@ -118,6 +118,14 @@ export interface UpdateActionItemInput {
 }
 
 import { invalidateMetadataCache } from "../db/cache";
+import { TBA_DEADLINE, isTbaDeadline } from "@/lib/utils";
+
+function normalizeDeadline(deadline?: string | null): string {
+  if (!deadline || deadline.trim() === "" || isTbaDeadline(deadline)) {
+    return TBA_DEADLINE;
+  }
+  return deadline.trim();
+}
 
 function revalidateAllActionItemPaths(projectId?: string) {
   invalidateMetadataCache();
@@ -156,7 +164,7 @@ export async function updateActionItem(
     if (data.projectId !== undefined) updateData.projectId = data.projectId;
     if (data.assigneeId !== undefined) updateData.assigneeId = data.assigneeId;
     if (data.secondaryAssigneeIds !== undefined) updateData.secondaryAssigneeIds = data.secondaryAssigneeIds;
-    if (data.deadline !== undefined) updateData.deadline = data.deadline;
+    if (data.deadline !== undefined) updateData.deadline = normalizeDeadline(data.deadline);
     if (data.status !== undefined) {
       updateData.status = data.status;
       if (data.status === "done") {
@@ -218,8 +226,9 @@ export async function updateActionItemField(
     });
     if (!current) return { success: false, error: "Not found" };
 
+    const finalValue = field === "deadline" ? normalizeDeadline(value) : value;
     const updateData: any = {
-      [field]: value,
+      [field]: finalValue,
       updatedAt: new Date(),
     };
 
@@ -241,14 +250,14 @@ export async function updateActionItemField(
       actorId: safeActorId,
       eventType: field === "status" ? "status_change" : (field === "assigneeId" || field === "secondaryAssigneeIds") ? "reassign" : "status_change",
       fromValue: typeof (current as any)[field] === "object" ? JSON.stringify((current as any)[field] ?? []) : String((current as any)[field] ?? ""),
-      toValue: typeof value === "object" ? JSON.stringify(value) : String(value),
+      toValue: typeof finalValue === "object" ? JSON.stringify(finalValue) : String(finalValue),
       note: field === "secondaryAssigneeIds" 
         ? "Updated secondary co-owners" 
         : field === "assigneeId" 
         ? "Reassigned primary responsible party"
         : field === "projectId"
         ? "Moved to different project"
-        : `Updated ${field} to ${value}`,
+        : `Updated ${field} to ${finalValue}`,
     });
 
     // WhatsApp nudge / notification if status changed to blocked
@@ -307,6 +316,7 @@ export async function createActionItem(data: {
   sourceMeetingId?: string;
 }) {
   try {
+    const resolvedDeadline = normalizeDeadline(data.deadline);
     const [newItem] = await db
       .insert(actionItems)
       .values({
@@ -315,7 +325,7 @@ export async function createActionItem(data: {
         description: data.description,
         assigneeId: data.assigneeId,
         secondaryAssigneeIds: data.secondaryAssigneeIds || [],
-        deadline: data.deadline,
+        deadline: resolvedDeadline,
         status: data.status || "not_started",
         priority: data.priority,
         tag: data.tag,
@@ -333,9 +343,10 @@ export async function createActionItem(data: {
     });
 
     // Trigger WhatsApp notification log
+    const deadlineLabel = isTbaDeadline(resolvedDeadline) ? "To Be Actioned" : resolvedDeadline;
     await sendWhatsApp(
       data.assigneeId,
-      `New action item assigned: "${data.title}" due on ${data.deadline}.`,
+      `New action item assigned: "${data.title}" (Deadline: ${deadlineLabel}).`,
       newItem.id
     );
 
@@ -344,7 +355,7 @@ export async function createActionItem(data: {
         if (secId && secId !== data.assigneeId) {
           await sendWhatsApp(
             secId,
-            `You are co-assigned to action item: "${data.title}" due on ${data.deadline}.`,
+            `You are co-assigned to action item: "${data.title}" (Deadline: ${deadlineLabel}).`,
             newItem.id
           );
         }
@@ -447,6 +458,7 @@ export async function bulkCreateActionItems(data: {
     const insertedItems = [];
 
     for (const item of data.items) {
+      const resolvedDeadline = normalizeDeadline(item.deadline);
       const [created] = await db
         .insert(actionItems)
         .values({
@@ -454,7 +466,7 @@ export async function bulkCreateActionItems(data: {
           title: item.title.trim(),
           description: item.notes || null,
           assigneeId: item.assigneeId,
-          deadline: item.deadline,
+          deadline: resolvedDeadline,
           status: item.status || "not_started",
           priority: item.priority || "medium",
           tag: item.tag || (item.notes?.includes("Counterparty") ? "Counterparty" : undefined),
@@ -475,9 +487,10 @@ export async function bulkCreateActionItems(data: {
       });
 
       // Optional WhatsApp notification
+      const deadlineLabel = isTbaDeadline(resolvedDeadline) ? "To Be Actioned" : resolvedDeadline;
       await sendWhatsApp(
         item.assigneeId,
-        `New action item assigned from register: "${item.title}" due on ${item.deadline}.`,
+        `New action item assigned from register: "${item.title}" (Deadline: ${deadlineLabel}).`,
         created.id
       );
     }

@@ -24,7 +24,7 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { cn, formatDate, formatShortDate, isDeadlineOverdue } from "@/lib/utils";
+import { cn, formatDate, formatShortDate, isDeadlineOverdue, isTbaDeadline, TBA_DEADLINE } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createActionItem } from "@/lib/actions/action-items";
@@ -212,7 +212,7 @@ export function DashboardClient({
   const todayStr = new Date().toISOString().split("T")[0];
 
   const dueThisWeekCount = filteredItems.filter((i) => {
-    if (i.status === "done") return false;
+    if (i.status === "done" || isTbaDeadline(i.deadline)) return false;
     const itemDate = new Date(i.deadline);
     const diff = (itemDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24);
     return diff >= 0 && diff <= 7;
@@ -248,6 +248,7 @@ export function DashboardClient({
   const [quickAddDeadline, setQuickAddDeadline] = useState(
     new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]
   );
+  const [isQuickAddDeadlineTba, setIsQuickAddDeadlineTba] = useState(false);
   const [quickAddPriority, setQuickAddPriority] = useState<"low" | "medium" | "high" | "critical">("medium");
   const [isSubmittingQuickAdd, setIsSubmittingQuickAdd] = useState(false);
 
@@ -383,13 +384,18 @@ export function DashboardClient({
       .map((id) => usersList.find((u) => u.id === id)?.name)
       .filter(Boolean) as string[];
 
+    const resolvedDeadline =
+      isQuickAddDeadlineTba || !quickAddDeadline.trim()
+        ? TBA_DEADLINE
+        : quickAddDeadline;
+
     const res = await createActionItem({
       projectId: quickAddProjectId,
       title: quickAddTitle.trim(),
       description: quickAddComments.trim() || undefined,
       assigneeId: quickAddAssigneeId || currentUserId || "00000000-0000-0000-0000-000000000000",
       secondaryAssigneeIds: quickAddSecondaryAssigneeIds,
-      deadline: quickAddDeadline,
+      deadline: resolvedDeadline,
       status: targetStatus,
       priority: quickAddPriority,
       createdBy: currentUserId || quickAddAssigneeId || "00000000-0000-0000-0000-000000000000",
@@ -538,7 +544,7 @@ export function DashboardClient({
     if (metricFilter === "open") return i.status !== "done";
     if (metricFilter === "overdue") return isDeadlineOverdue(i.deadline, i.status) && i.status !== "done";
     if (metricFilter === "due_this_week") {
-      if (i.status === "done") return false;
+      if (i.status === "done" || isTbaDeadline(i.deadline)) return false;
       const itemDate = new Date(i.deadline);
       const diff = (itemDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24);
       return diff >= 0 && diff <= 7;
@@ -550,15 +556,18 @@ export function DashboardClient({
   // Group items for Todo view: Overdue, Today, This Week, Later, Completed
   const groupedTodo = {
     overdue: displayedItems.filter((i) => isDeadlineOverdue(i.deadline, i.status) && i.status !== "done"),
-    today: displayedItems.filter((i) => !isDeadlineOverdue(i.deadline, i.status) && i.deadline === todayStr && i.status !== "done"),
+    today: displayedItems.filter(
+      (i) => !isDeadlineOverdue(i.deadline, i.status) && !isTbaDeadline(i.deadline) && i.deadline === todayStr && i.status !== "done"
+    ),
     thisWeek: displayedItems.filter((i) => {
-      if (isDeadlineOverdue(i.deadline, i.status) || i.deadline === todayStr || i.status === "done") return false;
+      if (isDeadlineOverdue(i.deadline, i.status) || isTbaDeadline(i.deadline) || i.deadline === todayStr || i.status === "done") return false;
       const itemDate = new Date(i.deadline);
       const diff = (itemDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24);
       return diff > 0 && diff <= 7;
     }),
     later: displayedItems.filter((i) => {
       if (i.status === "done" || isDeadlineOverdue(i.deadline, i.status)) return false;
+      if (isTbaDeadline(i.deadline)) return true;
       const itemDate = new Date(i.deadline);
       const diff = (itemDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24);
       return diff > 7;
@@ -664,12 +673,18 @@ export function DashboardClient({
               "text-[11px] font-medium px-2 py-0.5 rounded inline-block",
               isOverdue
                 ? "text-duston-orange bg-duston-orange/10 font-semibold"
+                : isTbaDeadline(item.deadline)
+                ? "text-amber-800 bg-amber-50 border border-amber-200/80 font-semibold"
                 : isToday
                 ? "text-duston-dark bg-duston-bg border border-duston-border font-semibold"
                 : "text-duston-muted"
             )}
           >
-            {isToday ? "Today" : formatShortDate(item.deadline)}
+            {isToday
+              ? "Today"
+              : isTbaDeadline(item.deadline)
+              ? "To Be Actioned"
+              : formatShortDate(item.deadline)}
           </span>
         </td>
 
@@ -1363,10 +1378,12 @@ export function DashboardClient({
                                     "text-[10px]",
                                     isDeadlineOverdue(item.deadline, item.status)
                                       ? "text-duston-orange font-medium"
+                                      : isTbaDeadline(item.deadline)
+                                      ? "text-amber-800 font-semibold bg-amber-50 px-1 py-0.2 rounded border border-amber-200/70"
                                       : "text-duston-muted"
                                   )}
                                 >
-                                  {formatShortDate(item.deadline)}
+                                  {isTbaDeadline(item.deadline) ? "To Be Actioned" : formatShortDate(item.deadline)}
                                 </span>
                               </div>
 
@@ -1860,16 +1877,48 @@ export function DashboardClient({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-duston-dark mb-1">
-                      Deadline
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={quickAddDeadline}
-                      onChange={(e) => setQuickAddDeadline(e.target.value)}
-                      className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-medium text-duston-dark">
+                        Deadline <span className="text-rose-500">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsQuickAddDeadlineTba((prev) => !prev);
+                        }}
+                        className={cn(
+                          "text-[10px] font-medium px-1.5 py-0.2 rounded transition-colors cursor-pointer",
+                          isQuickAddDeadlineTba
+                            ? "bg-amber-100 text-amber-800 font-semibold"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        )}
+                      >
+                        {isQuickAddDeadlineTba ? "✓ To Be Actioned" : "To Be Actioned"}
+                      </button>
+                    </div>
+                    {isQuickAddDeadlineTba ? (
+                      <div className="w-full bg-amber-50/70 border border-amber-200 rounded-lg p-2 text-amber-800 text-xs font-semibold flex items-center justify-between">
+                        <span className="truncate">To Be Actioned</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsQuickAddDeadlineTba(false);
+                            setQuickAddDeadline(new Date().toISOString().split("T")[0]);
+                          }}
+                          className="text-[10px] text-amber-700 underline font-normal hover:text-amber-900 ml-1 cursor-pointer shrink-0"
+                        >
+                          Set date
+                        </button>
+                      </div>
+                    ) : (
+                      <input
+                        type="date"
+                        required
+                        value={quickAddDeadline}
+                        onChange={(e) => setQuickAddDeadline(e.target.value)}
+                        className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
+                      />
+                    )}
                   </div>
 
                   <div>
