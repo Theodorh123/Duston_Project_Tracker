@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { CheckSquare, X, ChevronDown, Check, Building2, Calendar, Folder, Plus } from "lucide-react";
 import { createTodo } from "@/lib/actions/todos";
 import { createQuickProject } from "@/lib/actions/projects";
@@ -28,6 +29,7 @@ export function SyncToTodoModal({
   projects = [],
   onSuccess,
 }: SyncToTodoModalProps) {
+  const router = useRouter();
   const [title, setTitle] = useState(initialTitle || "");
   const [entityId, setEntityId] = useState(initialEntityId || entities[0]?.id || "");
   const [projectId, setProjectId] = useState(initialProjectId || "");
@@ -84,6 +86,13 @@ export function SyncToTodoModal({
         setProjectId(created.id);
         setShowNewProjectInput(false);
         setNewProjectName("");
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("project-created", { detail: res.project })
+          );
+        }
+        router.refresh();
       } else {
         setErrorMessage(res.error || "Failed to create project");
       }

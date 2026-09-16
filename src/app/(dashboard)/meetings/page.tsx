@@ -9,6 +9,9 @@ import { eq, desc } from "drizzle-orm";
 import { MeetingsClient, MeetingListItem } from "@/components/meetings/MeetingsClient";
 import { getUserScopeCached, getActiveEntitiesCached, getActiveUsersCached } from "@/lib/db/cache";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function MeetingsPage() {
   const session = await auth();
   const userId = session?.user?.id!;

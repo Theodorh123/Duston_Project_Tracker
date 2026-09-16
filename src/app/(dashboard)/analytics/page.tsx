@@ -9,6 +9,9 @@ import { actionItems } from "@/lib/db/schema";
 import { AnalyticsClient, AnalyticsItem } from "@/components/analytics/AnalyticsClient";
 import { Suspense } from "react";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata = {
   title: "Analytics | Duston Project Tracker",
   description: "Monitor deliverable completion, operational velocity, and workstream momentum across subsidiaries.",

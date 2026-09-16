@@ -309,12 +309,6 @@ export function ActionRegisterClient({
 
   // Quick change item status (Not Started / In-Progress / Done) with instant local & global refresh
   const handleChangeStatus = async (item: RegisterItem, newStatus: string) => {
-    const canEdit = isPrivileged || (Boolean(item.createdBy) && item.createdBy === currentUserId);
-    if (!canEdit) {
-      alert("Permission denied: Only EA, Admin, CEO, or the person who created this action item can amend its status.");
-      return;
-    }
-
     setItems((prev) =>
       prev.map((it) => (it.id === item.id ? { ...it, status: newStatus as any } : it))
     );
@@ -416,16 +410,13 @@ export function ActionRegisterClient({
       (item.tag.toLowerCase().includes("follow-up") ||
         item.tag.toLowerCase().includes("external") ||
         item.tag.toLowerCase().includes("counterparty"));
-    const canEdit = isPrivileged || (Boolean(item.createdBy) && item.createdBy === currentUserId);
+    const canEdit = true;
 
     return (
       <tr
         key={item.id}
         onClick={() => openActionItem(item.id)}
-        className={cn(
-          "hover:bg-duston-bg/50 transition-colors cursor-pointer group",
-          item.status === "done" && "opacity-60 bg-duston-bg/15"
-        )}
+        className="hover:bg-duston-bg/50 transition-colors cursor-pointer group"
       >
         {/* 1. Item No. */}
         <td className="py-3 px-3 text-center text-duston-muted font-mono text-[11px]">
@@ -540,7 +531,6 @@ export function ActionRegisterClient({
           <div className="relative inline-block">
             <select
               value={item.status}
-              disabled={!canEdit}
               onChange={(e) => handleChangeStatus(item, e.target.value)}
               className={cn(
                 "px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all border outline-none cursor-pointer appearance-none pr-5.5 shadow-2xs",
@@ -548,10 +538,9 @@ export function ActionRegisterClient({
                   ? "bg-[#39B54A]/15 text-[#39B54A] border-[#39B54A]/30 hover:bg-[#39B54A]/25"
                   : item.status === "in_progress"
                   ? "bg-[#1BCECE]/15 text-[#023542] border-[#1BCECE]/30 hover:bg-[#1BCECE]/25"
-                  : "bg-duston-bg text-duston-dark border-duston-border hover:bg-duston-border/50",
-                !canEdit && "opacity-75 cursor-not-allowed"
+                  : "bg-duston-bg text-duston-dark border-duston-border hover:bg-duston-border/50"
               )}
-              title={canEdit ? "Click to change status" : "Status (read-only)"}
+              title="Change status"
             >
               <option value="not_started">Not Started</option>
               <option value="in_progress">In-Progress</option>

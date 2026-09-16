@@ -6,6 +6,9 @@ import { Suspense } from "react";
 import { ActionRegisterClient, RegisterItem } from "@/components/action-items/ActionRegisterClient";
 import { getUserScopeCached, getActiveEntitiesCached, getActiveUsersCached } from "@/lib/db/cache";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function ActionRegisterPage() {
   const session = await auth();
   const userId = session?.user?.id!;

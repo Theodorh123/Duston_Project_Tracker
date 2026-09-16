@@ -4,6 +4,9 @@ import { users, userPreferences, entities } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { SettingsClient } from "@/components/settings/SettingsClient";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function SettingsPage() {
   const session = await auth();
   const userId = session?.user?.id!;

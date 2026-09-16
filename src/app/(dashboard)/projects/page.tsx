@@ -5,6 +5,9 @@ import { desc } from "drizzle-orm";
 import { ProjectsClient, ProjectListItem } from "@/components/projects/ProjectsClient";
 import { getUserScopeCached, getActiveEntitiesCached, getActiveUsersCached } from "@/lib/db/cache";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function ProjectsPage() {
   const session = await auth();
   const userId = session?.user?.id!;

@@ -7,6 +7,9 @@ import { EaViewClient, QueueItem, EntitySummaryCard } from "@/components/ea-view
 import { subHours, parseISO } from "date-fns";
 import { getDaysOverdue, getPriorityWeight, isDeadlineOverdue } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function EaViewPage() {
   const session = await auth();
   const role = (session?.user as any)?.role;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Search, Filter, FolderKanban, Calendar, ArrowRight, MessageSquare, X } from "lucide-react";
@@ -50,9 +50,31 @@ export function ProjectsClient({
   const [isSavingComment, setIsSavingComment] = useState(false);
 
   // Sync projectsList when projects prop changes
-  useMemo(() => {
+  useEffect(() => {
     setProjectsList(projects);
   }, [projects]);
+
+  // Real-time synchronization
+  useEffect(() => {
+    const handleProjectCreated = (e: Event) => {
+      const proj = (e as CustomEvent).detail;
+      if (!proj || !proj.id) return;
+      router.refresh();
+    };
+
+    const handleActionUpdated = () => {
+      router.refresh();
+    };
+
+    window.addEventListener("project-created", handleProjectCreated);
+    window.addEventListener("action-item-updated", handleActionUpdated);
+    window.addEventListener("action-item-deleted", handleActionUpdated);
+    return () => {
+      window.removeEventListener("project-created", handleProjectCreated);
+      window.removeEventListener("action-item-updated", handleActionUpdated);
+      window.removeEventListener("action-item-deleted", handleActionUpdated);
+    };
+  }, [router]);
 
   const handleOpenCommentModal = (p: ProjectListItem) => {
     setCommentModalProject(p);

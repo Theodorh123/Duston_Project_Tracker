@@ -16,7 +16,7 @@ export async function GET(
   const userId = session?.user?.id;
   const userRole = ((session?.user as any)?.role || "").toLowerCase().trim();
   const isPrivileged = ["admin", "ceo", "ea"].includes(userRole);
-  const canEdit = isPrivileged || (Boolean(item.createdBy) && item.createdBy === userId);
+  const canEdit = Boolean(userId);
   const canDelete = isPrivileged;
 
   return NextResponse.json({

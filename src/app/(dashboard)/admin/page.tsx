@@ -5,6 +5,9 @@ import { eq, desc, count } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { AdminClient, AdminUser, AdminEntity, AdminActivityLog, AdminActionItem } from "@/components/admin/AdminClient";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminPage() {
   const session = await auth();
   const role = (session?.user as any)?.role;

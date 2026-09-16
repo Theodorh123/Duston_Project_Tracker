@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronRight, ExternalLink, MapPin, Video, Flag, MessageSquare } from "lucide-react";
 import { cn, formatDate, isDeadlineOverdue } from "@/lib/utils";
@@ -34,17 +34,58 @@ interface MeetingDetailClientProps {
 
 export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClientProps) {
   const { openActionItem } = useAppShell();
+  const [items, setItems] = useState(actionItems);
   const [selectedPriority, setSelectedPriority] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"table" | "priority">("table");
 
+  useEffect(() => {
+    setItems(actionItems);
+  }, [actionItems]);
+
+  useEffect(() => {
+    const handleItemUpdated = (e: Event) => {
+      const updated = (e as CustomEvent).detail;
+      if (!updated || !updated.id) return;
+      setItems((prev) =>
+        prev.map((it) => {
+          if (it.id !== updated.id) return it;
+          return {
+            ...it,
+            title: updated.title ?? it.title,
+            status: updated.status ?? it.status,
+            priority: updated.priority ?? it.priority,
+            deadline: updated.deadline ?? it.deadline,
+            assigneeName: updated.assigneeName ?? it.assigneeName,
+            secondaryAssigneeNames: updated.secondaryAssigneeNames ?? it.secondaryAssigneeNames,
+            projectName: updated.projectName ?? it.projectName,
+            commentCount: updated.comments?.length ?? updated.commentCount ?? it.commentCount,
+          };
+        })
+      );
+    };
+
+    const handleItemDeleted = (e: Event) => {
+      const deletedId = (e as CustomEvent).detail?.id;
+      if (!deletedId) return;
+      setItems((prev) => prev.filter((it) => it.id !== deletedId));
+    };
+
+    window.addEventListener("action-item-updated", handleItemUpdated);
+    window.addEventListener("action-item-deleted", handleItemDeleted);
+    return () => {
+      window.removeEventListener("action-item-updated", handleItemUpdated);
+      window.removeEventListener("action-item-deleted", handleItemDeleted);
+    };
+  }, []);
+
   const priorityCounts = {
-    critical: actionItems.filter((i) => i.priority === "critical" && i.status !== "done").length,
-    high: actionItems.filter((i) => i.priority === "high" && i.status !== "done").length,
-    medium: actionItems.filter((i) => i.priority === "medium" && i.status !== "done").length,
-    low: actionItems.filter((i) => i.priority === "low" && i.status !== "done").length,
+    critical: items.filter((i) => i.priority === "critical" && i.status !== "done").length,
+    high: items.filter((i) => i.priority === "high" && i.status !== "done").length,
+    medium: items.filter((i) => i.priority === "medium" && i.status !== "done").length,
+    low: items.filter((i) => i.priority === "low" && i.status !== "done").length,
   };
 
-  const filteredItems = actionItems.filter((i) => {
+  const filteredItems = items.filter((i) => {
     if (selectedPriority !== "all" && i.priority !== selectedPriority) return false;
     return true;
   });
@@ -56,7 +97,7 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
     low: filteredItems.filter((i) => i.priority === "low"),
   };
 
-  const renderActionItemRow = (item: (typeof actionItems)[0]) => (
+  const renderActionItemRow = (item: (typeof items)[0]) => (
     <tr
       key={item.id}
       onClick={() => openActionItem(item.id)}
@@ -247,7 +288,7 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
         </div>
 
         {/* Priority Quick Filter Bar */}
-        {actionItems.length > 0 && (
+        {items.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-2 bg-white border border-duston-border rounded-xl px-3 py-2 text-xs shadow-2xs">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-[11px] font-semibold text-duston-muted flex items-center gap-1 shrink-0 mr-1">
@@ -301,7 +342,7 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
           </div>
         )}
 
-        {actionItems.length === 0 ? (
+        {items.length === 0 ? (
           <div className="bg-white border border-duston-border rounded-xl p-8 text-center shadow-subtle">
             <p className="text-xs text-duston-muted italic">
               No action items were registered from this meeting.

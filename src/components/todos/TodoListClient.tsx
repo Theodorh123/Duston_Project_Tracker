@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   CheckSquare,
   Plus,
@@ -57,6 +58,7 @@ export function TodoListClient({
   isAdmin,
   allUsers = [],
 }: TodoListClientProps) {
+  const router = useRouter();
   const [todos, setTodos] = useState<TodoItemData[]>(initialTodos);
   const [projectList, setProjectList] = useState<ProjectOption[]>(projects);
   const [activeTab, setActiveTab] = useState<"all" | "active" | "done">("all");
@@ -67,6 +69,23 @@ export function TodoListClient({
   useEffect(() => {
     setProjectList(projects);
   }, [projects]);
+
+  // Listen for real-time project creation across tabs/drawers
+  useEffect(() => {
+    const handleProjectCreated = (e: Event) => {
+      const proj = (e as CustomEvent).detail;
+      if (!proj || !proj.id) return;
+      setProjectList((prev) => {
+        if (prev.some((p) => p.id === proj.id)) return prev;
+        return [{ id: proj.id, name: proj.name, entityId: proj.entityId }, ...prev];
+      });
+    };
+
+    window.addEventListener("project-created", handleProjectCreated);
+    return () => {
+      window.removeEventListener("project-created", handleProjectCreated);
+    };
+  }, []);
 
   // Minimal Quick-Add State
   const [newTitle, setNewTitle] = useState("");
@@ -142,6 +161,13 @@ export function TodoListClient({
           setEditEntityId(created.entityId);
           setEditProjectId(created.id);
         }
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("project-created", { detail: res.project })
+          );
+        }
+        router.refresh();
 
         setIsNewProjectModalOpen(false);
       } else {

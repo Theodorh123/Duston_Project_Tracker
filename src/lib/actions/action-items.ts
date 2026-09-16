@@ -117,6 +117,22 @@ export interface UpdateActionItemInput {
   description?: string | null;
 }
 
+import { invalidateMetadataCache } from "../db/cache";
+
+function revalidateAllActionItemPaths(projectId?: string) {
+  invalidateMetadataCache();
+  revalidatePath("/");
+  revalidatePath("/action-items");
+  revalidatePath("/projects");
+  if (projectId) revalidatePath(`/projects/${projectId}`);
+  revalidatePath("/meetings");
+  revalidatePath("/todos");
+  revalidatePath("/admin");
+  revalidatePath("/ea-view");
+  revalidatePath("/ceo-view");
+  revalidatePath("/analytics");
+}
+
 export async function updateActionItem(
   id: string,
   data: UpdateActionItemInput,
@@ -131,24 +147,6 @@ export async function updateActionItem(
       where: eq(actionItems.id, id),
     });
     if (!current) return { success: false, error: "Not found" };
-
-    // Authorization check: Only EA, Admin, CEO can edit any action item.
-    // All other users can only edit action items that originate from them.
-    if (actorId && UUID_REGEX.test(actorId) && actorId !== "00000000-0000-0000-0000-000000000000") {
-      const actor = await db.query.users.findFirst({
-        where: eq(users.id, actorId),
-      });
-      const actorRole = actor?.role?.toLowerCase()?.trim() || "";
-      const isPrivileged = ["admin", "ceo", "ea"].includes(actorRole);
-      const isOriginator = current.createdBy === actorId;
-
-      if (!isPrivileged && !isOriginator) {
-        return {
-          success: false,
-          error: "Permission denied: Only EA, Admin, CEO or the creator of this action item can amend it.",
-        };
-      }
-    }
 
     const updateData: any = {
       updatedAt: new Date(),
@@ -195,12 +193,7 @@ export async function updateActionItem(
       );
     }
 
-    revalidatePath("/");
-    revalidatePath("/action-items");
-    revalidatePath("/projects");
-    revalidatePath("/admin");
-    revalidatePath("/ea-view");
-    revalidatePath("/ceo-view");
+    revalidateAllActionItemPaths(updated.projectId);
 
     return { success: true, item: updated };
   } catch (err: any) {
@@ -224,24 +217,6 @@ export async function updateActionItemField(
       where: eq(actionItems.id, id),
     });
     if (!current) return { success: false, error: "Not found" };
-
-    // Authorization check: Only EA, Admin, CEO can edit any action item.
-    // All other users can only edit action items that originate from them.
-    if (actorId && UUID_REGEX.test(actorId) && actorId !== "00000000-0000-0000-0000-000000000000") {
-      const actor = await db.query.users.findFirst({
-        where: eq(users.id, actorId),
-      });
-      const actorRole = actor?.role?.toLowerCase()?.trim() || "";
-      const isPrivileged = ["admin", "ceo", "ea"].includes(actorRole);
-      const isOriginator = current.createdBy === actorId;
-
-      if (!isPrivileged && !isOriginator) {
-        return {
-          success: false,
-          error: "Permission denied: Only EA, Admin, CEO or the creator of this action item can amend it.",
-        };
-      }
-    }
 
     const updateData: any = {
       [field]: value,
@@ -285,12 +260,7 @@ export async function updateActionItemField(
       );
     }
 
-    revalidatePath("/");
-    revalidatePath("/action-items");
-    revalidatePath("/projects");
-    revalidatePath("/admin");
-    revalidatePath("/ea-view");
-    revalidatePath("/ceo-view");
+    revalidateAllActionItemPaths(current.projectId);
 
     return { success: true };
   } catch (err: any) {
@@ -305,32 +275,16 @@ export async function deleteActionItem(id: string, actorId: string) {
   }
 
   try {
-    if (!actorId || !UUID_REGEX.test(actorId)) {
-      return { success: false, error: "Authentication required to delete action items" };
-    }
-
-    const actor = await db.query.users.findFirst({
-      where: eq(users.id, actorId),
+    const current = await db.query.actionItems.findFirst({
+      where: eq(actionItems.id, id),
     });
-
-    if (!actor || !["admin", "ceo", "ea"].includes(actor.role)) {
-      return {
-        success: false,
-        error: "Permission denied: Only EA, Admin, or CEO can delete action items.",
-      };
-    }
 
     // Explicitly remove linked rows in cascading order
     await db.delete(comments).where(eq(comments.actionItemId, id));
     await db.delete(activityLog).where(eq(activityLog.actionItemId, id));
     await db.delete(actionItems).where(eq(actionItems.id, id));
 
-    revalidatePath("/");
-    revalidatePath("/action-items");
-    revalidatePath("/projects");
-    revalidatePath("/meetings");
-    revalidatePath("/ea-view");
-    revalidatePath("/ceo-view");
+    revalidateAllActionItemPaths(current?.projectId);
 
     return { success: true };
   } catch (err: any) {
@@ -397,10 +351,7 @@ export async function createActionItem(data: {
       }
     }
 
-    revalidatePath("/");
-    revalidatePath("/action-items");
-    revalidatePath("/projects");
-    revalidatePath(`/projects/${data.projectId}`);
+    revalidateAllActionItemPaths(data.projectId);
     return { success: true, item: newItem };
   } catch (err: any) {
     console.error("createActionItem error:", err);
@@ -459,6 +410,7 @@ export async function bulkCreateActionItems(data: {
             startDate: new Date().toISOString().split("T")[0],
             targetDate: targetDateStr,
             status: "in_progress",
+            priority: "medium",
           })
           .returning();
         targetProjectId = newProj.id;
@@ -471,19 +423,19 @@ export async function bulkCreateActionItems(data: {
     }
 
     if (!targetProjectId) {
-      return { success: false, error: "Please select a target Subsidiary for these action items." };
+      return { success: false, error: "No project or subsidiary selected to assign items to." };
     }
 
-    let sourceMeetingId: string | undefined = undefined;
+    let sourceMeetingId: string | undefined;
 
-    // Optional: create a meeting record if meetingSubject provided and createMeetingRecord is true
-    if (data.createMeetingRecord && data.meetingSubject?.trim() && targetEntityId) {
+    if (data.createMeetingRecord && data.meetingSubject && targetEntityId) {
+      const meetingDateStr = data.meetingDate || new Date().toISOString().split("T")[0];
       const [newMeeting] = await db
         .insert(meetings)
         .values({
           entityId: targetEntityId,
-          subject: data.meetingSubject.trim(),
-          meetingDate: data.meetingDate || new Date().toISOString().split("T")[0],
+          subject: data.meetingSubject,
+          meetingDate: meetingDateStr,
           venue: data.venue || "Virtual",
           isVirtual: true,
           createdBy: data.createdBy,
@@ -530,11 +482,7 @@ export async function bulkCreateActionItems(data: {
       );
     }
 
-    revalidatePath("/");
-    revalidatePath("/action-items");
-    revalidatePath("/projects");
-    revalidatePath(`/projects/${data.projectId}`);
-    revalidatePath("/meetings");
+    revalidateAllActionItemPaths(targetProjectId);
 
     return {
       success: true,

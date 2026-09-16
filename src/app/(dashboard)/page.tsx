@@ -6,6 +6,9 @@ import { DashboardClient, ActionItemSummary, ActivitySummary } from "@/component
 
 import { getUserScopeCached, getActiveEntitiesCached, getActiveUsersCached } from "@/lib/db/cache";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function DashboardPage({
   searchParams,
 }: {

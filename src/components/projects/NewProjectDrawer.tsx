@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { createProject, CreateProjectInput } from "@/lib/actions/projects";
 
@@ -19,6 +20,7 @@ export function NewProjectDrawer({
   users,
   currentUserId,
 }: NewProjectDrawerProps) {
+  const router = useRouter();
   const [formData, setFormData] = useState<CreateProjectInput>({
     entityId: entities[0]?.id || "",
     name: "",
@@ -42,7 +44,13 @@ export function NewProjectDrawer({
 
     const res = await createProject(formData);
 
-    if (res.success) {
+    if (res.success && res.project) {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("project-created", { detail: res.project })
+        );
+      }
+      router.refresh();
       onClose();
     } else {
       setError(res.error || "Failed to create project");

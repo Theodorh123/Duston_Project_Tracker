@@ -6,6 +6,9 @@ import { redirect } from "next/navigation";
 import { CeoViewClient, HeatmapCell, RiskItem } from "@/components/ceo-view/CeoViewClient";
 import { isDeadlineOverdue, getDaysOverdue } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function CeoViewPage() {
   const session = await auth();
   const role = (session?.user as any)?.role;

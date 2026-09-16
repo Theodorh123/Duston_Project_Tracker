@@ -20,6 +20,19 @@ export interface CreateProjectInput {
   budgetNotes?: string;
 }
 
+function revalidateAllProjectPaths(projectId?: string) {
+  invalidateMetadataCache();
+  revalidatePath("/projects");
+  if (projectId) revalidatePath(`/projects/${projectId}`);
+  revalidatePath("/todos");
+  revalidatePath("/action-items");
+  revalidatePath("/");
+  revalidatePath("/meetings");
+  revalidatePath("/ceo-view");
+  revalidatePath("/ea-view");
+  revalidatePath("/analytics");
+}
+
 export async function createProject(data: CreateProjectInput) {
   try {
     const [project] = await db
@@ -39,9 +52,7 @@ export async function createProject(data: CreateProjectInput) {
       })
       .returning();
 
-    invalidateMetadataCache();
-    revalidatePath("/projects");
-    revalidatePath("/");
+    revalidateAllProjectPaths(project.id);
     return { success: true, project };
   } catch (err: any) {
     console.error("createProject error:", err);
@@ -59,10 +70,7 @@ export async function updateProject(id: string, data: Partial<CreateProjectInput
       })
       .where(eq(projects.id, id));
 
-    invalidateMetadataCache();
-    revalidatePath("/projects");
-    revalidatePath(`/projects/${id}`);
-    revalidatePath("/");
+    revalidateAllProjectPaths(id);
     return { success: true };
   } catch (err: any) {
     console.error("updateProject error:", err);
@@ -90,10 +98,7 @@ export async function createQuickProject(data: { name: string; entityId: string;
       })
       .returning();
 
-    invalidateMetadataCache();
-    revalidatePath("/projects");
-    revalidatePath("/todos");
-    revalidatePath("/");
+    revalidateAllProjectPaths(project.id);
     return {
       success: true,
       project: {

@@ -141,10 +141,7 @@ export function ActionItemDrawer({
     ["admin", "ceo", "ea"].includes(resolvedRole) ||
     ["admin", "ceo", "ea"].includes(normalizedPropRole);
   const canDelete = isPrivileged || item?.canDelete === true;
-  const canEdit =
-    isPrivileged ||
-    item?.canEdit === true ||
-    (Boolean(item?.createdBy) && item?.createdBy === currentUserId);
+  const canEdit = true;
 
   // Close on Escape key
   useEffect(() => {
@@ -516,26 +513,19 @@ export function ActionItemDrawer({
               </div>
             )}
 
-            {canEdit ? (
-              <div className="flex items-center justify-between p-2.5 bg-[#1BCECE]/10 border border-[#1BCECE]/30 rounded-xl text-xs text-[#023542]">
-                <span className="font-medium flex items-center gap-1.5">
-                  <Edit2 size={13} className="text-[#023542]" />
-                  <span>Authorized to edit (Admin / EA / Owner)</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={openEditModal}
-                  className="text-xs font-bold underline hover:text-[#1BCECE] cursor-pointer"
-                >
-                  Edit all fields →
-                </button>
-              </div>
-            ) : (
-              <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2">
-                <AlertCircle size={15} className="text-amber-600 shrink-0" />
-                <span>Read-only: Action items can only be amended by EA, Admin, CEO, or the person who created them.</span>
-              </div>
-            )}
+            <div className="flex items-center justify-between p-2.5 bg-[#1BCECE]/10 border border-[#1BCECE]/30 rounded-xl text-xs text-[#023542]">
+              <span className="font-medium flex items-center gap-1.5">
+                <Edit2 size={13} className="text-[#023542]" />
+                <span>Editable Deliverable</span>
+              </span>
+              <button
+                type="button"
+                onClick={openEditModal}
+                className="text-xs font-bold underline hover:text-[#1BCECE] cursor-pointer"
+              >
+                Edit all fields →
+              </button>
+            </div>
 
             {/* Title (inline-editable with save confirmation) */}
             <div>
