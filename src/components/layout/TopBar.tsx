@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Bell, Menu, Search } from "lucide-react";
+import { Bell, Menu, Search, Building2, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -136,60 +136,41 @@ export function TopBar({
     return (parts[0][0] + (parts[1]?.[0] || "")).toUpperCase();
   };
 
-  const renderEntityChips = () => {
-    if (entities.length <= 1) {
-      if (entities.length === 1) {
-        return (
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span
-              className="px-3 py-1 rounded-full text-xs font-medium bg-[#023542] text-white shadow-xs flex items-center gap-1.5 whitespace-nowrap"
-            >
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: entities[0].brandPrimaryColor }}
-              />
-              <span>{entities[0].name}</span>
-            </span>
-          </div>
-        );
-      }
-      return null;
-    }
-
+  const renderSubsidiaryDropdown = () => {
     return (
-      <div className="flex items-center gap-1.5 shrink-0">
-        <button
-          onClick={() => onSelectEntity(null)}
-          className={cn(
-            "px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 whitespace-nowrap",
-            selectedEntityId === null
-              ? "bg-[#023542] text-white shadow-xs"
-              : "bg-white border border-duston-border text-duston-text hover:border-[#1BCECE]"
-          )}
-        >
-          All subsidiaries
-        </button>
-        {entities.map((entity) => {
-          const isSelected = selectedEntityId === entity.id;
-          return (
-            <button
-              key={entity.id}
-              onClick={() => onSelectEntity(entity.id)}
-              className={cn(
-                "px-3 py-1 rounded-full text-xs font-medium transition-all shrink-0 flex items-center gap-1.5 whitespace-nowrap",
-                isSelected
-                  ? "bg-[#023542] text-white shadow-xs"
-                  : "bg-white border border-duston-border text-duston-text hover:border-[#1BCECE]"
-              )}
-            >
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: entity.brandPrimaryColor }}
-              />
-              <span>{entity.name}</span>
-            </button>
-          );
-        })}
+      <div className="relative flex items-center shrink-0">
+        <label htmlFor="global-subsidiary-select" className="sr-only">
+          Subsidiary
+        </label>
+        <div className="relative flex items-center">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] font-semibold text-duston-dark pointer-events-none z-10">
+            <Building2 size={13} className="text-[#023542]" />
+            <span className="hidden sm:inline">Subsidiary:</span>
+          </span>
+          <select
+            id="global-subsidiary-select"
+            value={selectedEntityId || ""}
+            onChange={(e) => onSelectEntity(e.target.value || null)}
+            className={cn(
+              "text-xs py-1.5 pl-7 sm:pl-23 pr-7 bg-white border rounded-xl font-medium text-duston-dark outline-none transition-all cursor-pointer appearance-none shadow-2xs max-w-[170px] sm:max-w-[220px] truncate",
+              selectedEntityId
+                ? "border-[#1BCECE] ring-1 ring-[#1BCECE]/20 bg-white"
+                : "border-duston-border hover:border-[#1BCECE]"
+            )}
+            title="Filter by Subsidiary"
+          >
+            <option value="">All subsidiaries</option>
+            {entities.map((entity) => (
+              <option key={entity.id} value={entity.id}>
+                {entity.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown
+            size={11}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none"
+          />
+        </div>
       </div>
     );
   };
@@ -223,13 +204,11 @@ export function TopBar({
           </Link>
         </div>
 
-        {/* Desktop Inline Entity Filter Chips */}
-        <div className="hidden lg:flex items-center overflow-x-auto no-scrollbar py-1 flex-1 mx-4">
-          {renderEntityChips()}
-        </div>
-
-        {/* Right Side: Global Search, Notification Bell, User Avatar */}
+        {/* Right Side: Subsidiary Dropdown, Global Search, Notification Bell, User Avatar */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
+          {/* Descriptive Subsidiary Dropdown */}
+          {renderSubsidiaryDropdown()}
+
           {/* Global Search Shortcut */}
           <button
             onClick={onOpenSearch}
@@ -354,11 +333,6 @@ export function TopBar({
             )}
           </div>
         </div>
-      </div>
-
-      {/* Mobile & Tablet Dedicated Entity Filter Strip */}
-      <div className="lg:hidden px-4 py-2 border-t border-duston-border/60 bg-duston-bg/80 flex items-center overflow-x-auto no-scrollbar">
-        {renderEntityChips()}
       </div>
     </header>
   );

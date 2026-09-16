@@ -80,11 +80,11 @@ export function NewProjectDrawer({
           )}
 
           <div>
-            <label className="block text-duston-muted mb-1 font-medium">Subsidiary *</label>
+            <label className="block text-duston-dark mb-1 font-semibold">Subsidiary *</label>
             <select
               value={formData.entityId}
               onChange={(e) => setFormData({ ...formData, entityId: e.target.value })}
-              className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+              className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
               required
             >
               {entities.map((ent) => (
@@ -96,7 +96,7 @@ export function NewProjectDrawer({
           </div>
 
           <div>
-            <label className="block text-duston-muted mb-1 font-medium">Project name *</label>
+            <label className="block text-duston-dark mb-1 font-semibold">Project Name *</label>
             <input
               type="text"
               required
@@ -109,11 +109,11 @@ export function NewProjectDrawer({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-duston-muted mb-1 font-medium">Category</label>
+              <label className="block text-duston-dark mb-1 font-semibold">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-                className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+                className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
               >
                 <option value="capex">CAPEX</option>
                 <option value="financing">Financing</option>
@@ -125,11 +125,11 @@ export function NewProjectDrawer({
             </div>
 
             <div>
-              <label className="block text-duston-muted mb-1 font-medium">Priority</label>
+              <label className="block text-duston-dark mb-1 font-semibold">Priority</label>
               <select
                 value={formData.priority}
                 onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
-                className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+                className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -141,7 +141,7 @@ export function NewProjectDrawer({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-duston-muted mb-1 font-medium">Start date *</label>
+              <label className="block text-duston-dark mb-1 font-semibold">Start Date *</label>
               <input
                 type="date"
                 required
@@ -152,7 +152,7 @@ export function NewProjectDrawer({
             </div>
 
             <div>
-              <label className="block text-duston-muted mb-1 font-medium">Target date *</label>
+              <label className="block text-duston-dark mb-1 font-semibold">Target Date / Deadline *</label>
               <input
                 type="date"
                 required

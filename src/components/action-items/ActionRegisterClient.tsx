@@ -1154,12 +1154,13 @@ export function ActionRegisterClient({
                 setSelectedEntity(e.target.value);
                 setSelectedProject("all");
               }}
-              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE]"
+              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE] font-medium"
+              title="Filter by Subsidiary"
             >
-              <option value="all">All subsidiaries</option>
+              <option value="all">Subsidiary: All</option>
               {entities.map((e) => (
                 <option key={e.id} value={e.id}>
-                  {e.name}
+                  Subsidiary: {e.name}
                 </option>
               ))}
             </select>
@@ -1170,12 +1171,13 @@ export function ActionRegisterClient({
             <select
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
-              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE]"
+              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE] font-medium"
+              title="Filter by Project"
             >
-              <option value="all">All projects</option>
+              <option value="all">Project: All</option>
               {availableProjects.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name}
+                  Project: {p.name}
                 </option>
               ))}
             </select>
@@ -1186,13 +1188,14 @@ export function ActionRegisterClient({
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE]"
+              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE] font-medium"
+              title="Filter by Status"
             >
-              <option value="all">All statuses</option>
-              <option value="not_started">Not started</option>
-              <option value="in_progress">In progress</option>
-              <option value="done">Completed</option>
-              <option value="overdue">Overdue only</option>
+              <option value="all">Status: All</option>
+              <option value="not_started">Status: Not started</option>
+              <option value="in_progress">Status: In progress</option>
+              <option value="done">Status: Completed</option>
+              <option value="overdue">Status: Overdue only</option>
             </select>
           </div>
 
@@ -1201,11 +1204,12 @@ export function ActionRegisterClient({
             <select
               value={selectedDeliverableType}
               onChange={(e) => setSelectedDeliverableType(e.target.value as any)}
-              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE]"
+              className="w-full px-2.5 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark outline-none focus:border-[#1BCECE] font-medium"
+              title="Filter by Responsible Party"
             >
-              <option value="all">All parties</option>
-              <option value="in_house">In-house deliverables</option>
-              <option value="outsider">Outsider / Follow-ups</option>
+              <option value="all">Party: All</option>
+              <option value="in_house">Party: In-house</option>
+              <option value="outsider">Party: Outsider</option>
             </select>
           </div>
         </div>

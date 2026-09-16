@@ -1896,7 +1896,7 @@ export function DashboardClient({
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-medium text-duston-dark">
-                        Deadline <span className="text-rose-500">*</span>
+                        Target Deadline <span className="text-rose-500">*</span>
                       </label>
                       <button
                         type="button"

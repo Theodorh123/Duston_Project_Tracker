@@ -371,7 +371,10 @@ export function TodoListClient({
         {/* Admin Team Switcher */}
         {isAdmin && (
           <div className="flex items-center gap-1.5 bg-white border border-duston-border rounded-xl px-2.5 py-1 text-xs shadow-2xs">
-            <User size={13} className="text-duston-muted shrink-0" />
+            <span className="text-[11px] font-semibold text-duston-dark flex items-center gap-1">
+              <User size={12} className="text-[#023542]" />
+              <span className="hidden sm:inline">To-Do List:</span>
+            </span>
             <select
               value={selectedUserFilter}
               onChange={(e) => handleSwitchUser(e.target.value)}
@@ -411,7 +414,11 @@ export function TodoListClient({
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
           {/* Required Subsidiary */}
-          <div className="relative">
+          <div className="relative flex items-center bg-duston-bg/60 border border-duston-border rounded-lg px-2.5 py-1 text-xs">
+            <span className="text-[11px] font-semibold text-duston-dark shrink-0 mr-1.5 flex items-center gap-1">
+              <Building2 size={11} className="text-[#023542]" />
+              <span>Subsidiary:</span>
+            </span>
             <select
               value={newEntityId}
               onChange={(e) => {
@@ -419,8 +426,8 @@ export function TodoListClient({
                 setNewProjectId(""); // reset project if subsidiary changes
               }}
               required
-              className="text-xs py-1.5 px-2.5 rounded-lg border border-duston-border bg-duston-bg/40 text-duston-dark focus:outline-none focus:border-[#023542] cursor-pointer appearance-none pr-6 font-medium max-w-[150px] truncate"
-              title="Required Subsidiary"
+              className="text-xs bg-transparent text-duston-dark focus:outline-none cursor-pointer appearance-none pr-4 font-medium max-w-[130px] truncate"
+              title="Subsidiary"
             >
               {entities.map((ent) => (
                 <option key={ent.id} value={ent.id}>
@@ -428,11 +435,14 @@ export function TodoListClient({
                 </option>
               ))}
             </select>
-            <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
+            <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
           </div>
 
           {/* Optional Project or Add New */}
-          <div className="relative">
+          <div className="relative flex items-center bg-duston-bg/60 border border-duston-border rounded-lg px-2.5 py-1 text-xs">
+            <span className="text-[11px] font-semibold text-duston-dark shrink-0 mr-1.5">
+              Project:
+            </span>
             <select
               value={newProjectId}
               onChange={(e) => {
@@ -442,8 +452,8 @@ export function TodoListClient({
                   setNewProjectId(e.target.value);
                 }
               }}
-              className="text-xs py-1.5 px-2.5 rounded-lg border border-duston-border bg-duston-bg/40 text-duston-dark focus:outline-none focus:border-[#023542] cursor-pointer appearance-none pr-6 font-medium max-w-[150px] truncate"
-              title="Project (Optional or Add New)"
+              className="text-xs bg-transparent text-duston-dark focus:outline-none cursor-pointer appearance-none pr-4 font-medium max-w-[130px] truncate"
+              title="Project"
             >
               <option value="">No Project</option>
               <option value="__NEW_PROJECT__" className="text-[#023542] font-semibold bg-[#1BCECE]/10">
@@ -459,17 +469,22 @@ export function TodoListClient({
                 </optgroup>
               )}
             </select>
-            <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
+            <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
           </div>
 
-          {/* Deadline */}
-          <div className="relative">
+          {/* Target Deadline */}
+          <div className="relative flex items-center bg-duston-bg/60 border border-duston-border rounded-lg px-2.5 py-1 text-xs">
+            <span className="text-[11px] font-semibold text-duston-dark shrink-0 mr-1.5 flex items-center gap-1">
+              <Calendar size={11} className="text-[#023542]" />
+              <span className="hidden sm:inline">Target Deadline:</span>
+              <span className="sm:hidden">Deadline:</span>
+            </span>
             <input
               type="date"
               value={newDeadline}
               onChange={(e) => setNewDeadline(e.target.value)}
-              className="text-xs py-1.5 px-2.5 rounded-lg border border-duston-border bg-duston-bg/40 text-duston-dark focus:outline-none focus:border-[#023542] cursor-pointer font-medium"
-              title="Deadline"
+              className="text-xs bg-transparent text-duston-dark focus:outline-none cursor-pointer font-medium p-0"
+              title="Target Deadline"
             />
           </div>
 
@@ -555,24 +570,29 @@ export function TodoListClient({
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
                       {/* Edit Subsidiary (Required) */}
-                      <select
-                        value={editEntityId}
-                        onChange={(e) => {
-                          setEditEntityId(e.target.value);
-                          setEditProjectId("");
-                        }}
-                        required
-                        className="text-xs p-1.5 rounded-lg border border-duston-border bg-white text-duston-dark focus:outline-none font-medium"
-                      >
-                        {entities.map((ent) => (
-                          <option key={ent.id} value={ent.id}>
-                            {ent.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative flex items-center bg-white border border-duston-border rounded-lg px-2 py-1 text-xs">
+                        <span className="text-[10px] font-semibold text-duston-dark mr-1">Subsidiary:</span>
+                        <select
+                          value={editEntityId}
+                          onChange={(e) => {
+                            setEditEntityId(e.target.value);
+                            setEditProjectId("");
+                          }}
+                          required
+                          className="text-xs bg-transparent text-duston-dark focus:outline-none font-medium pr-3 appearance-none"
+                        >
+                          {entities.map((ent) => (
+                            <option key={ent.id} value={ent.id}>
+                              {ent.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown size={9} className="absolute right-1 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
+                      </div>
 
                       {/* Edit Project (Optional or Add New) */}
-                      <div className="relative">
+                      <div className="relative flex items-center bg-white border border-duston-border rounded-lg px-2 py-1 text-xs">
+                        <span className="text-[10px] font-semibold text-duston-dark mr-1">Project:</span>
                         <select
                           value={editProjectId}
                           onChange={(e) => {
@@ -582,7 +602,7 @@ export function TodoListClient({
                               setEditProjectId(e.target.value);
                             }
                           }}
-                          className="text-xs p-1.5 rounded-lg border border-duston-border bg-white text-duston-dark focus:outline-none appearance-none pr-5 font-medium max-w-[140px] truncate"
+                          className="text-xs bg-transparent text-duston-dark focus:outline-none appearance-none pr-3 font-medium max-w-[130px] truncate"
                         >
                           <option value="">No Project</option>
                           <option value="__NEW_PROJECT__" className="text-[#023542] font-semibold bg-[#1BCECE]/10">
@@ -598,15 +618,19 @@ export function TodoListClient({
                             </optgroup>
                           )}
                         </select>
-                        <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
+                        <ChevronDown size={9} className="absolute right-1 top-1/2 -translate-y-1/2 text-duston-muted pointer-events-none" />
                       </div>
 
-                      <input
-                        type="date"
-                        value={editDeadline}
-                        onChange={(e) => setEditDeadline(e.target.value)}
-                        className="text-xs p-1.5 rounded-lg border border-duston-border bg-white text-duston-dark focus:outline-none"
-                      />
+                      {/* Edit Target Deadline */}
+                      <div className="relative flex items-center bg-white border border-duston-border rounded-lg px-2 py-1 text-xs">
+                        <span className="text-[10px] font-semibold text-duston-dark mr-1">Target Deadline:</span>
+                        <input
+                          type="date"
+                          value={editDeadline}
+                          onChange={(e) => setEditDeadline(e.target.value)}
+                          className="text-xs bg-transparent text-duston-dark focus:outline-none p-0"
+                        />
+                      </div>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <button

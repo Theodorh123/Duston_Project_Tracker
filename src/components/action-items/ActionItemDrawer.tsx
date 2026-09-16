@@ -809,10 +809,10 @@ export function ActionItemDrawer({
                 </select>
               </div>
 
-              {/* Deadline */}
+              {/* Target Deadline */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-duston-muted font-medium">Deadline</label>
+                  <label className="block text-duston-muted font-medium">Target Deadline</label>
                   {isTbaDeadline(item.deadline) ? (
                     <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 border border-amber-200/80 px-1.5 py-0.2 rounded">
                       To Be Actioned
@@ -1201,7 +1201,7 @@ export function ActionItemDrawer({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block font-semibold text-duston-dark text-xs">
-                      Deadline <span className="text-rose-500">*</span>
+                      Target Deadline <span className="text-rose-500">*</span>
                     </label>
                     <button
                       type="button"

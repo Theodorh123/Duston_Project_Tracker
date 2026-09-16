@@ -165,13 +165,14 @@ export function ProjectsClient({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             {/* Category Filter */}
             <div>
-              <label className="block text-duston-muted mb-1 font-medium">Category</label>
+              <label className="block text-duston-dark mb-1 font-semibold">Category</label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
+                className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
+                title="Filter by Category"
               >
-                <option value="all">All categories</option>
+                <option value="all">Category: All</option>
                 <option value="capex">CAPEX</option>
                 <option value="financing">Financing</option>
                 <option value="regulatory">Regulatory</option>
@@ -183,13 +184,14 @@ export function ProjectsClient({
 
             {/* Status Filter */}
             <div>
-              <label className="block text-duston-muted mb-1 font-medium">Status</label>
+              <label className="block text-duston-dark mb-1 font-semibold">Status</label>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE]"
+                className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
+                title="Filter by Status"
               >
-                <option value="all">All statuses</option>
+                <option value="all">Status: All</option>
                 <option value="not_started">Not started</option>
                 <option value="in_progress">In progress</option>
                 <option value="on_hold">On hold</option>

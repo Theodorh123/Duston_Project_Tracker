@@ -93,13 +93,13 @@ export function MeetingsClient({
       {/* Filter Strip */}
       <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle flex flex-wrap items-center gap-4 text-xs">
         <div className="flex items-center gap-2">
-          <span className="text-duston-muted font-medium">Filter by attendee:</span>
+          <span className="text-duston-dark font-semibold">Attendee:</span>
           <select
             value={selectedAttendee}
             onChange={(e) => setSelectedAttendee(e.target.value)}
-            className="bg-white border border-duston-border rounded-lg px-2.5 py-1 text-duston-text outline-none focus:border-[#1BCECE]"
+            className="bg-white border border-duston-border rounded-lg px-2.5 py-1 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
           >
-            <option value="all">All attendees</option>
+            <option value="all">Attendee: All attendees</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>{u.name}</option>
             ))}

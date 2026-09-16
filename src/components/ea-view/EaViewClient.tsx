@@ -455,11 +455,12 @@ export function EaViewClient({
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 text-xs">
-          <div className="flex-1">
+          <div className="flex-1 flex items-center gap-2">
+            <span className="text-duston-dark font-semibold shrink-0">Subsidiary:</span>
             <select
               value={selectedEntityForBrief}
               onChange={(e) => setSelectedEntityForBrief(e.target.value)}
-              className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+              className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
             >
               {entities.map((e) => (
                 <option key={e.id} value={e.id}>{e.name}</option>
@@ -468,7 +469,7 @@ export function EaViewClient({
           </div>
           <button
             onClick={handleGenerateBrief}
-            className="px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-lg font-medium transition-colors shrink-0"
+            className="px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-lg font-medium transition-colors shrink-0 cursor-pointer"
           >
             Generate brief
           </button>

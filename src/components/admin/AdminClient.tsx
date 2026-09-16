@@ -733,24 +733,26 @@ export function AdminClient({
               <select
                 value={actionItemStatusFilter}
                 onChange={(e) => setActionItemStatusFilter(e.target.value)}
-                className="bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
+                className="bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer font-medium"
+                title="Filter by Status"
               >
-                <option value="all">All Statuses</option>
-                <option value="not_started">Not Started</option>
-                <option value="in_progress">In Progress</option>
-                <option value="done">Done</option>
-                <option value="overdue">Overdue Only</option>
+                <option value="all">Status: All</option>
+                <option value="not_started">Status: Not Started</option>
+                <option value="in_progress">Status: In Progress</option>
+                <option value="done">Status: Done</option>
+                <option value="overdue">Status: Overdue Only</option>
               </select>
 
               <select
                 value={actionItemEntityFilter}
                 onChange={(e) => setActionItemEntityFilter(e.target.value)}
-                className="bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
+                className="bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer font-medium"
+                title="Filter by Subsidiary"
               >
-                <option value="all">All Subsidiaries</option>
+                <option value="all">Subsidiary: All</option>
                 {entitiesList.map((ent) => (
                   <option key={ent.id} value={ent.id}>
-                    {ent.name}
+                    Subsidiary: {ent.name}
                   </option>
                 ))}
               </select>
@@ -907,17 +909,18 @@ export function AdminClient({
       {activeTab === "activity" && (
         <div className="space-y-4">
           <div className="bg-white border border-duston-border rounded-xl p-3 shadow-subtle flex items-center gap-3 text-xs">
-            <span className="text-duston-muted font-medium">Event filter:</span>
+            <span className="text-duston-dark font-semibold">Event filter:</span>
             <select
               value={selectedEventType}
               onChange={(e) => setSelectedEventType(e.target.value)}
-              className="bg-white border border-duston-border rounded-lg px-2.5 py-1 text-duston-text outline-none focus:border-[#1BCECE]"
+              className="bg-white border border-duston-border rounded-lg px-2.5 py-1 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
+              title="Filter by Event"
             >
-              <option value="all">All events</option>
-              <option value="created">Created</option>
-              <option value="status_change">Status change</option>
-              <option value="reassign">Reassign</option>
-              <option value="comment_added">Comment added</option>
+              <option value="all">Event: All events</option>
+              <option value="created">Event: Created</option>
+              <option value="status_change">Event: Status change</option>
+              <option value="reassign">Event: Reassign</option>
+              <option value="comment_added">Event: Comment added</option>
             </select>
           </div>
 

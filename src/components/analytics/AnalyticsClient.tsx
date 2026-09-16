@@ -189,15 +189,16 @@ export function AnalyticsClient({
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="flex items-center gap-1.5 px-3 py-2 sm:py-1.5 bg-duston-bg sm:bg-white border border-duston-border rounded-xl shadow-subtle text-xs text-duston-dark w-full sm:w-auto justify-between sm:justify-start">
             <div className="flex items-center gap-1.5">
-              <Building2 size={14} className="text-duston-muted shrink-0" />
-              <span className="sm:hidden font-medium text-duston-muted">Filter:</span>
+              <Building2 size={14} className="text-[#023542] shrink-0" />
+              <span className="font-semibold text-duston-dark">Subsidiary:</span>
             </div>
             <select
               value={selectedEntityId || "all"}
               onChange={(e) => setSelectedEntityId(e.target.value === "all" ? null : e.target.value)}
               className="bg-transparent text-xs font-medium text-duston-dark outline-none cursor-pointer pr-1 flex-1 sm:flex-initial text-right sm:text-left"
+              title="Filter by Subsidiary"
             >
-              <option value="all">All Subsidiaries ({entities.length})</option>
+              <option value="all">All subsidiaries ({entities.length})</option>
               {entities.map((ent) => (
                 <option key={ent.id} value={ent.id}>
                   {ent.name}

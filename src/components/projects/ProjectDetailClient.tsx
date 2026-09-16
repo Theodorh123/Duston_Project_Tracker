@@ -1247,7 +1247,7 @@ export function ProjectDetailClient({
                 {/* Responsible Party + inline Add */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-duston-muted font-medium">Primary Responsible Party (Lead) *</label>
+                    <label className="block text-duston-dark font-semibold">Primary Responsible Party (Lead) *</label>
                     <button
                       type="button"
                       onClick={() => setIsAddingUser(!isAddingUser)}
@@ -1307,7 +1307,7 @@ export function ProjectDetailClient({
 
                 {/* Secondary Responsible Parties (Co-owners) */}
                 <div className="space-y-1.5">
-                  <label className="block text-duston-muted font-medium">
+                  <label className="block text-duston-dark font-semibold">
                     Secondary Responsible Parties (Co-owners)
                   </label>
                   {newItemSecondaryAssignees.length > 0 && (
@@ -1357,7 +1357,7 @@ export function ProjectDetailClient({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-duston-muted mb-1 font-medium">Status</label>
+                    <label className="block text-duston-dark mb-1 font-semibold">Status</label>
                     <select
                       value={newItemStatus}
                       onChange={(e) => setNewItemStatus(e.target.value as any)}
@@ -1369,7 +1369,7 @@ export function ProjectDetailClient({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-duston-muted mb-1 font-medium">Priority</label>
+                    <label className="block text-duston-dark mb-1 font-semibold">Priority</label>
                     <select
                       value={newItemPriority}
                       onChange={(e) => setNewItemPriority(e.target.value as any)}
@@ -1383,8 +1383,8 @@ export function ProjectDetailClient({
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block text-duston-muted font-medium text-xs">
-                        Deadline <span className="text-rose-500">*</span>
+                      <label className="block text-duston-dark font-semibold text-xs">
+                        Target Deadline <span className="text-rose-500">*</span>
                       </label>
                       <button
                         type="button"

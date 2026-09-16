@@ -91,11 +91,11 @@ export function NewMeetingModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-duston-muted mb-1 font-medium">Subsidiary *</label>
+              <label className="block text-duston-dark mb-1 font-semibold">Subsidiary *</label>
               <select
                 value={entityId}
                 onChange={(e) => setEntityId(e.target.value)}
-                className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+                className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-2 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
                 required
               >
                 {entities.map((e) => (
@@ -105,32 +105,32 @@ export function NewMeetingModal({
             </div>
 
             <div>
-              <label className="block text-duston-muted mb-1 font-medium">Meeting date *</label>
+              <label className="block text-duston-dark mb-1 font-semibold">Meeting Date *</label>
               <input
                 type="date"
                 required
                 value={meetingDate}
                 onChange={(e) => setMeetingDate(e.target.value)}
-                className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+                className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-2 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-duston-muted mb-1 font-medium">Subject / Meeting title *</label>
+            <label className="block text-duston-dark mb-1 font-semibold">Subject / Meeting Title *</label>
             <input
               type="text"
               required
               placeholder="e.g. Q3 MOSL Board Review"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+              className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
             />
           </div>
 
           {/* Meeting Format & Venue */}
           <div className="space-y-2 pt-1">
-            <label className="block text-duston-muted font-medium">Meeting format & venue</label>
+            <label className="block text-duston-dark font-semibold">Meeting Format & Venue</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
