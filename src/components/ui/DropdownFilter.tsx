@@ -86,7 +86,7 @@ export function DropdownFilter({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "inline-flex items-center justify-between gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all border outline-none cursor-pointer shadow-2xs w-full sm:w-auto",
+          "inline-flex items-center justify-between gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all border outline-none cursor-pointer shadow-2xs shrink-0 whitespace-nowrap select-none",
           isFiltered
             ? "bg-white border-[#023542] text-[#023542] ring-1 ring-[#023542]/15"
             : "bg-white border-duston-border text-duston-dark hover:border-[#1BCECE]"
@@ -95,9 +95,9 @@ export function DropdownFilter({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <div className="flex items-center gap-1.5 truncate">
+        <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
           {icon && <span className="shrink-0 text-[#023542]">{icon}</span>}
-          <span className="truncate">{label}</span>
+          <span className="whitespace-nowrap">{label}</span>
           {isFiltered && (
             <span
               className="w-1.5 h-1.5 rounded-full bg-[#1BCECE] shrink-0"
