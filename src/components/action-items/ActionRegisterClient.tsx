@@ -838,18 +838,7 @@ export function ActionRegisterClient({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          {/* Add Action Item Button */}
-          <button
-            type="button"
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-semibold transition-colors shadow-subtle cursor-pointer w-full sm:w-auto shrink-0"
-            title="Create a new executive action item"
-          >
-            <Plus size={14} strokeWidth={2.5} />
-            <span>Add Action Item</span>
-          </button>
-
+        <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
           {/* Import Register Button */}
           {canImportRegister && (
             <button
@@ -1256,43 +1245,68 @@ export function ActionRegisterClient({
           </div>
         </div>
 
-        {/* Active Filters Row */}
-        {hasActiveFilters && (
-          <div className="flex items-center justify-between border-t border-duston-border/60 pt-2 text-xs">
-            <span className="text-[11px] text-duston-muted">
-              Showing {filteredItems.length} of {scopedAll.length} deliverables
-            </span>
+        {/* Active Filters Row / Quick Actions */}
+        <div className="flex items-center justify-between border-t border-duston-border/60 pt-2.5 text-xs flex-wrap gap-2">
+          <span className="text-[11px] text-duston-muted">
+            Showing {filteredItems.length} of {scopedAll.length} deliverables
+          </span>
+          <div className="flex items-center gap-2">
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-[11px] text-[#023542] hover:underline font-semibold flex items-center gap-1 cursor-pointer mr-1"
+              >
+                <X size={12} />
+                <span>Reset all filters</span>
+              </button>
+            )}
             <button
               type="button"
-              onClick={clearFilters}
-              className="text-[11px] text-[#023542] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
+              title="Add a new action item"
             >
-              <X size={12} />
-              <span>Reset all filters</span>
+              <Plus size={13} strokeWidth={2.5} />
+              <span>Add Action Item</span>
             </button>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Action Register Table / Card List */}
       {filteredItems.length === 0 ? (
-        <div className="bg-white border border-duston-border rounded-2xl p-12 text-center shadow-subtle space-y-3">
-          <div className="w-10 h-10 rounded-xl bg-duston-bg text-duston-muted flex items-center justify-center mx-auto">
-            <CheckCircle2 size={20} />
+        <div className="bg-white border border-duston-border rounded-2xl p-10 sm:p-12 text-center shadow-subtle space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#023542]/5 text-[#023542] flex items-center justify-center mx-auto border border-[#023542]/10">
+            <CheckCircle2 size={24} className="text-[#1BCECE]" />
           </div>
-          <h3 className="text-sm font-semibold text-duston-dark">No deliverables match this filter</h3>
-          <p className="text-xs text-duston-muted max-w-sm mx-auto">
-            Try adjusting your search criteria or reset filters to display all registered deliverables.
-          </p>
-          {hasActiveFilters && (
+          <div className="space-y-1">
+            <h3 className="text-sm sm:text-base font-semibold text-duston-dark">
+              No deliverables match your search or filter
+            </h3>
+            <p className="text-xs text-duston-muted max-w-md mx-auto leading-relaxed">
+              Try adjusting your search criteria, clearing your filters, or add a new action item to this register.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="px-4 py-2 bg-duston-bg hover:bg-duston-border/60 text-duston-dark border border-duston-border rounded-xl text-xs font-medium transition-colors cursor-pointer"
+              >
+                Clear filters
+              </button>
+            )}
             <button
               type="button"
-              onClick={clearFilters}
-              className="px-3.5 py-1.5 bg-duston-bg hover:bg-duston-border/60 text-duston-dark rounded-xl text-xs font-medium transition-colors cursor-pointer"
+              onClick={() => setIsAddModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-semibold transition-colors shadow-subtle cursor-pointer"
             >
-              Clear filters
+              <Plus size={14} strokeWidth={2.5} />
+              <span>Add Action Item</span>
             </button>
-          )}
+          </div>
         </div>
       ) : viewMode === "table" ? (
         <div className="bg-white border border-duston-border rounded-2xl shadow-subtle overflow-hidden">
@@ -1386,8 +1400,16 @@ export function ActionRegisterClient({
               </div>
 
               {group.items.length === 0 ? (
-                <div className="p-6 text-center text-xs text-duston-muted italic">
-                  No {group.title.toLowerCase()} deliverables match the active filters.
+                <div className="p-6 text-center text-xs text-duston-muted space-y-2">
+                  <p className="italic">No {group.title.toLowerCase()} deliverables match the active filters.</p>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="inline-flex items-center gap-1 text-xs text-[#023542] hover:text-[#1BCECE] font-semibold transition-colors cursor-pointer"
+                  >
+                    <Plus size={12} strokeWidth={2.5} />
+                    <span>Add action item</span>
+                  </button>
                 </div>
               ) : (
                 <>
