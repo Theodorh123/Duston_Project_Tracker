@@ -403,7 +403,7 @@ export function TodoListClient({
             type="text"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="Action to be done... (press Enter to add)"
+            placeholder="Add a new task..."
             className="w-full text-xs sm:text-sm bg-transparent border-0 border-none outline-none focus:outline-none focus:ring-0 placeholder:text-duston-muted/70 text-duston-dark font-medium p-0 m-0 shadow-none"
           />
         </div>
@@ -432,7 +432,7 @@ export function TodoListClient({
             value={newProjectId}
             options={[
               { value: "", label: "No Project" },
-              { value: "__NEW_PROJECT__", label: "+ Add new project..." },
+              { value: "__NEW_PROJECT__", label: "+ New Project" },
               ...availableProjectsForNew.map((p) => ({
                 value: p.id,
                 label: p.name,
@@ -540,7 +540,7 @@ export function TodoListClient({
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
                     className="w-full text-xs font-medium p-2 bg-white rounded-lg border border-duston-border focus:outline-none focus:border-[#023542] text-duston-dark"
-                    placeholder="Action to be done..."
+                    placeholder="Task title..."
                     autoFocus
                   />
                   <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -568,7 +568,7 @@ export function TodoListClient({
                         value={editProjectId}
                         options={[
                           { value: "", label: "No Project" },
-                          { value: "__NEW_PROJECT__", label: "+ Add new project..." },
+                          { value: "__NEW_PROJECT__", label: "+ New Project" },
                           ...availableProjectsForEdit.map((p) => ({
                             value: p.id,
                             label: p.name,
@@ -757,11 +757,8 @@ export function TodoListClient({
                 </div>
                 <div>
                   <h3 className="text-xs font-semibold text-duston-dark">
-                    Add New Project
+                    New Project
                   </h3>
-                  <p className="text-[10px] text-duston-muted">
-                    Create a project and attach it to your to-do
-                  </p>
                 </div>
               </div>
               <button
@@ -808,7 +805,7 @@ export function TodoListClient({
                   type="text"
                   autoFocus
                   required
-                  placeholder="e.g. EBID Trade Finance Facility"
+                  placeholder="Project name..."
                   value={newProjectModalName}
                   onChange={(e) => setNewProjectModalName(e.target.value)}
                   className="w-full text-xs p-2 rounded-lg border border-duston-border focus:outline-none focus:border-[#023542] text-duston-dark font-medium"

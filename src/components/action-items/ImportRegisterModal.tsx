@@ -513,15 +513,15 @@ export function ImportRegisterModal({
                     <div>
                       <span className="font-semibold text-duston-dark text-sm block">
                         {isExtracting
-                          ? `Extracting action register from ${uploadFileCount} document(s)...`
-                          : "Choose or drag and drop minutes / registers"}
+                          ? `Extracting action register...`
+                          : "Upload minutes or register files"}
                       </span>
                       <p className="text-[11px] text-duston-muted mt-1">
-                        Upload one or multiple PDF minutes (.pdf), Microsoft Excel (.xlsx), or CSV files at once
+                        Supported formats: PDF (.pdf), Excel (.xlsx), CSV (.csv)
                       </p>
                     </div>
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-duston-border rounded-xl text-[11px] text-duston-dark font-medium shadow-2xs">
-                      <span>Browse local files (multi-file supported)</span>
+                      <span>Browse files</span>
                     </div>
                   </div>
                 </div>
@@ -532,7 +532,7 @@ export function ImportRegisterModal({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-duston-muted text-[11px]">
-                      Paste table rows (e.g. copied directly from Excel, Word, or minutes email):
+                      Paste table rows:
                     </label>
                     <span className="text-[10px] text-duston-muted font-mono">
                       Format: Item | Responsible | Deadline
@@ -575,14 +575,14 @@ export function ImportRegisterModal({
                       type="text"
                       value={meetingSubject}
                       onChange={(e) => setMeetingSubject(e.target.value)}
-                      placeholder="e.g. MOSL & TOTSA Strategic Working Session"
+                      placeholder="Document title..."
                       className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-xs text-duston-text outline-none focus:border-[#1BCECE] font-medium"
                     />
                   </div>
 
                   <div>
                     <label className="block text-duston-muted font-medium mb-1">
-                      Target Subsidiary
+                      Subsidiary
                     </label>
                     <select
                       value={selectedEntityId}
@@ -606,7 +606,7 @@ export function ImportRegisterModal({
                       onChange={(e) => setRecordMeeting(e.target.checked)}
                       className="rounded border-duston-border text-[#023542] focus:ring-0"
                     />
-                    <span>Also record as a Meeting entry in Meetings directory</span>
+                    <span>Record meeting entry in directory</span>
                   </label>
 
                   <button
@@ -624,7 +624,7 @@ export function ImportRegisterModal({
                 <div className="p-3 bg-[#023542]/5 border border-[#023542]/15 rounded-xl flex flex-col gap-2 text-xs">
                   <div className="flex items-center gap-2 font-semibold text-[#023542]">
                     <Layers size={14} className="text-[#1BCECE]" />
-                    <span>Batch Extracted across {uploadedDocs.length} minutes documents ({items.length} total deliverables):</span>
+                    <span>Batch Extracted across {uploadedDocs.length} documents ({items.length} items):</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {uploadedDocs.map((doc, i) => (
@@ -643,7 +643,7 @@ export function ImportRegisterModal({
 
               {/* Smart Batch Helpers Toolbar */}
               <div className="space-y-2">
-                {/* 1. Outsider Follow-Up Batch Helper */}
+                {/* 1. External Follow-Up Batch Helper */}
                 {items.some((i) => i.isExternal) && (
                   <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-purple-900">
                     <div className="flex items-center gap-2">
@@ -652,10 +652,10 @@ export function ImportRegisterModal({
                       </div>
                       <div>
                         <span className="font-semibold block">
-                          Outsider / Counterparty Deliverables Detected ({items.filter((i) => i.isExternal).length})
+                          External Deliverables Detected ({items.filter((i) => i.isExternal).length})
                         </span>
                         <p className="text-[11px] text-purple-700">
-                          Assigned to external parties (e.g. TOTSA, GRA). Assign an in-house person accountable for following up:
+                          Assigned to external parties. Assign an in-house person to follow up:
                         </p>
                       </div>
                     </div>
@@ -797,8 +797,8 @@ export function ImportRegisterModal({
                     <tr>
                       <th className="py-2.5 px-3 w-8 text-center"></th>
                       <th className="py-2.5 px-2 w-10 text-center">#</th>
-                      <th className="py-2.5 px-3">Action Item Description</th>
-                      <th className="py-2.5 px-3 w-56">Responsible / Follow-Up Lead</th>
+                      <th className="py-2.5 px-3">Action Item</th>
+                      <th className="py-2.5 px-3 w-56">Assignee</th>
                       <th className="py-2.5 px-3 w-36">Deadline</th>
                       <th className="py-2.5 px-3 w-28">Priority</th>
                       <th className="py-2.5 px-2 w-8"></th>

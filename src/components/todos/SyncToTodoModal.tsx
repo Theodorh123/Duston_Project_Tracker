@@ -151,11 +151,8 @@ export function SyncToTodoModal({
             </div>
             <div>
               <h2 className="text-sm font-semibold text-duston-dark">
-                Sync to My To-Do List
+                Add to My To-Do List
               </h2>
-              <p className="text-[11px] text-duston-muted">
-                Customize this task before saving to your private list
-              </p>
             </div>
           </div>
           <button
@@ -185,13 +182,13 @@ export function SyncToTodoModal({
           {/* Action Title */}
           <div>
             <label className="block text-xs font-medium text-duston-dark mb-1">
-              Action to be done *
+              Action Item *
             </label>
             <textarea
               rows={2}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Action title..."
+              placeholder="Action item title..."
               required
               className="w-full text-xs p-2.5 rounded-xl border border-duston-border focus:outline-none focus:border-[#023542] focus:ring-1 focus:ring-[#023542] text-duston-dark resize-none font-medium"
             />
@@ -227,7 +224,7 @@ export function SyncToTodoModal({
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-medium text-duston-dark">
-                  Project (optional)
+                  Project
                 </label>
                 {!showNewProjectInput && (
                   <button
@@ -236,7 +233,7 @@ export function SyncToTodoModal({
                     className="text-[10px] text-[#023542] hover:text-[#1BCECE] font-semibold flex items-center gap-0.5 cursor-pointer"
                   >
                     <Plus size={10} />
-                    <span>New Project</span>
+                    <span>Add Project</span>
                   </button>
                 )}
               </div>
@@ -246,7 +243,7 @@ export function SyncToTodoModal({
                   <input
                     type="text"
                     autoFocus
-                    placeholder="Enter new project name..."
+                    placeholder="Project name..."
                     value={newProjectName}
                     onChange={(e) => setNewProjectName(e.target.value)}
                     onKeyDown={(e) => {

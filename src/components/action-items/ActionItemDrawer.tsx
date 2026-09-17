@@ -623,13 +623,13 @@ export function ActionItemDrawer({
               {/* Project Selection / Reassignment */}
               <div className="col-span-2">
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-duston-muted font-medium">Assigned Project</label>
+                  <label className="block text-duston-muted font-medium">Project</label>
                   {item.projectId && (
                     <Link
                       href={`/projects/${item.projectId}`}
                       className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-semibold underline underline-offset-2"
                     >
-                      View project details →
+                      View project →
                     </Link>
                   )}
                 </div>
@@ -649,7 +649,7 @@ export function ActionItemDrawer({
                     }}
                     className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
                   >
-                    <option value="">— No Project (Standalone Deliverable) —</option>
+                    <option value="">No Project</option>
                     {availableProjects.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name} {p.entityName ? `(${p.entityName})` : ""}
@@ -658,14 +658,14 @@ export function ActionItemDrawer({
                   </select>
                 ) : (
                   <div className="bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-dark font-medium">
-                    {item.projectName || "No Project (Standalone Deliverable)"}
+                    {item.projectName || "No Project"}
                   </div>
                 )}
               </div>
 
-              {/* Primary Responsible Party (Lead) */}
+              {/* Assignee */}
               <div className="col-span-2">
-                <label className="block text-duston-muted mb-1 font-medium">Primary Responsible Party (Lead)</label>
+                <label className="block text-duston-muted mb-1 font-medium">Assignee</label>
                 {canEdit && availableUsers.length > 0 ? (
                   <select
                     value={item.assigneeId}
@@ -692,18 +692,15 @@ export function ActionItemDrawer({
                       {(item.assigneeName || "RP").slice(0, 2).toUpperCase()}
                     </div>
                     <span className="truncate">{item.assigneeName || "Unassigned"}</span>
-                    <span className="ml-auto text-[10px] text-duston-muted bg-duston-bg px-2 py-0.5 rounded border border-duston-border">
-                      Lead Owner
-                    </span>
                   </div>
                 )}
               </div>
 
-              {/* Secondary Responsible Parties (Co-owners) */}
+              {/* Co-owners */}
               <div className="col-span-2 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="block text-duston-muted font-medium">
-                    Secondary Responsible Parties (Co-owners)
+                    Co-owners
                   </label>
                   <span className="text-[10px] text-duston-muted">
                     {(item.secondaryAssignees?.length ?? 0)} co-owner{(item.secondaryAssignees?.length ?? 0) === 1 ? "" : "s"}
@@ -713,7 +710,7 @@ export function ActionItemDrawer({
                 {/* Chips list */}
                 <div className="flex flex-wrap gap-1.5 min-h-[34px] p-2 bg-white border border-duston-border rounded-lg items-center">
                   {(!item.secondaryAssignees || item.secondaryAssignees.length === 0) ? (
-                    <span className="text-duston-muted text-xs italic">No secondary co-owners assigned.</span>
+                    <span className="text-duston-muted text-xs italic">No co-owners assigned.</span>
                   ) : (
                     item.secondaryAssignees.map((sec) => (
                       <span
@@ -751,7 +748,7 @@ export function ActionItemDrawer({
                       }}
                       className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-text outline-none focus:border-[#1BCECE] cursor-pointer"
                     >
-                      <option value="" disabled>+ Add secondary responsible party (co-owner)...</option>
+                      <option value="" disabled>+ Add co-owner...</option>
                       {availableUsers
                         .filter((u) => u.id !== item.assigneeId && !item.secondaryAssigneeIds?.includes(u.id))
                         .map((u) => (
@@ -867,7 +864,7 @@ export function ActionItemDrawer({
                 <label className="block text-duston-muted mb-1 font-medium">Tag</label>
                 <input
                   type="text"
-                  placeholder="e.g. Legal, Treasury"
+                  placeholder="Tag..."
                   value={item.tag || ""}
                   disabled={!canEdit}
                   onChange={(e) => handleFieldChange("tag", e.target.value)}
@@ -937,7 +934,7 @@ export function ActionItemDrawer({
                   ))
                 ) : (
                   <p className="text-xs text-duston-muted italic bg-duston-bg/60 p-3 rounded-xl border border-duston-border text-center">
-                    No progress updates recorded yet. Any responsible party can post updates here.
+                    No updates recorded yet.
                   </p>
                 )}
               </div>
@@ -946,7 +943,7 @@ export function ActionItemDrawer({
               <form onSubmit={handleAddComment} className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Post an official progress update or comment..."
+                  placeholder="Write an update..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   className="flex-1 bg-white border border-duston-border rounded-lg px-3 py-2 text-xs outline-none focus:border-[#1BCECE]"
@@ -1049,22 +1046,22 @@ export function ActionItemDrawer({
                   required
                   value={editFormData.title}
                   onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
-                  placeholder="e.g. Submit draft term sheet to Stanbic Bank"
+                  placeholder="Action item title..."
                   className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-duston-dark outline-none focus:border-[#1BCECE] ring-1 ring-transparent focus:ring-[#1BCECE]/20 font-medium"
                 />
               </div>
 
-              {/* Project Assignment (Optional) */}
+              {/* Project Assignment */}
               <div>
                 <label className="block font-semibold text-duston-dark mb-1">
-                  Assigned Project <span className="text-duston-muted font-normal">(Optional)</span>
+                  Project
                 </label>
                 <select
                   value={editFormData.projectId}
                   onChange={(e) => setEditFormData({ ...editFormData, projectId: e.target.value })}
                   className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
                 >
-                  <option value="">— No Project (Standalone Deliverable) —</option>
+                  <option value="">No Project</option>
                   {availableProjects.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name} {p.entityName ? `(${p.entityName})` : ""}
@@ -1073,10 +1070,10 @@ export function ActionItemDrawer({
                 </select>
               </div>
 
-              {/* Primary Responsible Party (Lead) */}
+              {/* Assignee */}
               <div>
                 <label className="block font-semibold text-duston-dark mb-1">
-                  Primary Responsible Party (Lead) <span className="text-rose-500">*</span>
+                  Assignee <span className="text-rose-500">*</span>
                 </label>
                 <select
                   value={editFormData.assigneeId}
@@ -1091,11 +1088,11 @@ export function ActionItemDrawer({
                 </select>
               </div>
 
-              {/* Secondary Responsible Parties (Co-owners) */}
+              {/* Co-owners */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="block font-semibold text-duston-dark">
-                    Secondary Responsible Parties (Co-owners)
+                    Co-owners
                   </label>
                   <span className="text-[10px] text-duston-muted">
                     {editFormData.secondaryAssigneeIds.length} selected
@@ -1104,7 +1101,7 @@ export function ActionItemDrawer({
 
                 <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-duston-bg/40 border border-duston-border rounded-xl items-center">
                   {editFormData.secondaryAssigneeIds.length === 0 ? (
-                    <span className="text-duston-muted text-xs italic">No co-owners selected.</span>
+                    <span className="text-duston-muted text-xs italic">No co-owners assigned.</span>
                   ) : (
                     editFormData.secondaryAssigneeIds.map((userId) => {
                       const u = availableUsers.find((x) => x.id === userId);
@@ -1153,7 +1150,7 @@ export function ActionItemDrawer({
                     }}
                     className="w-full bg-white border border-duston-border rounded-xl px-3 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
                   >
-                    <option value="" disabled>+ Add secondary responsible party...</option>
+                    <option value="" disabled>+ Add co-owner...</option>
                     {availableUsers
                       .filter(
                         (u) =>
@@ -1255,10 +1252,10 @@ export function ActionItemDrawer({
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-duston-dark mb-1">Tag / Category</label>
+                  <label className="block font-semibold text-duston-dark mb-1">Tag</label>
                   <input
                     type="text"
-                    placeholder="e.g. Legal, Treasury"
+                    placeholder="Tag..."
                     value={editFormData.tag}
                     onChange={(e) => setEditFormData({ ...editFormData, tag: e.target.value })}
                     className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-duston-dark outline-none focus:border-[#1BCECE]"
@@ -1266,16 +1263,16 @@ export function ActionItemDrawer({
                 </div>
               </div>
 
-              {/* Description / Variance Notes */}
+              {/* Description */}
               <div>
                 <label className="block font-semibold text-duston-dark mb-1">
-                  Description / Operational Notes
+                  Description
                 </label>
                 <textarea
                   rows={3}
                   value={editFormData.description}
                   onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                  placeholder="Context, counterparty requirements, or variance explanations..."
+                  placeholder="Description..."
                   className="w-full bg-white border border-duston-border rounded-xl p-3 text-duston-dark outline-none focus:border-[#1BCECE] resize-none"
                 />
               </div>

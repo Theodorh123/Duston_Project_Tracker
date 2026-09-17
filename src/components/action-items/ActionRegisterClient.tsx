@@ -464,7 +464,7 @@ export function ActionRegisterClient({
           <PriorityFlag priority={item.priority} />
         </td>
 
-        {/* 4. Responsible Party / Follow-up Lead */}
+        {/* 4. Assignee */}
         <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
           {isOutsider ? (
             <div className="space-y-1">
@@ -475,7 +475,7 @@ export function ActionRegisterClient({
               </div>
               <div className="flex items-center gap-1.5 text-[11px] text-duston-dark font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
-                <span className="truncate">Lead: {item.assigneeName}</span>
+                <span className="truncate">{item.assigneeName}</span>
               </div>
             </div>
           ) : (
@@ -503,7 +503,7 @@ export function ActionRegisterClient({
               </div>
               {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
                 <div className="text-[10px] text-duston-muted truncate pl-8">
-                  Co: {item.secondaryAssigneeNames?.join(", ")}
+                  {item.secondaryAssigneeNames?.join(", ")}
                 </div>
               )}
             </div>
@@ -1150,7 +1150,7 @@ export function ActionRegisterClient({
             <Search size={14} className="absolute left-3 top-2.5 text-duston-muted" />
             <input
               type="text"
-              placeholder="Search action items, parties, projects..."
+              placeholder="Search action items, assignees, projects..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-3 py-2 text-xs bg-duston-bg border border-duston-border rounded-xl text-duston-dark placeholder:text-duston-muted outline-none focus:border-[#1BCECE] transition-colors"
@@ -1208,22 +1208,22 @@ export function ActionRegisterClient({
                 { value: "not_started", label: "Not started", dotColor: "#94a3b8" },
                 { value: "in_progress", label: "In progress", dotColor: "#1BCECE" },
                 { value: "done", label: "Completed", dotColor: "#39B54A" },
-                { value: "overdue", label: "Overdue only", dotColor: "#F15A24" },
+                { value: "overdue", label: "Overdue", dotColor: "#F15A24" },
               ]}
               onChange={(val) => setSelectedStatus(val)}
               className="w-full"
             />
           </div>
 
-          {/* Deliverable Type (In-house vs Outsider) */}
+          {/* Type Filter */}
           <div className="col-span-1">
             <DropdownFilter
-              label="Party"
+              label="Type"
               value={selectedDeliverableType}
               options={[
-                { value: "all", label: "All parties" },
-                { value: "in_house", label: "In-house team" },
-                { value: "outsider", label: "Outsider / Counterparty" },
+                { value: "all", label: "All types" },
+                { value: "in_house", label: "In-house" },
+                { value: "outsider", label: "Counterparty" },
               ]}
               onChange={(val) => setSelectedDeliverableType(val as any)}
               className="w-full"
@@ -1284,10 +1284,10 @@ export function ActionRegisterClient({
                   <th className="py-3 px-3 w-12 text-center">No.</th>
                   <th className="py-3 px-4 min-w-[260px]">Action Item</th>
                   <th className="py-3 px-3 w-28">Priority</th>
-                  <th className="py-3 px-4 w-52">Responsible Party / Follow-up</th>
+                  <th className="py-3 px-4 w-52">Assignee</th>
                   <th className="py-3 px-4 w-36">Deadline</th>
                   <th className="py-3 px-4 w-32">Status</th>
-                  <th className="py-3 px-4 w-44">Project & Subsidiary</th>
+                  <th className="py-3 px-4 w-44">Subsidiary / Project</th>
                   <th className="py-3 px-3 w-10 text-center"></th>
                 </tr>
               </thead>
@@ -1379,10 +1379,10 @@ export function ActionRegisterClient({
                           <th className="py-3 px-3 w-12 text-center">No.</th>
                           <th className="py-3 px-4 min-w-[260px]">Action Item</th>
                           <th className="py-3 px-3 w-28">Priority</th>
-                          <th className="py-3 px-4 w-52">Responsible Party / Follow-up</th>
+                          <th className="py-3 px-4 w-52">Assignee</th>
                           <th className="py-3 px-4 w-36">Deadline</th>
                           <th className="py-3 px-4 w-32">Status</th>
-                          <th className="py-3 px-4 w-44">Project & Subsidiary</th>
+                          <th className="py-3 px-4 w-44">Subsidiary / Project</th>
                           <th className="py-3 px-3 w-10 text-center"></th>
                         </tr>
                       </thead>

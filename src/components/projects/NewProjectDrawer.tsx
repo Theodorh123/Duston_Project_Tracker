@@ -63,10 +63,10 @@ export function NewProjectDrawer({
       <div onClick={onClose} className="fixed inset-0 bg-black/30 z-40" />
       <div className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-white border-l border-duston-border z-50 flex flex-col shadow-2xl">
         <div className="p-4 border-b border-duston-border flex items-center justify-between bg-duston-bg/50">
-          <h2 className="text-sm font-medium text-duston-dark">New project</h2>
+          <h2 className="text-sm font-semibold text-duston-dark">New Project</h2>
           <button
             onClick={onClose}
-            className="p-1 rounded text-duston-muted hover:text-duston-dark"
+            className="p-1 rounded text-duston-muted hover:text-duston-dark cursor-pointer"
           >
             <X size={18} strokeWidth={1.5} />
           </button>
@@ -100,7 +100,7 @@ export function NewProjectDrawer({
             <input
               type="text"
               required
-              placeholder="e.g. EBID Trade Finance Facility (USD 50M)"
+              placeholder="Project name..."
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
@@ -152,7 +152,7 @@ export function NewProjectDrawer({
             </div>
 
             <div>
-              <label className="block text-duston-dark mb-1 font-semibold">Target Date / Deadline *</label>
+              <label className="block text-duston-dark mb-1 font-semibold">Target Date *</label>
               <input
                 type="date"
                 required
@@ -167,7 +167,7 @@ export function NewProjectDrawer({
             <label className="block text-duston-muted mb-1 font-medium">Description</label>
             <textarea
               rows={3}
-              placeholder="Strategic goals, scope, and background..."
+              placeholder="Description..."
               value={formData.description || ""}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full bg-white border border-duston-border rounded-lg p-3 text-duston-text outline-none focus:border-[#1BCECE] resize-none"
@@ -175,10 +175,10 @@ export function NewProjectDrawer({
           </div>
 
           <div>
-            <label className="block text-duston-muted mb-1 font-medium">Budget & financing notes</label>
+            <label className="block text-duston-muted mb-1 font-medium">Budget notes</label>
             <textarea
               rows={2}
-              placeholder="Facility fees, covenants, contractor terms..."
+              placeholder="Budget notes..."
               value={formData.budgetNotes || ""}
               onChange={(e) => setFormData({ ...formData, budgetNotes: e.target.value })}
               className="w-full bg-white border border-duston-border rounded-lg p-3 text-duston-text outline-none focus:border-[#1BCECE] resize-none"
@@ -189,16 +189,16 @@ export function NewProjectDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-duston-border text-duston-text hover:bg-duston-bg font-medium"
+              className="px-4 py-2 rounded-lg border border-duston-border text-duston-text hover:bg-duston-bg font-medium cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 rounded-lg bg-[#023542] hover:bg-[#1BCECE] text-white font-medium transition-colors disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-[#023542] hover:bg-[#1BCECE] text-white font-medium transition-colors disabled:opacity-50 cursor-pointer"
             >
-              {loading ? "Creating..." : "Create project"}
+              {loading ? "Creating..." : "Create Project"}
             </button>
           </div>
         </form>

@@ -244,13 +244,13 @@ export function EaViewClient({
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
-                  <th className="py-2.5 px-3">Item</th>
+                  <th className="py-2.5 px-3">Action Item</th>
                   <th className="py-2.5 px-3">Project</th>
                   <th className="py-2.5 px-3">Subsidiary</th>
-                  <th className="py-2.5 px-3">Responsible Party</th>
+                  <th className="py-2.5 px-3">Assignee</th>
                   <th className="py-2.5 px-3">Days overdue</th>
                   <th className="py-2.5 px-3">Priority</th>
-                  <th className="py-2.5 px-3 text-right">Quick actions</th>
+                  <th className="py-2.5 px-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-duston-border">
@@ -336,13 +336,13 @@ export function EaViewClient({
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
-                  <th className="py-2.5 px-3">Item</th>
+                  <th className="py-2.5 px-3">Action Item</th>
                   <th className="py-2.5 px-3">Project</th>
                   <th className="py-2.5 px-3">Subsidiary</th>
-                  <th className="py-2.5 px-3">Responsible Party</th>
+                  <th className="py-2.5 px-3">Assignee</th>
                   <th className="py-2.5 px-3">Deadline</th>
                   <th className="py-2.5 px-3">Priority</th>
-                  <th className="py-2.5 px-3 text-right">Quick action</th>
+                  <th className="py-2.5 px-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-duston-border">

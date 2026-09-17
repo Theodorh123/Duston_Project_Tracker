@@ -70,7 +70,7 @@ export function NewMeetingModal({
       <div className="w-full max-w-lg bg-white border border-duston-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] my-auto animate-in fade-in duration-150">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/60 shrink-0">
-          <h2 className="text-sm font-semibold text-duston-dark">New meeting</h2>
+          <h2 className="text-sm font-semibold text-duston-dark">New Meeting</h2>
           <button
             type="button"
             onClick={onClose}
@@ -117,20 +117,20 @@ export function NewMeetingModal({
           </div>
 
           <div>
-            <label className="block text-duston-dark mb-1 font-semibold">Subject / Meeting Title *</label>
+            <label className="block text-duston-dark mb-1 font-semibold">Subject *</label>
             <input
               type="text"
               required
-              placeholder="e.g. Q3 MOSL Board Review"
+              placeholder="Meeting subject..."
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE] font-medium"
             />
           </div>
 
-          {/* Meeting Format & Venue */}
+          {/* Format & Venue */}
           <div className="space-y-2 pt-1">
-            <label className="block text-duston-dark font-semibold">Meeting Format & Venue</label>
+            <label className="block text-duston-dark font-semibold">Format & Venue</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -161,7 +161,7 @@ export function NewMeetingModal({
 
             <input
               type="text"
-              placeholder={isVirtual ? "e.g. Microsoft Teams / Zoom link" : "e.g. MOSL Boardroom, Airport City HQ"}
+              placeholder={isVirtual ? "Meeting link..." : "Venue / Location..."}
               value={venue}
               onChange={(e) => setVenue(e.target.value)}
               className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE] mt-1"
@@ -169,10 +169,10 @@ export function NewMeetingModal({
           </div>
 
           <div>
-            <label className="block text-duston-muted mb-1 font-medium">Minutes doc URL (Google Drive / SharePoint)</label>
+            <label className="block text-duston-muted mb-1 font-medium">Minutes URL</label>
             <input
               type="url"
-              placeholder="https://drive.google.com/open?id=..."
+              placeholder="https://..."
               value={minutesDocUrl}
               onChange={(e) => setMinutesDocUrl(e.target.value)}
               className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
@@ -207,15 +207,15 @@ export function NewMeetingModal({
           <div className="pt-2 border-t border-duston-border">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-duston-dark font-medium">
-                Action items register
+                Action Items Register
               </label>
-              <span className="text-[10px] text-duston-muted">Format: Item | Responsible | Deadline</span>
+              <span className="text-[10px] text-duston-muted">Format: Item | Assignee | Deadline</span>
             </div>
             <textarea
               rows={3}
               value={rawActionRegister}
               onChange={(e) => setRawActionRegister(e.target.value)}
-              placeholder="Submit draft term sheet to Stanbic | Theophilus | 2026-09-08&#10;Audit bunker barge safety certificates | William | 2026-09-12"
+              placeholder="Action title | Assignee | YYYY-MM-DD"
               className="w-full bg-white border border-duston-border rounded-xl p-3 text-duston-text outline-none focus:border-[#1BCECE] font-mono text-[11px] leading-relaxed resize-none"
             />
           </div>

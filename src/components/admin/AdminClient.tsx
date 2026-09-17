@@ -774,7 +774,7 @@ export function AdminClient({
                     <th className="py-3 px-4">Subsidiary</th>
                     <th className="py-3 px-4">Project</th>
                     <th className="py-3 px-4">Action Item</th>
-                    <th className="py-3 px-4">Responsible Party</th>
+                    <th className="py-3 px-4">Assignee</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4">Deadline</th>
                     <th className="py-3 px-4">Priority</th>
@@ -1120,7 +1120,7 @@ export function AdminClient({
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs overflow-y-auto">
           <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] my-auto">
             <div className="p-4 sm:p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/60 shrink-0">
-              <h3 className="font-medium text-duston-dark text-sm">Create New User</h3>
+              <h3 className="font-medium text-duston-dark text-sm">Create User</h3>
               <button
                 type="button"
                 onClick={() => setIsNewUserModalOpen(false)}
@@ -1137,7 +1137,7 @@ export function AdminClient({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Kwesi Mensah"
+                    placeholder="Full name..."
                     value={newUserName}
                     onChange={(e) => setNewUserName(e.target.value)}
                     className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
@@ -1149,7 +1149,7 @@ export function AdminClient({
                   <input
                     type="email"
                     required
-                    placeholder="kwesi@duston.com"
+                    placeholder="email@example.com"
                     value={newUserEmail}
                     onChange={(e) => setNewUserEmail(e.target.value)}
                     className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
@@ -1172,33 +1172,30 @@ export function AdminClient({
                     className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
                   >
                     <option value="contributor">Contributor</option>
-                    <option value="hod">Head of Department (HOD)</option>
-                    <option value="md">Managing Director (MD)</option>
-                    <option value="ea">Executive Assistant (EA)</option>
+                    <option value="hod">Head of Department</option>
+                    <option value="md">Managing Director</option>
+                    <option value="ea">Executive Assistant</option>
                     <option value="ceo">CEO</option>
-                    <option value="admin">System Administrator (Admin)</option>
+                    <option value="admin">Admin</option>
                     <option value="external">External</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-duston-muted mb-1 font-medium">Subsidiary / Entity *</label>
+                  <label className="block text-duston-muted mb-1 font-medium">Subsidiary *</label>
                   <select
                     required
                     value={newUserEntityId}
                     onChange={(e) => setNewUserEntityId(e.target.value)}
                     className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
                   >
-                    <option value="">Select subsidiary person works with...</option>
+                    <option value="">Select subsidiary...</option>
                     {entitiesList.map((e) => (
                       <option key={e.id} value={e.id}>
                         {e.name}
                       </option>
                     ))}
                   </select>
-                  <p className="text-[10px] text-duston-muted mt-1">
-                    The primary entity or subsidiary this person works with.
-                  </p>
                 </div>
 
                 <div>
@@ -1214,10 +1211,10 @@ export function AdminClient({
                       />
                       <div>
                         <span className="font-medium text-duston-dark block">
-                          Restrict to assigned subsidiary only
+                          Assigned subsidiary only
                         </span>
                         <span className="text-[11px] text-duston-muted block">
-                          Member can only view and access projects, meetings, and action items for their assigned subsidiary.
+                          Access restricted to assigned subsidiary.
                         </span>
                       </div>
                     </label>
@@ -1232,10 +1229,10 @@ export function AdminClient({
                       />
                       <div>
                         <span className="font-medium text-duston-dark block">
-                          Global Group Access (All Subsidiaries)
+                          All subsidiaries
                         </span>
                         <span className="text-[11px] text-duston-muted block">
-                          Recommended for CEO, EA, and Group Directors to oversee all conglomerate operations.
+                          Access to all subsidiaries and projects.
                         </span>
                       </div>
                     </label>
@@ -1303,10 +1300,10 @@ export function AdminClient({
                       />
                       <div>
                         <span className="font-medium text-duston-dark block">
-                          Global access (All subsidiaries)
+                          All subsidiaries
                         </span>
                         <span className="text-[11px] text-duston-muted block">
-                          Unrestricted visibility across all group subsidiaries and projects.
+                          Access to all subsidiaries and projects.
                         </span>
                       </div>
                     </label>
@@ -1321,10 +1318,10 @@ export function AdminClient({
                       />
                       <div>
                         <span className="font-medium text-duston-dark block">
-                          Restricted to specific subsidiaries
+                          Specific subsidiaries
                         </span>
                         <span className="text-[11px] text-duston-muted block">
-                          Member can only access data belonging to the checked subsidiaries below.
+                          Access restricted to selected subsidiaries below.
                         </span>
                       </div>
                     </label>
@@ -1396,7 +1393,7 @@ export function AdminClient({
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs overflow-y-auto">
           <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] my-auto">
             <div className="p-4 sm:p-5 border-b border-duston-border flex items-center justify-between bg-duston-bg/60 shrink-0">
-              <h3 className="font-medium text-duston-dark text-sm">Add New Entity</h3>
+              <h3 className="font-medium text-duston-dark text-sm">Add Subsidiary</h3>
               <button
                 type="button"
                 onClick={() => setIsNewEntityModalOpen(false)}
@@ -1409,11 +1406,11 @@ export function AdminClient({
             <form onSubmit={handleCreateEntity} className="flex flex-col flex-1 overflow-hidden min-h-0">
               <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs overscroll-contain">
                 <div>
-                  <label className="block text-duston-muted mb-1">Entity Name *</label>
+                  <label className="block text-duston-muted mb-1">Subsidiary Name *</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Duston Telecom"
+                    placeholder="Subsidiary name..."
                     value={newEntityName}
                     onChange={(e) => setNewEntityName(e.target.value)}
                     className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
@@ -1425,7 +1422,7 @@ export function AdminClient({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. duston-telecom"
+                    placeholder="slug..."
                     value={newEntitySlug}
                     onChange={(e) => setNewEntitySlug(e.target.value)}
                     className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 outline-none focus:border-[#1BCECE]"
@@ -1434,9 +1431,10 @@ export function AdminClient({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-duston-muted mb-1">Brand Hex Color</label>
+                    <label className="block text-duston-muted mb-1">Brand Color</label>
                     <input
                       type="text"
+                      placeholder="#023542"
                       value={newEntityColor}
                       onChange={(e) => setNewEntityColor(e.target.value)}
                       className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 font-mono outline-none focus:border-[#1BCECE]"
@@ -1444,13 +1442,13 @@ export function AdminClient({
                   </div>
 
                   <div>
-                    <label className="block text-duston-muted mb-1">Parent Entity</label>
+                    <label className="block text-duston-muted mb-1">Parent Subsidiary</label>
                     <select
                       value={newEntityParent}
                       onChange={(e) => setNewEntityParent(e.target.value)}
                       className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-2 outline-none focus:border-[#1BCECE]"
                     >
-                      <option value="">None (Top level)</option>
+                      <option value="">None</option>
                       {entitiesList.map((ent) => (
                         <option key={ent.id} value={ent.id}>{ent.name}</option>
                       ))}
@@ -1471,7 +1469,7 @@ export function AdminClient({
                   type="submit"
                   className="px-4 py-2 rounded-xl bg-[#023542] hover:bg-[#1BCECE] text-white text-xs font-medium transition-colors shadow-subtle cursor-pointer"
                 >
-                  Add entity
+                  Add Subsidiary
                 </button>
               </div>
             </form>

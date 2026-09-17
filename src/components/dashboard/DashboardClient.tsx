@@ -790,7 +790,7 @@ export function DashboardClient({
             <th className="py-2 px-3">Action Item</th>
             <th className="py-2 px-3">Subsidiary</th>
             <th className="py-2 px-3">Project</th>
-            <th className="py-2 px-3">Responsible Party</th>
+            <th className="py-2 px-3">Assignee</th>
             <th className="py-2 px-3">Deadline</th>
             <th className="py-2 px-3">Status</th>
             <th className="py-2 px-3 text-right"></th>
@@ -1618,7 +1618,7 @@ export function DashboardClient({
                     Create Action Item
                   </h3>
                   <p className="text-[11px] text-duston-muted">
-                    Add a task directly from your dashboard
+                    Create a new deliverable
                   </p>
                 </div>
               </div>
@@ -1637,15 +1637,15 @@ export function DashboardClient({
               <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs overscroll-contain">
                 <div>
                   <label className="block text-xs font-medium text-duston-dark mb-1">
-                    Action item <span className="text-duston-orange">*</span>
+                    Action Item <span className="text-duston-orange">*</span>
                   </label>
                   <input
                     type="text"
                     required
                     value={quickAddTitle}
                     onChange={(e) => setQuickAddTitle(e.target.value)}
-                    placeholder="e.g., Review mining lease agreement with Norva..."
-                    className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
+                    placeholder="Action item title..."
+                    className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark font-medium"
                   />
                 </div>
 
@@ -1662,7 +1662,7 @@ export function DashboardClient({
                         className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-1 cursor-pointer transition-colors"
                       >
                         <Building2 size={12} />
-                        {isAddingSubsidiary ? "Cancel" : "+ Add subsidiary"}
+                        {isAddingSubsidiary ? "Cancel" : "+ Add"}
                       </button>
                     </div>
 
@@ -1670,7 +1670,7 @@ export function DashboardClient({
                       <div className="flex gap-1.5 mb-2">
                         <input
                           type="text"
-                          placeholder="New subsidiary name *"
+                          placeholder="Subsidiary name *"
                           value={newSubsidiaryName}
                           onChange={(e) => setNewSubsidiaryName(e.target.value)}
                           className="flex-1 text-xs p-2 rounded-lg border border-duston-border bg-white text-duston-dark"
@@ -1703,11 +1703,11 @@ export function DashboardClient({
                     )}
                   </div>
 
-                  {/* Project selector + inline add (Optional) */}
+                  {/* Project selector + inline add */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-medium text-duston-dark">
-                        Project <span className="text-duston-muted font-normal">(Optional)</span>
+                        Project
                       </label>
                       <button
                         type="button"
@@ -1715,7 +1715,7 @@ export function DashboardClient({
                         className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-1 cursor-pointer transition-colors"
                       >
                         <FolderPlus size={12} />
-                        {isAddingProject ? "Cancel" : "+ Add project"}
+                        {isAddingProject ? "Cancel" : "+ Add"}
                       </button>
                     </div>
 
@@ -1742,7 +1742,7 @@ export function DashboardClient({
                             disabled={isSavingProject || !newProjectName.trim()}
                             className="px-3 py-1 text-[11px] bg-[#023542] hover:bg-[#1BCECE] text-white rounded font-medium disabled:opacity-50 cursor-pointer"
                           >
-                            {isSavingProject ? "Saving..." : "Save & Select"}
+                            {isSavingProject ? "Saving..." : "Save"}
                           </button>
                         </div>
                       </div>
@@ -1752,7 +1752,7 @@ export function DashboardClient({
                         onChange={(e) => setQuickAddProjectId(e.target.value)}
                         className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
                       >
-                        <option value="">— No Project (General Deliverable) —</option>
+                        <option value="">No Project</option>
                         {availableProjectsForQuickAdd.map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.name}
@@ -1764,11 +1764,11 @@ export function DashboardClient({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Primary Responsible Party selector + inline add */}
+                  {/* Assignee selector + inline add */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-medium text-duston-dark">
-                        Primary Responsible Party (Lead) <span className="text-duston-orange">*</span>
+                        Assignee <span className="text-duston-orange">*</span>
                       </label>
                       <button
                         type="button"
@@ -1776,7 +1776,7 @@ export function DashboardClient({
                         className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-1 cursor-pointer transition-colors"
                       >
                         <UserPlus size={12} />
-                        {isAddingUser ? "Cancel" : "+ Add person"}
+                        {isAddingUser ? "Cancel" : "+ Add"}
                       </button>
                     </div>
 
@@ -1810,7 +1810,7 @@ export function DashboardClient({
                             disabled={isSavingUser || !newUserName.trim()}
                             className="px-3 py-1 text-[11px] bg-[#023542] hover:bg-[#1BCECE] text-white rounded font-medium disabled:opacity-50 cursor-pointer"
                           >
-                            {isSavingUser ? "Saving..." : "Save & Select"}
+                            {isSavingUser ? "Saving..." : "Save"}
                           </button>
                         </div>
                       </div>
@@ -1835,10 +1835,10 @@ export function DashboardClient({
                     )}
                   </div>
 
-                  {/* Secondary Responsible Parties (Co-owners) */}
+                  {/* Co-owners */}
                   <div className="space-y-1.5">
                     <label className="block text-xs font-medium text-duston-dark">
-                      Secondary Responsible Parties (Optional co-owners)
+                      Co-owners
                     </label>
 
                     {quickAddSecondaryAssigneeIds.length > 0 && (
@@ -1878,7 +1878,7 @@ export function DashboardClient({
                       }}
                       className="w-full text-xs p-2 rounded-lg border border-duston-border bg-white text-duston-dark focus:outline-none focus:border-[#1BCECE]"
                     >
-                      <option value="">+ Add secondary responsible party...</option>
+                      <option value="">+ Add co-owner...</option>
                       {usersList
                         .filter(
                           (u) =>

@@ -583,12 +583,12 @@ export function ProjectDetailClient({
                   <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
                     <th className="py-3 px-4">Subsidiary</th>
                     <th className="py-3 px-4">Project</th>
-                    <th className="py-3 px-4">Action item</th>
-                    <th className="py-3 px-4">Responsible Party</th>
+                    <th className="py-3 px-4">Action Item</th>
+                    <th className="py-3 px-4">Assignee</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4">Deadline</th>
                     <th className="py-3 px-4">Priority</th>
-                    <th className="py-3 px-4">Comments (variance notes)</th>
+                    <th className="py-3 px-4">Updates</th>
                     <th className="py-3 px-3 text-right"></th>
                   </tr>
                 </thead>
@@ -779,12 +779,12 @@ export function ProjectDetailClient({
                           <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
                             <th className="py-3 px-4">Subsidiary</th>
                             <th className="py-3 px-4">Project</th>
-                            <th className="py-3 px-4">Action item</th>
-                            <th className="py-3 px-4">Responsible Party</th>
+                            <th className="py-3 px-4">Action Item</th>
+                            <th className="py-3 px-4">Assignee</th>
                             <th className="py-3 px-4">Status</th>
                             <th className="py-3 px-4">Deadline</th>
                             <th className="py-3 px-4">Priority</th>
-                            <th className="py-3 px-4">Comments (variance notes)</th>
+                            <th className="py-3 px-4">Updates</th>
                             <th className="py-3 px-3 text-right"></th>
                           </tr>
                         </thead>
@@ -1234,28 +1234,28 @@ export function ProjectDetailClient({
             <form onSubmit={handleCreateActionItem} className="flex flex-col flex-1 overflow-hidden min-h-0">
               <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs overscroll-contain">
                 <div>
-                  <label className="block text-duston-muted mb-1 font-medium">Action item *</label>
+                  <label className="block text-duston-dark mb-1 font-semibold">Action Item *</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Sign ministerial bilateral guarantee letter"
+                    placeholder="Action item title..."
                     value={newItemTitle}
                     onChange={(e) => setNewItemTitle(e.target.value)}
                     className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
                   />
                 </div>
 
-                {/* Responsible Party + inline Add */}
+                {/* Assignee + inline Add */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-duston-dark font-semibold">Primary Responsible Party (Lead) *</label>
+                    <label className="block text-duston-dark font-semibold">Assignee *</label>
                     <button
                       type="button"
                       onClick={() => setIsAddingUser(!isAddingUser)}
                       className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <UserPlus size={12} />
-                      {isAddingUser ? "Cancel" : "+ Add person"}
+                      {isAddingUser ? "Cancel" : "+ Add"}
                     </button>
                   </div>
 
@@ -1289,7 +1289,7 @@ export function ProjectDetailClient({
                           disabled={isSavingUser || !newUserName.trim()}
                           className="px-3 py-1 text-[11px] bg-[#023542] hover:bg-[#1BCECE] text-white rounded font-medium disabled:opacity-50 cursor-pointer"
                         >
-                          {isSavingUser ? "Saving..." : "Save & Select"}
+                          {isSavingUser ? "Saving..." : "Save"}
                         </button>
                       </div>
                     </div>
@@ -1306,10 +1306,10 @@ export function ProjectDetailClient({
                   )}
                 </div>
 
-                {/* Secondary Responsible Parties (Co-owners) */}
+                {/* Co-owners */}
                 <div className="space-y-1.5">
                   <label className="block text-duston-dark font-semibold">
-                    Secondary Responsible Parties (Co-owners)
+                    Co-owners
                   </label>
                   {newItemSecondaryAssignees.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 p-2 bg-duston-bg/70 border border-duston-border rounded-lg">
@@ -1345,7 +1345,7 @@ export function ProjectDetailClient({
                     }}
                     className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-text outline-none focus:border-[#1BCECE] cursor-pointer"
                   >
-                    <option value="" disabled>+ Add secondary responsible party (co-owner)...</option>
+                    <option value="" disabled>+ Add co-owner...</option>
                     {usersList
                       .filter((u) => u.id !== newItemAssignee && !newItemSecondaryAssignees.includes(u.id))
                       .map((u) => (
