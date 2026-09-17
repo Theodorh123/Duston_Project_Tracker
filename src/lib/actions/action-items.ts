@@ -22,6 +22,7 @@ export async function getActionItemById(id: string) {
             entity: true,
           },
         },
+        entity: true,
         assignee: true,
         sourceMeeting: true,
         comments: {
@@ -54,14 +55,17 @@ export async function getActionItemById(id: string) {
     }
 
     const secondaryNames = secondaryUsers.map((u) => u.name);
+    const itemEntityId = item.entityId || item.project?.entityId;
+    const itemEntityName = item.entity?.name || item.project?.entity?.name || "Subsidiary";
+    const itemBrandColor = item.entity?.brandPrimaryColor || item.project?.entity?.brandPrimaryColor || "#023542";
 
     return {
       id: item.id,
       projectId: item.projectId,
-      projectName: item.project?.name || "Project",
-      entityId: item.project?.entityId,
-      entityName: item.project?.entity?.name || "Entity",
-      entityBrandColor: item.project?.entity?.brandPrimaryColor || "#023542",
+      projectName: item.project?.name || null,
+      entityId: itemEntityId,
+      entityName: itemEntityName,
+      entityBrandColor: itemBrandColor,
       title: item.title,
       description: item.description,
       assigneeId: item.assigneeId,
@@ -107,7 +111,8 @@ export async function getActionItemById(id: string) {
 
 export interface UpdateActionItemInput {
   title?: string;
-  projectId?: string;
+  projectId?: string | null;
+  entityId?: string;
   assigneeId?: string;
   secondaryAssigneeIds?: string[];
   deadline?: string;
@@ -161,7 +166,18 @@ export async function updateActionItem(
     };
 
     if (data.title !== undefined) updateData.title = data.title.trim();
-    if (data.projectId !== undefined) updateData.projectId = data.projectId;
+    if (data.projectId !== undefined) {
+      updateData.projectId = data.projectId && data.projectId.trim() !== "" ? data.projectId : null;
+      if (updateData.projectId) {
+        const proj = await db.query.projects.findFirst({
+          where: eq(projects.id, updateData.projectId),
+        });
+        if (proj?.entityId) {
+          updateData.entityId = proj.entityId;
+        }
+      }
+    }
+    if (data.entityId !== undefined) updateData.entityId = data.entityId;
     if (data.assigneeId !== undefined) updateData.assigneeId = data.assigneeId;
     if (data.secondaryAssigneeIds !== undefined) updateData.secondaryAssigneeIds = data.secondaryAssigneeIds;
     if (data.deadline !== undefined) updateData.deadline = normalizeDeadline(data.deadline);
@@ -201,7 +217,7 @@ export async function updateActionItem(
       );
     }
 
-    revalidateAllActionItemPaths(updated.projectId);
+    revalidateAllActionItemPaths(updated.projectId || undefined);
 
     return { success: true, item: updated };
   } catch (err: any) {
@@ -226,7 +242,13 @@ export async function updateActionItemField(
     });
     if (!current) return { success: false, error: "Not found" };
 
-    const finalValue = field === "deadline" ? normalizeDeadline(value) : value;
+    const finalValue =
+      field === "deadline"
+        ? normalizeDeadline(value)
+        : field === "projectId" && (!value || value === "")
+        ? null
+        : value;
+
     const updateData: any = {
       [field]: finalValue,
       updatedAt: new Date(),
@@ -234,6 +256,15 @@ export async function updateActionItemField(
 
     if (field === "status" && value === "done") {
       updateData.completedAt = new Date();
+    }
+
+    if (field === "projectId" && finalValue) {
+      const proj = await db.query.projects.findFirst({
+        where: eq(projects.id, finalValue),
+      });
+      if (proj?.entityId) {
+        updateData.entityId = proj.entityId;
+      }
     }
 
     await db.update(actionItems).set(updateData).where(eq(actionItems.id, id));
@@ -256,7 +287,7 @@ export async function updateActionItemField(
         : field === "assigneeId" 
         ? "Reassigned primary responsible party"
         : field === "projectId"
-        ? "Moved to different project"
+        ? "Updated project assignment"
         : `Updated ${field} to ${finalValue}`,
     });
 
@@ -269,7 +300,7 @@ export async function updateActionItemField(
       );
     }
 
-    revalidateAllActionItemPaths(current.projectId);
+    revalidateAllActionItemPaths(current.projectId || undefined);
 
     return { success: true };
   } catch (err: any) {
@@ -293,7 +324,7 @@ export async function deleteActionItem(id: string, actorId: string) {
     await db.delete(activityLog).where(eq(activityLog.actionItemId, id));
     await db.delete(actionItems).where(eq(actionItems.id, id));
 
-    revalidateAllActionItemPaths(current?.projectId);
+    revalidateAllActionItemPaths(current?.projectId || undefined);
 
     return { success: true };
   } catch (err: any) {
@@ -303,7 +334,8 @@ export async function deleteActionItem(id: string, actorId: string) {
 }
 
 export async function createActionItem(data: {
-  projectId: string;
+  entityId?: string | null;
+  projectId?: string | null;
   title: string;
   description?: string;
   assigneeId: string;
@@ -316,11 +348,29 @@ export async function createActionItem(data: {
   sourceMeetingId?: string;
 }) {
   try {
+    let resolvedEntityId = data.entityId;
+    const resolvedProjectId = data.projectId && data.projectId.trim() !== "" ? data.projectId : null;
+
+    if (resolvedProjectId && !resolvedEntityId) {
+      const proj = await db.query.projects.findFirst({
+        where: eq(projects.id, resolvedProjectId),
+      });
+      resolvedEntityId = proj?.entityId;
+    }
+
+    if (!resolvedEntityId) {
+      const firstEnt = await db.query.entities.findFirst({
+        where: eq(entities.isActive, true),
+      });
+      resolvedEntityId = firstEnt?.id;
+    }
+
     const resolvedDeadline = normalizeDeadline(data.deadline);
     const [newItem] = await db
       .insert(actionItems)
       .values({
-        projectId: data.projectId,
+        entityId: resolvedEntityId,
+        projectId: resolvedProjectId,
         title: data.title,
         description: data.description,
         assigneeId: data.assigneeId,
@@ -362,7 +412,7 @@ export async function createActionItem(data: {
       }
     }
 
-    revalidateAllActionItemPaths(data.projectId);
+    revalidateAllActionItemPaths(resolvedProjectId || undefined);
     return { success: true, item: newItem };
   } catch (err: any) {
     console.error("createActionItem error:", err);
@@ -382,7 +432,7 @@ export interface BulkActionItemInput {
 
 export async function bulkCreateActionItems(data: {
   entityId?: string;
-  projectId?: string;
+  projectId?: string | null;
   createdBy: string;
   meetingSubject?: string;
   createMeetingRecord?: boolean;
@@ -395,46 +445,25 @@ export async function bulkCreateActionItems(data: {
       return { success: false, error: "No action items provided to import." };
     }
 
-    let targetProjectId = data.projectId;
+    const targetProjectId = data.projectId && data.projectId.trim() !== "" ? data.projectId : null;
     let targetEntityId = data.entityId;
 
-    // If no specific project provided, resolve from entity or auto-create entity general deliverables
-    if (!targetProjectId && targetEntityId) {
-      const existingProj = await db.query.projects.findFirst({
-        where: eq(projects.entityId, targetEntityId),
-      });
-
-      if (existingProj) {
-        targetProjectId = existingProj.id;
-      } else {
-        const ent = await db.query.entities.findFirst({
-          where: eq(entities.id, targetEntityId),
-        });
-        const targetDateStr = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-        const [newProj] = await db
-          .insert(projects)
-          .values({
-            entityId: targetEntityId,
-            name: `${ent?.name || "Subsidiary"} Operations & Deliverables`,
-            category: "operations",
-            ownerId: data.createdBy,
-            startDate: new Date().toISOString().split("T")[0],
-            targetDate: targetDateStr,
-            status: "in_progress",
-            priority: "medium",
-          })
-          .returning();
-        targetProjectId = newProj.id;
-      }
-    } else if (targetProjectId && !targetEntityId) {
+    if (targetProjectId && !targetEntityId) {
       const proj = await db.query.projects.findFirst({
         where: eq(projects.id, targetProjectId),
       });
       targetEntityId = proj?.entityId;
     }
 
-    if (!targetProjectId) {
-      return { success: false, error: "No project or subsidiary selected to assign items to." };
+    if (!targetEntityId) {
+      const firstEnt = await db.query.entities.findFirst({
+        where: eq(entities.isActive, true),
+      });
+      targetEntityId = firstEnt?.id;
+    }
+
+    if (!targetEntityId) {
+      return { success: false, error: "No subsidiary found to assign items to." };
     }
 
     let sourceMeetingId: string | undefined;
@@ -462,6 +491,7 @@ export async function bulkCreateActionItems(data: {
       const [created] = await db
         .insert(actionItems)
         .values({
+          entityId: targetEntityId,
           projectId: targetProjectId,
           title: item.title.trim(),
           description: item.notes || null,
@@ -495,7 +525,7 @@ export async function bulkCreateActionItems(data: {
       );
     }
 
-    revalidateAllActionItemPaths(targetProjectId);
+    revalidateAllActionItemPaths(targetProjectId || undefined);
 
     return {
       success: true,

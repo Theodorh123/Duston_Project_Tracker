@@ -101,6 +101,7 @@ export default async function AdminPage() {
           entity: true,
         },
       },
+      entity: true,
       assignee: true,
       comments: true,
     },
@@ -108,12 +109,18 @@ export default async function AdminPage() {
   });
 
   const userNameMap = new Map(allUsers.map((u) => [u.id, u.name]));
+  const entityNameMap = new Map(allEntities.map((e) => [e.id, e.name]));
+  const entityColorMap = new Map(allEntities.map((e) => [e.id, e.brandPrimaryColor]));
 
   const mappedActionItems: AdminActionItem[] = allActionItemsList.map((it) => {
     const secIds: string[] = Array.isArray(it.secondaryAssigneeIds)
       ? (it.secondaryAssigneeIds as string[])
       : [];
     const secNames = secIds.map((id) => userNameMap.get(id)).filter(Boolean) as string[];
+
+    const itemEntityId = it.entityId || it.project?.entityId || "";
+    const itemEntityName = it.entity?.name || it.project?.entity?.name || entityNameMap.get(itemEntityId) || "Subsidiary";
+    const itemBrandColor = it.entity?.brandPrimaryColor || it.project?.entity?.brandPrimaryColor || entityColorMap.get(itemEntityId) || "#023542";
 
     return {
       id: it.id,
@@ -124,11 +131,11 @@ export default async function AdminPage() {
       priority: it.priority as any,
       assigneeName: it.assignee?.name || "Unassigned",
       secondaryAssigneeNames: secNames,
-      projectId: it.projectId,
-      projectName: it.project?.name || "Project",
-      entityId: it.project?.entityId,
-      entityName: it.project?.entity?.name || "Subsidiary",
-      entityBrandColor: it.project?.entity?.brandPrimaryColor || "#023542",
+      projectId: it.projectId || null,
+      projectName: it.project?.name || null,
+      entityId: itemEntityId,
+      entityName: itemEntityName,
+      entityBrandColor: itemBrandColor,
       commentCount: it.comments?.length || 0,
       createdAt: it.createdAt ? it.createdAt.toISOString() : new Date().toISOString(),
     };

@@ -112,6 +112,7 @@ export const entitiesRelations = relations(entities, ({ one, many }) => ({
   }),
   projects: many(projects),
   meetings: many(meetings),
+  actionItems: many(actionItems),
   userAccess: many(userEntityAccess),
 }));
 
@@ -258,9 +259,8 @@ export const meetingsRelations = relations(meetings, ({ one, many }) => ({
 // 6. Action Items
 export const actionItems = pgTable("action_items", {
   id: uuid("id").primaryKey().defaultRandom(),
-  projectId: uuid("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
+  entityId: uuid("entity_id").references(() => entities.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   description: text("description"),
   assigneeId: uuid("assignee_id")
@@ -283,6 +283,10 @@ export const actionItems = pgTable("action_items", {
 });
 
 export const actionItemsRelations = relations(actionItems, ({ one, many }) => ({
+  entity: one(entities, {
+    fields: [actionItems.entityId],
+    references: [entities.id],
+  }),
   project: one(projects, {
     fields: [actionItems.projectId],
     references: [projects.id],

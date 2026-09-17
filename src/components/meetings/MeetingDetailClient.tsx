@@ -29,7 +29,7 @@ interface MeetingDetailClientProps {
   actionItems: Array<{
     id: string;
     title: string;
-    projectName: string;
+    projectName?: string | null;
     assigneeName: string;
     secondaryAssigneeNames?: string[];
     deadline: string;
@@ -127,7 +127,9 @@ export function MeetingDetailClient({ meeting, actionItems }: MeetingDetailClien
       <td className="py-3 px-4">
         <PriorityFlag priority={item.priority} />
       </td>
-      <td className="py-3 px-4 text-duston-muted">{item.projectName}</td>
+      <td className="py-3 px-4 text-duston-muted">
+        {item.projectName || <span className="text-duston-muted italic font-normal">—</span>}
+      </td>
       <td className="py-3 px-4 text-duston-dark">
         <div className="flex items-center gap-1.5">
           <span>{item.assigneeName}</span>

@@ -40,8 +40,8 @@ export interface RegisterItem {
   secondaryAssigneeIds?: string[];
   secondaryAssigneeNames?: string[];
   commentCount?: number;
-  projectId: string;
-  projectName: string;
+  projectId?: string | null;
+  projectName?: string | null;
   entityId: string;
   entityName: string;
   entityBrandColor: string;
@@ -237,7 +237,7 @@ export function ActionRegisterClient({
         const q = searchQuery.toLowerCase();
         const matchesTitle = item.title.toLowerCase().includes(q);
         const matchesAssignee = item.assigneeName.toLowerCase().includes(q);
-        const matchesProject = item.projectName.toLowerCase().includes(q);
+        const matchesProject = item.projectName ? item.projectName.toLowerCase().includes(q) : false;
         const matchesTag = item.tag ? item.tag.toLowerCase().includes(q) : false;
         const matchesDesc = item.description ? item.description.toLowerCase().includes(q) : false;
         if (!matchesTitle && !matchesAssignee && !matchesProject && !matchesTag && !matchesDesc) {
@@ -364,7 +364,7 @@ export function ActionRegisterClient({
       isTbaDeadline(it.deadline) ? '"To Be Actioned"' : it.deadline,
       isDeadlineOverdue(it.deadline, it.status) ? "Overdue" : it.status,
       it.priority,
-      `"${it.projectName.replace(/"/g, '""')}"`,
+      `"${(it.projectName || "No Project").replace(/"/g, '""')}"`,
       `"${it.entityName.replace(/"/g, '""')}"`,
     ]);
 
@@ -585,9 +585,15 @@ export function ActionRegisterClient({
             >
               {item.entityName}
             </span>
-            <p className="text-[11px] text-duston-dark font-medium truncate max-w-[150px]">
-              {item.projectName}
-            </p>
+            {item.projectName ? (
+              <p className="text-[11px] text-duston-dark font-medium truncate max-w-[150px]">
+                {item.projectName}
+              </p>
+            ) : (
+              <p className="text-[10px] text-duston-muted italic">
+                —
+              </p>
+            )}
           </div>
         </td>
 
@@ -731,10 +737,14 @@ export function ActionRegisterClient({
           >
             {item.entityName}
           </span>
-          <span className="text-duston-muted">•</span>
-          <span className="text-duston-dark font-medium truncate max-w-[160px]">
-            {item.projectName}
-          </span>
+          {item.projectName && (
+            <>
+              <span className="text-duston-muted">•</span>
+              <span className="text-duston-dark font-medium truncate max-w-[160px]">
+                {item.projectName}
+              </span>
+            </>
+          )}
         </div>
 
         {/* Bottom Line: Assignee / Counterparty + Deadline */}

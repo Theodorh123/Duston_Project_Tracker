@@ -36,8 +36,8 @@ import { PriorityFlag } from "@/components/ui/PriorityFlag";
 
 export interface ActionItemSummary {
   id: string;
-  projectId: string;
-  projectName: string;
+  projectId?: string | null;
+  projectName?: string | null;
   entityId: string;
   entityName: string;
   entityBrandColor: string;
@@ -241,7 +241,10 @@ export function DashboardClient({
   };
   const [quickAddTitle, setQuickAddTitle] = useState("");
   const [quickAddComments, setQuickAddComments] = useState("");
-  const [quickAddProjectId, setQuickAddProjectId] = useState(projects[0]?.id || "");
+  const [quickAddEntityId, setQuickAddEntityId] = useState<string>(
+    selectedEntityId || entities[0]?.id || ""
+  );
+  const [quickAddProjectId, setQuickAddProjectId] = useState<string>("");
   const [quickAddAssigneeId, setQuickAddAssigneeId] = useState(currentUserId || users[0]?.id || "");
   const [quickAddSecondaryAssigneeIds, setQuickAddSecondaryAssigneeIds] = useState<string[]>([]);
   const [quickAddStatus, setQuickAddStatus] = useState<"not_started" | "in_progress" | "done">("not_started");
@@ -251,6 +254,17 @@ export function DashboardClient({
   const [isQuickAddDeadlineTba, setIsQuickAddDeadlineTba] = useState(false);
   const [quickAddPriority, setQuickAddPriority] = useState<"low" | "medium" | "high" | "critical">("medium");
   const [isSubmittingQuickAdd, setIsSubmittingQuickAdd] = useState(false);
+
+  useEffect(() => {
+    if (selectedEntityId) {
+      setQuickAddEntityId(selectedEntityId);
+    }
+  }, [selectedEntityId]);
+
+  const availableProjectsForQuickAdd = projectsList.filter((p) => {
+    if (!quickAddEntityId) return true;
+    return p.entityId === quickAddEntityId;
+  });
 
   // Inline Add User / Responsible Party state
   const [isAddingUser, setIsAddingUser] = useState(false);
@@ -298,15 +312,14 @@ export function DashboardClient({
     try {
       const res = await quickCreateEntity({ name: newSubsidiaryName.trim() });
       if (res.success && res.entity) {
-        setEntitiesList((prev) => [
-          ...prev,
-          {
-            id: res.entity!.id,
-            name: res.entity!.name,
-            brandPrimaryColor: res.entity!.brandPrimaryColor,
-          },
-        ]);
+        const newEnt = {
+          id: res.entity!.id,
+          name: res.entity!.name,
+          brandPrimaryColor: res.entity!.brandPrimaryColor,
+        };
+        setEntitiesList((prev) => [...prev, newEnt]);
         setNewProjectEntityId(res.entity.id);
+        setQuickAddEntityId(res.entity.id);
         setNewSubsidiaryName("");
         setIsAddingSubsidiary(false);
       }
@@ -321,7 +334,8 @@ export function DashboardClient({
     if (!newProjectName.trim()) return;
     setIsSavingProject(true);
     try {
-      const ent = entitiesList.find((e) => e.id === newProjectEntityId) || entitiesList[0];
+      const targetEntId = quickAddEntityId || newProjectEntityId || entitiesList[0]?.id || "";
+      const ent = entitiesList.find((e) => e.id === targetEntId) || entitiesList[0];
       const today = new Date().toISOString().split("T")[0];
       const res = await createProject({
         name: newProjectName.trim(),
@@ -371,13 +385,17 @@ export function DashboardClient({
 
   const handleCreateQuickTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quickAddTitle.trim() || !quickAddProjectId) return;
+    if (!quickAddTitle.trim()) return;
+
+    const targetEntityId = quickAddEntityId || selectedEntityId || entitiesList[0]?.id;
+    if (!targetEntityId) return;
 
     setIsSubmittingQuickAdd(true);
 
     const targetStatus = quickAddStatus;
 
     const selectedProj = projectsList.find((p) => p.id === quickAddProjectId);
+    const selectedEnt = entitiesList.find((e) => e.id === targetEntityId);
     const selectedUser = usersList.find((u) => u.id === quickAddAssigneeId);
 
     const secNames = quickAddSecondaryAssigneeIds
@@ -390,7 +408,8 @@ export function DashboardClient({
         : quickAddDeadline;
 
     const res = await createActionItem({
-      projectId: quickAddProjectId,
+      entityId: targetEntityId,
+      projectId: quickAddProjectId || null,
       title: quickAddTitle.trim(),
       description: quickAddComments.trim() || undefined,
       assigneeId: quickAddAssigneeId || currentUserId || "00000000-0000-0000-0000-000000000000",
@@ -402,14 +421,18 @@ export function DashboardClient({
     });
 
     if (res.success && res.item) {
+      const itemEntityId = res.item.entityId || selectedProj?.entityId || targetEntityId;
+      const itemEntityName = selectedEnt?.name || selectedProj?.entityName || "Subsidiary";
+      const itemBrandColor = selectedEnt?.brandPrimaryColor || selectedProj?.entityBrandColor || "#023542";
+
       setItems((prev) => [
         {
           id: res.item.id,
-          projectId: res.item.projectId,
-          projectName: selectedProj?.name || "Project",
-          entityId: selectedProj?.entityId || "",
-          entityName: selectedProj?.entityName || "Subsidiary",
-          entityBrandColor: selectedProj?.entityBrandColor || "#023542",
+          projectId: res.item.projectId || null,
+          projectName: selectedProj?.name || null,
+          entityId: itemEntityId,
+          entityName: itemEntityName,
+          entityBrandColor: itemBrandColor,
           title: res.item.title,
           deadline: res.item.deadline,
           status: res.item.status as any,
@@ -425,6 +448,7 @@ export function DashboardClient({
 
       setQuickAddTitle("");
       setQuickAddComments("");
+      setQuickAddProjectId("");
       setQuickAddSecondaryAssigneeIds([]);
       setQuickAddStatus("not_started");
       setIsQuickAddOpen(false);
@@ -1626,11 +1650,64 @@ export function DashboardClient({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Project selector + inline add */}
+                  {/* Subsidiary selector + inline add */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-medium text-duston-dark">
-                        Project <span className="text-duston-orange">*</span>
+                        Subsidiary <span className="text-duston-orange">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingSubsidiary(!isAddingSubsidiary)}
+                        className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Building2 size={12} />
+                        {isAddingSubsidiary ? "Cancel" : "+ Add subsidiary"}
+                      </button>
+                    </div>
+
+                    {isAddingSubsidiary ? (
+                      <div className="flex gap-1.5 mb-2">
+                        <input
+                          type="text"
+                          placeholder="New subsidiary name *"
+                          value={newSubsidiaryName}
+                          onChange={(e) => setNewSubsidiaryName(e.target.value)}
+                          className="flex-1 text-xs p-2 rounded-lg border border-duston-border bg-white text-duston-dark"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveNewSubsidiary}
+                          disabled={isSavingSubsidiary || !newSubsidiaryName.trim()}
+                          className="px-3 py-1 text-[11px] bg-[#023542] text-white rounded-lg font-medium disabled:opacity-50 cursor-pointer"
+                        >
+                          {isSavingSubsidiary ? "Saving..." : "Save"}
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={quickAddEntityId}
+                        onChange={(e) => {
+                          setQuickAddEntityId(e.target.value);
+                          setQuickAddProjectId("");
+                        }}
+                        required
+                        className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark font-medium"
+                      >
+                        {entitiesList.map((e) => (
+                          <option key={e.id} value={e.id}>
+                            {e.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Project selector + inline add (Optional) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-medium text-duston-dark">
+                        Project <span className="text-duston-muted font-normal">(Optional)</span>
                       </label>
                       <button
                         type="button"
@@ -1651,47 +1728,6 @@ export function DashboardClient({
                           onChange={(e) => setNewProjectName(e.target.value)}
                           className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
                         />
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] font-medium text-duston-muted">Subsidiary</label>
-                          <button
-                            type="button"
-                            onClick={() => setIsAddingSubsidiary(!isAddingSubsidiary)}
-                            className="text-[10px] text-[#023542] hover:text-[#1BCECE] cursor-pointer"
-                          >
-                            {isAddingSubsidiary ? "Cancel" : "+ Add subsidiary"}
-                          </button>
-                        </div>
-                        {isAddingSubsidiary ? (
-                          <div className="flex gap-1.5">
-                            <input
-                              type="text"
-                              placeholder="New subsidiary name *"
-                              value={newSubsidiaryName}
-                              onChange={(e) => setNewSubsidiaryName(e.target.value)}
-                              className="flex-1 text-xs p-1.5 rounded border border-duston-border bg-white text-duston-dark"
-                            />
-                            <button
-                              type="button"
-                              onClick={handleSaveNewSubsidiary}
-                              disabled={isSavingSubsidiary || !newSubsidiaryName.trim()}
-                              className="px-2.5 py-1 text-[11px] bg-[#023542] text-white rounded font-medium disabled:opacity-50 cursor-pointer"
-                            >
-                              {isSavingSubsidiary ? "Saving..." : "Save"}
-                            </button>
-                          </div>
-                        ) : (
-                          <select
-                            value={newProjectEntityId}
-                            onChange={(e) => setNewProjectEntityId(e.target.value)}
-                            className="w-full text-xs p-2 rounded border border-duston-border bg-white text-duston-dark"
-                          >
-                            {entitiesList.map((e) => (
-                              <option key={e.id} value={e.id}>
-                                {e.name}
-                              </option>
-                            ))}
-                          </select>
-                        )}
                         <div className="flex justify-end gap-1.5 pt-1">
                           <button
                             type="button"
@@ -1710,34 +1746,24 @@ export function DashboardClient({
                           </button>
                         </div>
                       </div>
-                    ) : projectsList.length === 0 ? (
-                      <div className="p-2.5 bg-duston-bg/60 border border-dashed border-duston-border rounded-lg text-center">
-                        <p className="text-[11px] text-duston-muted mb-1.5">No projects created yet</p>
-                        <button
-                          type="button"
-                          onClick={() => setIsAddingProject(true)}
-                          className="inline-flex items-center gap-1 text-xs text-[#023542] hover:text-[#1BCECE] font-semibold cursor-pointer"
-                        >
-                          <FolderPlus size={13} />
-                          + Create a project
-                        </button>
-                      </div>
                     ) : (
                       <select
                         value={quickAddProjectId}
                         onChange={(e) => setQuickAddProjectId(e.target.value)}
-                        required
                         className="w-full text-xs p-2.5 rounded-lg border border-duston-border focus:outline-none focus:border-[#1BCECE] bg-white text-duston-dark"
                       >
-                        {projectsList.map((p) => (
+                        <option value="">— No Project (General Deliverable) —</option>
+                        {availableProjectsForQuickAdd.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.entityName} — {p.name}
+                            {p.name}
                           </option>
                         ))}
                       </select>
                     )}
                   </div>
+                </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Primary Responsible Party selector + inline add */}
                   <div>
                     <div className="flex items-center justify-between mb-1">

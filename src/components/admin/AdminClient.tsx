@@ -83,8 +83,8 @@ export interface AdminActionItem {
   priority: "critical" | "high" | "medium" | "low";
   assigneeName: string;
   secondaryAssigneeNames?: string[];
-  projectId: string;
-  projectName: string;
+  projectId?: string | null;
+  projectName?: string | null;
   entityId?: string;
   entityName: string;
   entityBrandColor: string;
@@ -400,7 +400,7 @@ export function AdminClient({
       const q = actionItemSearch.toLowerCase();
       const matchTitle = it.title.toLowerCase().includes(q);
       const matchAssignee = it.assigneeName.toLowerCase().includes(q);
-      const matchProject = it.projectName.toLowerCase().includes(q);
+      const matchProject = it.projectName ? it.projectName.toLowerCase().includes(q) : false;
       const matchEntity = it.entityName.toLowerCase().includes(q);
       const matchCoOwners = it.secondaryAssigneeNames?.some((name) =>
         name.toLowerCase().includes(q)
@@ -810,7 +810,7 @@ export function AdminClient({
                             </span>
                           </td>
                           <td className="py-3 px-4 font-medium text-duston-dark whitespace-nowrap max-w-[160px] truncate">
-                            {item.projectName}
+                            {item.projectName || <span className="text-duston-muted italic font-normal">—</span>}
                           </td>
                           <td className="py-3 px-4 font-medium text-duston-dark hover:text-[#1BCECE] transition-colors">
                             <div className="flex items-center gap-2">

@@ -83,6 +83,7 @@ export default async function CeoViewPage() {
           entity: true,
         },
       },
+      entity: true,
       comments: {
         orderBy: [desc(comments.createdAt)],
         limit: 1,
@@ -104,9 +105,9 @@ export default async function CeoViewPage() {
       return {
         id: it.id,
         title: it.title,
-        projectName: it.project?.name || "Initiative",
-        entityName: it.project?.entity?.name || "Subsidiary",
-        entityBrandColor: it.project?.entity?.brandPrimaryColor || "#023542",
+        projectName: it.project?.name || "General Deliverable",
+        entityName: it.entity?.name || it.project?.entity?.name || "Subsidiary",
+        entityBrandColor: it.entity?.brandPrimaryColor || it.project?.entity?.brandPrimaryColor || "#023542",
         blockerReason: blockerComment,
         daysBlocked,
         priority: it.priority,

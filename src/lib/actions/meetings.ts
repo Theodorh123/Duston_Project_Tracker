@@ -48,60 +48,49 @@ export async function createMeeting(data: CreateMeetingInput) {
 
     // 3. Bulk parse action register if provided
     if (data.rawActionRegister?.trim()) {
-      // Find fallback project if not specified
-      let targetProjectId = data.projectId;
-      if (!targetProjectId) {
-        const entityProjects = await db.query.projects.findMany({
-          where: eq(projects.entityId, data.entityId),
-          limit: 1,
-        });
-        if (entityProjects.length > 0) {
-          targetProjectId = entityProjects[0].id;
-        }
-      }
+      const targetProjectId = data.projectId && data.projectId.trim() !== "" ? data.projectId : null;
+      const allUsers = await db.query.users.findMany();
+      const lines = data.rawActionRegister
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
 
-      if (targetProjectId) {
-        const allUsers = await db.query.users.findMany();
-        const lines = data.rawActionRegister
-          .split("\n")
-          .map((l) => l.trim())
-          .filter(Boolean);
+      for (const line of lines) {
+        // Parse pipe or tab delimited: Item | Responsible party | Deadline
+        const delimiter = line.includes("\t") ? "\t" : "|";
+        const parts = line.split(delimiter).map((p) => p.trim());
+        if (parts.length >= 2) {
+          const title = parts[0];
+          const responsible = parts[1]?.toLowerCase();
+          const rawD = (parts[2] || "").trim();
+          const isTba =
+            !rawD ||
+            isTbaDeadline(rawD) ||
+            ["tba", "tbd", "to be actioned", "pending", "none"].includes(rawD.toLowerCase());
+          const deadlineRaw = isTba ? TBA_DEADLINE : rawD;
 
-        for (const line of lines) {
-          // Parse pipe or tab delimited: Item | Responsible party | Deadline
-          const delimiter = line.includes("\t") ? "\t" : "|";
-          const parts = line.split(delimiter).map((p) => p.trim());
-          if (parts.length >= 2) {
-            const title = parts[0];
-            const responsible = parts[1]?.toLowerCase();
-            const rawD = (parts[2] || "").trim();
-            const isTba =
-              !rawD ||
-              isTbaDeadline(rawD) ||
-              ["tba", "tbd", "to be actioned", "pending", "none"].includes(rawD.toLowerCase());
-            const deadlineRaw = isTba ? TBA_DEADLINE : rawD;
+          // Match assignee by name or email
+          const matchedUser =
+            allUsers.find(
+              (u) =>
+                u.name.toLowerCase().includes(responsible) ||
+                u.email.toLowerCase().includes(responsible)
+            ) || allUsers[0];
 
-            // Match assignee by name or email
-            const matchedUser =
-              allUsers.find(
-                (u) =>
-                  u.name.toLowerCase().includes(responsible) ||
-                  u.email.toLowerCase().includes(responsible)
-              ) || allUsers[0];
-
-            const [createdItem] = await db
-              .insert(actionItems)
-              .values({
-                projectId: targetProjectId,
-                title,
-                assigneeId: matchedUser ? matchedUser.id : data.createdBy,
-                deadline: deadlineRaw,
-                status: "not_started",
-                priority: "medium",
-                sourceMeetingId: meeting.id,
-                createdBy: data.createdBy,
-              })
-              .returning();
+          const [createdItem] = await db
+            .insert(actionItems)
+            .values({
+              entityId: data.entityId,
+              projectId: targetProjectId,
+              title,
+              assigneeId: matchedUser ? matchedUser.id : data.createdBy,
+              deadline: deadlineRaw,
+              status: "not_started",
+              priority: "medium",
+              sourceMeetingId: meeting.id,
+              createdBy: data.createdBy,
+            })
+            .returning();
 
             await db.insert(activityLog).values({
               actionItemId: createdItem.id,
@@ -120,15 +109,14 @@ export async function createMeeting(data: CreateMeetingInput) {
           }
         }
       }
-    }
 
-    revalidatePath("/meetings");
-    revalidatePath("/action-items");
-    revalidatePath("/projects");
-    revalidatePath("/");
-    return { success: true, meetingId: meeting.id };
-  } catch (err: any) {
-    console.error("createMeeting error:", err);
-    return { success: false, error: err.message };
-  }
+      revalidatePath("/meetings");
+      revalidatePath("/action-items");
+      revalidatePath("/projects");
+      revalidatePath("/");
+      return { success: true, meetingId: meeting.id };
+    } catch (err: any) {
+      console.error("createMeeting error:", err);
+      return { success: false, error: err.message };
+    }
 }

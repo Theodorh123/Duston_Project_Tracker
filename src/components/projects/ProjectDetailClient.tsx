@@ -296,6 +296,7 @@ export function ProjectDetailClient({
         : newItemDeadline;
 
     const res = await createActionItem({
+      entityId: project.entityId,
       projectId: project.id,
       title: newItemTitle.trim(),
       description: newItemComments.trim() || undefined,

@@ -38,12 +38,16 @@ export default async function AnalyticsPage() {
             entity: true,
           },
         },
+        entity: true,
         assignee: true,
         sourceMeeting: true,
       },
       orderBy: [actionItems.deadline],
     }),
   ]);
+
+  const entityNameMap = new Map(allEntities.map((e) => [e.id, e.name]));
+  const entityColorMap = new Map(allEntities.map((e) => [e.id, e.brandPrimaryColor]));
 
   const scopedEntities = allEntities
     .filter((e) => allowedEntityIds.includes(e.id))
@@ -55,26 +59,35 @@ export default async function AnalyticsPage() {
     }));
 
   const mappedItems: AnalyticsItem[] = allItems
-    .filter((it) => it.project && allowedEntityIds.includes(it.project.entityId))
-    .map((it) => ({
-      id: it.id,
-      title: it.title,
-      description: it.description,
-      deadline: it.deadline,
-      status: it.status as any,
-      priority: it.priority as any,
-      tag: it.tag,
-      assigneeId: it.assigneeId,
-      assigneeName: it.assignee?.name || "Unassigned",
-      assigneeAvatar: it.assignee?.avatarUrl,
-      projectId: it.projectId,
-      projectName: it.project?.name || "Project",
-      entityId: it.project?.entityId,
-      entityName: it.project?.entity?.name || "Subsidiary",
-      entityBrandColor: it.project?.entity?.brandPrimaryColor || "#023542",
-      createdAt: it.createdAt ? it.createdAt.toISOString() : new Date().toISOString(),
-      createdBy: it.createdBy,
-    }));
+    .filter((it) => {
+      const itemEntityId = it.entityId || it.project?.entityId;
+      return itemEntityId && allowedEntityIds.includes(itemEntityId);
+    })
+    .map((it) => {
+      const itemEntityId = it.entityId || it.project?.entityId || "";
+      const itemEntityName = it.entity?.name || it.project?.entity?.name || entityNameMap.get(itemEntityId) || "Subsidiary";
+      const itemBrandColor = it.entity?.brandPrimaryColor || it.project?.entity?.brandPrimaryColor || entityColorMap.get(itemEntityId) || "#023542";
+
+      return {
+        id: it.id,
+        title: it.title,
+        description: it.description,
+        deadline: it.deadline,
+        status: it.status as any,
+        priority: it.priority as any,
+        tag: it.tag,
+        assigneeId: it.assigneeId,
+        assigneeName: it.assignee?.name || "Unassigned",
+        assigneeAvatar: it.assignee?.avatarUrl,
+        projectId: it.projectId || null,
+        projectName: it.project?.name || null,
+        entityId: itemEntityId,
+        entityName: itemEntityName,
+        entityBrandColor: itemBrandColor,
+        createdAt: it.createdAt ? it.createdAt.toISOString() : new Date().toISOString(),
+        createdBy: it.createdBy,
+      };
+    });
 
   return (
     <Suspense fallback={null}>

@@ -25,8 +25,8 @@ import { cn, formatDate, isDeadlineOverdue, isTbaDeadline, TBA_DEADLINE } from "
 
 export interface ActionItemDetail {
   id: string;
-  projectId: string;
-  projectName?: string;
+  projectId?: string | null;
+  projectName?: string | null;
   entityId?: string;
   entityName?: string;
   entityBrandColor?: string;
@@ -624,29 +624,32 @@ export function ActionItemDrawer({
               <div className="col-span-2">
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-duston-muted font-medium">Assigned Project</label>
-                  <Link
-                    href={`/projects/${item.projectId}`}
-                    className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-semibold underline underline-offset-2"
-                  >
-                    View project details →
-                  </Link>
+                  {item.projectId && (
+                    <Link
+                      href={`/projects/${item.projectId}`}
+                      className="text-[11px] text-[#023542] hover:text-[#1BCECE] font-semibold underline underline-offset-2"
+                    >
+                      View project details →
+                    </Link>
+                  )}
                 </div>
                 {canEdit && availableProjects.length > 0 ? (
                   <select
-                    value={item.projectId}
+                    value={item.projectId || ""}
                     onChange={(e) => {
                       const proj = availableProjects.find((p) => p.id === e.target.value);
                       setItem({
                         ...item,
-                        projectId: e.target.value,
-                        projectName: proj?.name || item.projectName,
+                        projectId: e.target.value || null,
+                        projectName: proj?.name || (e.target.value ? item.projectName : undefined),
                         entityName: proj?.entityName || item.entityName,
                         entityBrandColor: proj?.entityBrandColor || item.entityBrandColor,
                       });
-                      handleFieldChange("projectId", e.target.value);
+                      handleFieldChange("projectId", e.target.value || "");
                     }}
                     className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
                   >
+                    <option value="">— No Project (Standalone Deliverable) —</option>
                     {availableProjects.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name} {p.entityName ? `(${p.entityName})` : ""}
@@ -655,7 +658,7 @@ export function ActionItemDrawer({
                   </select>
                 ) : (
                   <div className="bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-dark font-medium">
-                    {item.projectName}
+                    {item.projectName || "No Project (Standalone Deliverable)"}
                   </div>
                 )}
               </div>
@@ -1051,16 +1054,17 @@ export function ActionItemDrawer({
                 />
               </div>
 
-              {/* Project Assignment */}
+              {/* Project Assignment (Optional) */}
               <div>
                 <label className="block font-semibold text-duston-dark mb-1">
-                  Assigned Project <span className="text-rose-500">*</span>
+                  Assigned Project <span className="text-duston-muted font-normal">(Optional)</span>
                 </label>
                 <select
                   value={editFormData.projectId}
                   onChange={(e) => setEditFormData({ ...editFormData, projectId: e.target.value })}
                   className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-duston-dark outline-none focus:border-[#1BCECE] cursor-pointer"
                 >
+                  <option value="">— No Project (Standalone Deliverable) —</option>
                   {availableProjects.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name} {p.entityName ? `(${p.entityName})` : ""}

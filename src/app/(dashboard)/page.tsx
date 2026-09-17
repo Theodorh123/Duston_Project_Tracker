@@ -40,6 +40,7 @@ export default async function DashboardPage({
               entity: true,
             },
           },
+          entity: true,
           assignee: true,
           comments: true,
         },
@@ -51,6 +52,7 @@ export default async function DashboardPage({
           actionItem: {
             with: {
               project: true,
+              entity: true,
             },
           },
         },
@@ -67,6 +69,8 @@ export default async function DashboardPage({
   ]);
 
   const userNameMap = new Map(allUsers.map((u) => [u.id, u.name]));
+  const entityNameMap = new Map(allEnt.map((e) => [e.id, e.name]));
+  const entityColorMap = new Map(allEnt.map((e) => [e.id, e.brandPrimaryColor]));
 
   // Map action items for client
   const mappedItems: ActionItemSummary[] = items.map((item) => {
@@ -75,19 +79,23 @@ export default async function DashboardPage({
       : [];
     const secNames = secIds.map((id) => userNameMap.get(id)).filter(Boolean) as string[];
 
+    const itemEntityId = item.entityId || item.project?.entityId || "";
+    const itemEntityName = item.entity?.name || item.project?.entity?.name || entityNameMap.get(itemEntityId) || "Subsidiary";
+    const itemBrandColor = item.entity?.brandPrimaryColor || item.project?.entity?.brandPrimaryColor || entityColorMap.get(itemEntityId) || "#023542";
+
     return {
       id: item.id,
-      projectId: item.projectId,
-      projectName: item.project.name,
-      entityId: item.project.entityId,
-      entityName: item.project.entity.name,
-      entityBrandColor: item.project.entity.brandPrimaryColor,
+      projectId: item.projectId || null,
+      projectName: item.project?.name || null,
+      entityId: itemEntityId,
+      entityName: itemEntityName,
+      entityBrandColor: itemBrandColor,
       title: item.title,
       deadline: item.deadline,
       status: item.status as any,
       priority: item.priority as any,
       assigneeId: item.assigneeId,
-      assigneeName: item.assignee.name,
+      assigneeName: item.assignee?.name || "Unassigned",
       secondaryAssigneeIds: secIds,
       secondaryAssigneeNames: secNames,
       commentCount: item.comments?.length || 0,
@@ -103,8 +111,9 @@ export default async function DashboardPage({
   const mappedActivities: ActivitySummary[] = recentLogs
     .filter((l) => {
       if (user?.hasGlobalAccess) return true;
-      if (!l.actionItem?.project?.entityId) return true;
-      return allowedEntityIds.includes(l.actionItem.project.entityId);
+      const actEntityId = l.actionItem?.entityId || l.actionItem?.project?.entityId;
+      if (!actEntityId) return true;
+      return allowedEntityIds.includes(actEntityId);
     })
     .slice(0, 8)
     .map((l) => ({

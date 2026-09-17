@@ -31,8 +31,8 @@ export interface AnalyticsItem {
   assigneeId: string;
   assigneeName: string;
   assigneeAvatar?: string | null;
-  projectId: string;
-  projectName: string;
+  projectId?: string | null;
+  projectName?: string | null;
   entityId: string;
   entityName: string;
   entityBrandColor: string;
@@ -598,10 +598,14 @@ export function AnalyticsClient({
                       >
                         {item.entityName}
                       </span>
-                      <span className="text-duston-muted">•</span>
-                      <span className="text-duston-dark font-medium truncate max-w-[160px]">
-                        {item.projectName}
-                      </span>
+                      {item.projectName && (
+                        <>
+                          <span className="text-duston-muted">•</span>
+                          <span className="text-duston-dark font-medium truncate max-w-[160px]">
+                            {item.projectName}
+                          </span>
+                        </>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between gap-2 pt-2 border-t border-duston-border/60 text-[11px]">
@@ -671,7 +675,7 @@ export function AnalyticsClient({
                           </div>
                         </td>
                         <td className="py-3 px-4 text-duston-muted truncate max-w-[140px]">
-                          {item.projectName}
+                          {item.projectName || <span className="text-duston-muted italic font-normal">—</span>}
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
                           <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-duston-dark">

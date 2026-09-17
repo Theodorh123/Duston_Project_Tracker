@@ -26,8 +26,8 @@ import { DropdownFilter } from "@/components/ui/DropdownFilter";
 export interface QueueItem {
   id: string;
   title: string;
-  projectId: string;
-  projectName: string;
+  projectId?: string | null;
+  projectName?: string | null;
   entityId: string;
   entityName: string;
   entityBrandColor: string;
@@ -108,7 +108,7 @@ export function EaViewClient({
         body: JSON.stringify({
           userId: item.assigneeId,
           actionItemId: item.id,
-          message: `Duston EA Reminder: Action item "${item.title}" for ${item.projectName} is overdue. Please provide an update.`,
+          message: `Duston EA Reminder: Action item "${item.title}"${item.projectName ? ` for ${item.projectName}` : ""} is overdue. Please provide an update.`,
         }),
       });
       setNudgeStatus((prev) => ({ ...prev, [item.id]: "WhatsApp Sent" }));
@@ -264,7 +264,7 @@ export function EaViewClient({
                       {item.title}
                     </td>
                     <td className="py-3 px-3 text-duston-muted max-w-[160px] truncate">
-                      {item.projectName}
+                      {item.projectName || <span className="text-duston-muted italic font-normal">—</span>}
                     </td>
                     <td className="py-3 px-3">
                       <span
@@ -356,7 +356,7 @@ export function EaViewClient({
                       {item.title}
                     </td>
                     <td className="py-3 px-3 text-duston-muted max-w-[160px] truncate">
-                      {item.projectName}
+                      {item.projectName || <span className="text-duston-muted italic font-normal">—</span>}
                     </td>
                     <td className="py-3 px-3">
                       <span

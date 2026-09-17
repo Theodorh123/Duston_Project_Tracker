@@ -29,10 +29,14 @@ export default async function EaViewPage() {
           entity: true,
         },
       },
+      entity: true,
       assignee: true,
     },
     orderBy: [desc(actionItems.deadline)],
   });
+
+  const entityNameMap = new Map(allActiveEntities.map((e) => [e.id, e.name]));
+  const entityColorMap = new Map(allActiveEntities.map((e) => [e.id, e.brandPrimaryColor]));
 
   // 1. Overdue queue sorted by (days overdue * priority weight)
   const overdueList: QueueItem[] = allItems
@@ -40,17 +44,21 @@ export default async function EaViewPage() {
     .map((it) => {
       const days = getDaysOverdue(it.deadline);
       const weight = getPriorityWeight(it.priority);
+      const itemEntityId = it.entityId || it.project?.entityId || "";
+      const itemEntityName = it.entity?.name || it.project?.entity?.name || entityNameMap.get(itemEntityId) || "Subsidiary";
+      const itemBrandColor = it.entity?.brandPrimaryColor || it.project?.entity?.brandPrimaryColor || entityColorMap.get(itemEntityId) || "#023542";
+
       return {
         id: it.id,
         title: it.title,
-        projectId: it.projectId,
-        projectName: it.project.name,
-        entityId: it.project.entityId,
-        entityName: it.project.entity.name,
-        entityBrandColor: it.project.entity.brandPrimaryColor,
+        projectId: it.projectId || null,
+        projectName: it.project?.name || null,
+        entityId: itemEntityId,
+        entityName: itemEntityName,
+        entityBrandColor: itemBrandColor,
         assigneeId: it.assigneeId,
-        assigneeName: it.assignee.name,
-        assigneePhone: it.assignee.phoneE164,
+        assigneeName: it.assignee?.name || "Unassigned",
+        assigneePhone: it.assignee?.phoneE164,
         deadline: it.deadline,
         priority: it.priority,
         status: it.status,
@@ -72,26 +80,32 @@ export default async function EaViewPage() {
       const isStagnant = new Date(it.updatedAt).getTime() < threshold48HoursAgo.getTime();
       return isDueWithin7Days && isStagnant;
     })
-    .map((it) => ({
-      id: it.id,
-      title: it.title,
-      projectId: it.projectId,
-      projectName: it.project.name,
-      entityId: it.project.entityId,
-      entityName: it.project.entity.name,
-      entityBrandColor: it.project.entity.brandPrimaryColor,
-      assigneeId: it.assigneeId,
-      assigneeName: it.assignee.name,
-      assigneePhone: it.assignee.phoneE164,
-      deadline: it.deadline,
-      priority: it.priority,
-      status: it.status,
-      updatedAt: it.updatedAt.toISOString(),
-    }));
+    .map((it) => {
+      const itemEntityId = it.entityId || it.project?.entityId || "";
+      const itemEntityName = it.entity?.name || it.project?.entity?.name || entityNameMap.get(itemEntityId) || "Subsidiary";
+      const itemBrandColor = it.entity?.brandPrimaryColor || it.project?.entity?.brandPrimaryColor || entityColorMap.get(itemEntityId) || "#023542";
+
+      return {
+        id: it.id,
+        title: it.title,
+        projectId: it.projectId || null,
+        projectName: it.project?.name || null,
+        entityId: itemEntityId,
+        entityName: itemEntityName,
+        entityBrandColor: itemBrandColor,
+        assigneeId: it.assigneeId,
+        assigneeName: it.assignee?.name || "Unassigned",
+        assigneePhone: it.assignee?.phoneE164,
+        deadline: it.deadline,
+        priority: it.priority,
+        status: it.status,
+        updatedAt: it.updatedAt.toISOString(),
+      };
+    });
 
   // 3. By entity summary cards
   const entitySummaries: EntitySummaryCard[] = allActiveEntities.map((ent) => {
-    const entItems = allItems.filter((i) => i.project.entityId === ent.id);
+    const entItems = allItems.filter((i) => (i.entityId || i.project?.entityId) === ent.id);
     return {
       id: ent.id,
       name: ent.name,

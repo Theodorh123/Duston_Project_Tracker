@@ -82,7 +82,7 @@ export default async function MeetingDetailPage({
         return {
           id: it.id,
           title: it.title,
-          projectName: it.project.name,
+          projectName: it.project?.name || null,
           assigneeName: it.assignee.name,
           secondaryAssigneeNames: secNames,
           deadline: it.deadline,

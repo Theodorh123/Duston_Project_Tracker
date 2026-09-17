@@ -30,6 +30,7 @@ export default async function ActionRegisterPage() {
               entity: true,
             },
           },
+          entity: true,
           assignee: true,
           sourceMeeting: true,
           comments: true,
@@ -49,6 +50,7 @@ export default async function ActionRegisterPage() {
     .map((e) => ({ id: e.id, name: e.name, brandPrimaryColor: e.brandPrimaryColor }));
 
   const entityNameMap = new Map(allEnt.map((e) => [e.id, e.name]));
+  const entityColorMap = new Map(allEnt.map((e) => [e.id, e.brandPrimaryColor]));
 
   const scopedProjects = allProj
     .filter((p) => allowedEntityIds.includes(p.entityId))
@@ -62,12 +64,19 @@ export default async function ActionRegisterPage() {
   const scopedUsers = allUsers.map((u) => ({ id: u.id, name: u.name }));
 
   const mappedItems: RegisterItem[] = allItems
-    .filter((it) => it.project && allowedEntityIds.includes(it.project.entityId))
+    .filter((it) => {
+      const itemEntityId = it.entityId || it.project?.entityId;
+      return itemEntityId && allowedEntityIds.includes(itemEntityId);
+    })
     .map((it) => {
       const secIds: string[] = Array.isArray(it.secondaryAssigneeIds)
         ? (it.secondaryAssigneeIds as string[])
         : [];
       const secNames = secIds.map((id) => userNameMap.get(id)).filter(Boolean) as string[];
+
+      const itemEntityId = it.entityId || it.project?.entityId || "";
+      const itemEntityName = it.entity?.name || it.project?.entity?.name || entityNameMap.get(itemEntityId) || "Subsidiary";
+      const itemBrandColor = it.entity?.brandPrimaryColor || it.project?.entity?.brandPrimaryColor || entityColorMap.get(itemEntityId) || "#023542";
 
       return {
         id: it.id,
@@ -82,11 +91,11 @@ export default async function ActionRegisterPage() {
         secondaryAssigneeIds: secIds,
         secondaryAssigneeNames: secNames,
         commentCount: it.comments?.length || 0,
-        projectId: it.projectId,
-        projectName: it.project?.name || "Project",
-        entityId: it.project?.entityId,
-        entityName: it.project?.entity?.name || "Subsidiary",
-        entityBrandColor: it.project?.entity?.brandPrimaryColor || "#023542",
+        projectId: it.projectId || null,
+        projectName: it.project?.name || null,
+        entityId: itemEntityId,
+        entityName: itemEntityName,
+        entityBrandColor: itemBrandColor,
         sourceMeetingId: it.sourceMeetingId,
         sourceMeetingSubject: it.sourceMeeting?.subject,
         createdBy: it.createdBy,
