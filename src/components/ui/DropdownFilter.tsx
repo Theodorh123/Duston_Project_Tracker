@@ -81,8 +81,8 @@ export function DropdownFilter({
   const selectedOption = options.find((opt) => opt.value === value);
   const isFiltered = Boolean(value && value !== "all" && value !== "");
 
-  const displayText = showSelectedValue && selectedOption ? selectedOption.label : label;
-  const displayDotColor = showSelectedValue && selectedOption ? selectedOption.dotColor : undefined;
+  const displayText = showSelectedValue && value !== "" && selectedOption ? selectedOption.label : label;
+  const displayDotColor = showSelectedValue && value !== "" && selectedOption ? selectedOption.dotColor : undefined;
 
   return (
     <div className={cn("relative inline-block text-left", className)} ref={containerRef}>

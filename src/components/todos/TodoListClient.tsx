@@ -90,7 +90,7 @@ export function TodoListClient({
 
   // Minimal Quick-Add State
   const [newTitle, setNewTitle] = useState("");
-  const [newEntityId, setNewEntityId] = useState<string>(entities[0]?.id || "");
+  const [newEntityId, setNewEntityId] = useState<string>("");
   const [newProjectId, setNewProjectId] = useState<string>("");
   const [newDeadline, setNewDeadline] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,7 +117,7 @@ export function TodoListClient({
 
   // Available projects for the currently selected new subsidiary
   const availableProjectsForNew = useMemo(() => {
-    if (!newEntityId) return [];
+    if (!newEntityId) return projectList;
     return projectList.filter((p) => p.entityId === newEntityId);
   }, [projectList, newEntityId]);
 
@@ -230,6 +230,7 @@ export function TodoListClient({
 
     // Reset inputs
     setNewTitle("");
+    setNewEntityId("");
     setNewProjectId("");
     setNewDeadline("");
 
@@ -422,7 +423,12 @@ export function TodoListClient({
             }))}
             onChange={(val) => {
               setNewEntityId(val);
-              setNewProjectId("");
+              if (newProjectId) {
+                const proj = projectList.find((p) => p.id === newProjectId);
+                if (proj && proj.entityId !== val) {
+                  setNewProjectId("");
+                }
+              }
             }}
             icon={<Building2 size={11} />}
             enableSearch={entities.length > 5}
@@ -446,6 +452,12 @@ export function TodoListClient({
                 openNewProjectModal(newEntityId, "new");
               } else {
                 setNewProjectId(val);
+                if (val && !newEntityId) {
+                  const proj = projectList.find((p) => p.id === val);
+                  if (proj) {
+                    setNewEntityId(proj.entityId);
+                  }
+                }
               }
             }}
             enableSearch={availableProjectsForNew.length > 5}

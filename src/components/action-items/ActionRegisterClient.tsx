@@ -17,9 +17,11 @@ import {
   Flag,
   MessageSquare,
   Edit2,
+  Plus,
 } from "lucide-react";
 import { cn, formatDate, isDeadlineOverdue, isTbaDeadline, TBA_DEADLINE } from "@/lib/utils";
 import { ImportRegisterModal } from "./ImportRegisterModal";
+import { AddActionItemModal } from "./AddActionItemModal";
 import { SyncToTodoModal } from "@/components/todos/SyncToTodoModal";
 import { useAppShell } from "../layout/AppShell";
 import { updateActionItemField } from "@/lib/actions/action-items";
@@ -76,6 +78,7 @@ export function ActionRegisterClient({
   const canImportRegister = Boolean(userRole && ["admin", "ea"].includes(userRole));
   const [syncModalItem, setSyncModalItem] = useState<RegisterItem | null>(null);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const handleOpenSyncToTodo = (item: RegisterItem) => {
     setSyncModalItem(item);
@@ -87,8 +90,17 @@ export function ActionRegisterClient({
     setItems(initialItems);
   }, [initialItems]);
 
-  // Real-time listener for drawer updates & deletions
+  // Real-time listener for drawer updates, creations & deletions
   useEffect(() => {
+    const handleItemCreated = (e: Event) => {
+      const created = (e as CustomEvent).detail;
+      if (!created || !created.id) return;
+      setItems((prev) => {
+        if (prev.some((it) => it.id === created.id)) return prev;
+        return [created, ...prev];
+      });
+    };
+
     const handleItemUpdated = (e: Event) => {
       const updated = (e as CustomEvent).detail;
       if (!updated || !updated.id) return;
@@ -125,9 +137,11 @@ export function ActionRegisterClient({
       setItems((prev) => prev.filter((it) => it.id !== deletedId));
     };
 
+    window.addEventListener("action-item-created", handleItemCreated);
     window.addEventListener("action-item-updated", handleItemUpdated);
     window.addEventListener("action-item-deleted", handleItemDeleted);
     return () => {
+      window.removeEventListener("action-item-created", handleItemCreated);
       window.removeEventListener("action-item-updated", handleItemUpdated);
       window.removeEventListener("action-item-deleted", handleItemDeleted);
     };
@@ -824,7 +838,18 @@ export function ActionRegisterClient({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Add Action Item Button */}
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-semibold transition-colors shadow-subtle cursor-pointer w-full sm:w-auto shrink-0"
+            title="Create a new executive action item"
+          >
+            <Plus size={14} strokeWidth={2.5} />
+            <span>Add Action Item</span>
+          </button>
+
           {/* Import Register Button */}
           {canImportRegister && (
             <button
@@ -1406,6 +1431,24 @@ export function ActionRegisterClient({
         projects={projects}
         users={users}
         currentUserId={currentUserId}
+      />
+
+      {/* Add Action Item Modal */}
+      <AddActionItemModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onCreated={(newItem) => {
+          setItems((prev) => {
+            if (prev.some((it) => it.id === newItem.id)) return prev;
+            return [newItem, ...prev];
+          });
+        }}
+        entities={entities}
+        projects={projects}
+        users={users}
+        currentUserId={currentUserId}
+        currentUserName={currentUserName}
+        defaultEntityId={selectedEntityId || (selectedEntity !== "all" ? selectedEntity : null)}
       />
     </div>
   );
