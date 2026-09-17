@@ -138,7 +138,6 @@ function revalidateAllActionItemPaths(projectId?: string) {
   revalidatePath("/action-items");
   revalidatePath("/projects");
   if (projectId) revalidatePath(`/projects/${projectId}`);
-  revalidatePath("/meetings");
   revalidatePath("/todos");
   revalidatePath("/admin");
   revalidatePath("/ea-view");

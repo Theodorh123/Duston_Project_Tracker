@@ -27,7 +27,6 @@ function revalidateAllProjectPaths(projectId?: string) {
   revalidatePath("/todos");
   revalidatePath("/action-items");
   revalidatePath("/");
-  revalidatePath("/meetings");
   revalidatePath("/ceo-view");
   revalidatePath("/ea-view");
   revalidatePath("/analytics");

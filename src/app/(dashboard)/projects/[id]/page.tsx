@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { projects, actionItems, meetings, activityLog } from "@/lib/db/schema";
+import { projects, actionItems, activityLog } from "@/lib/db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { ProjectDetailClient } from "@/components/projects/ProjectDetailClient";
@@ -53,34 +53,20 @@ export default async function ProjectDetailPage({
     redirect("/projects");
   }
 
-  // Fetch meetings and activity logs concurrently based on items
-  const meetingIds = items
-    .map((it) => it.sourceMeetingId)
-    .filter((mid): mid is string => Boolean(mid));
+  // Fetch activity logs concurrently based on items
   const itemIds = items.map((it) => it.id);
 
-  const [projectMeetings, projectActivityLogs] = await Promise.all([
-    meetingIds.length > 0
-      ? db.query.meetings.findMany({
-          where: inArray(meetings.id, meetingIds),
-          with: {
-            attendees: true,
-          },
-          orderBy: [desc(meetings.meetingDate)],
-        })
-      : Promise.resolve([]),
-    itemIds.length > 0
-      ? db.query.activityLog.findMany({
-          where: inArray(activityLog.actionItemId, itemIds),
-          with: {
-            actor: true,
-            actionItem: true,
-          },
-          orderBy: [desc(activityLog.createdAt)],
-          limit: 20,
-        })
-      : Promise.resolve([]),
-  ]);
+  const projectActivityLogs = itemIds.length > 0
+    ? await db.query.activityLog.findMany({
+        where: inArray(activityLog.actionItemId, itemIds),
+        with: {
+          actor: true,
+          actionItem: true,
+        },
+        orderBy: [desc(activityLog.createdAt)],
+        limit: 20,
+      })
+    : [];
 
   const userMap = new Map(allUsers.map((u) => [u.id, u.name]));
 
@@ -122,12 +108,6 @@ export default async function ProjectDetailPage({
           commentCount: it.comments?.length ?? 0,
         };
       })}
-      meetings={projectMeetings.map((m) => ({
-        id: m.id,
-        subject: m.subject,
-        meetingDate: m.meetingDate,
-        attendeeCount: m.attendees.length,
-      }))}
       activityLogs={projectActivityLogs.map((a) => ({
         id: a.id,
         actorName: a.actor.name,

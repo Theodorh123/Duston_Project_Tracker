@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, X, FolderKanban, CheckSquare, CalendarDays } from "lucide-react";
+import { Search, X, FolderKanban, CheckSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface SearchResult {
-  type: "project" | "action" | "meeting";
+  type: "project" | "action";
   id: string;
   title: string;
   entity: string;
@@ -83,7 +83,7 @@ export function CommandPalette({ isOpen, onClose, onSelectActionItem }: CommandP
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search projects, action items, meetings..."
+            placeholder="Search projects, action items..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="flex-1 bg-transparent text-sm text-duston-text outline-none placeholder:text-duston-muted"
@@ -106,13 +106,12 @@ export function CommandPalette({ isOpen, onClose, onSelectActionItem }: CommandP
             </div>
           ) : !query.trim() ? (
             <div className="py-8 text-center text-xs text-duston-muted">
-              Type keywords to search across projects, action items, and meetings.
+              Type keywords to search across projects and action items.
             </div>
           ) : (
             <div className="space-y-1">
               {results.map((item) => {
                 const isProject = item.type === "project";
-                const isMeeting = item.type === "meeting";
                 return (
                   <div
                     key={item.id}
@@ -129,8 +128,6 @@ export function CommandPalette({ isOpen, onClose, onSelectActionItem }: CommandP
                     <div className="flex items-center gap-3">
                       {isProject ? (
                         <FolderKanban size={16} strokeWidth={1.5} className="text-[#023542]" />
-                      ) : isMeeting ? (
-                        <CalendarDays size={16} strokeWidth={1.5} className="text-[#1BCECE]" />
                       ) : (
                         <CheckSquare size={16} strokeWidth={1.5} className="text-duston-orange" />
                       )}

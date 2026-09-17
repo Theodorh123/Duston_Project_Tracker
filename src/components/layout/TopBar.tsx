@@ -200,7 +200,7 @@ export function TopBar({
           <button
             onClick={onOpenSearch}
             className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 text-xs text-duston-muted bg-white border border-duston-border rounded-xl hover:border-[#1BCECE] hover:text-duston-dark transition-all shrink-0"
-            title="Search projects, actions, meetings (Ctrl+K)"
+            title="Search projects and action items (Ctrl+K)"
           >
             <Search size={14} strokeWidth={1.5} />
             <span className="hidden sm:inline">Search (Ctrl+K)</span>

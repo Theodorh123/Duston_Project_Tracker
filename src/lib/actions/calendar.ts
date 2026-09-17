@@ -189,7 +189,6 @@ export async function syncCalendarFeed({
         },
       });
 
-    revalidatePath("/meetings");
     revalidatePath("/");
 
     return {

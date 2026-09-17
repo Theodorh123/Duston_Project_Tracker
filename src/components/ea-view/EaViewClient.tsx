@@ -52,23 +52,10 @@ export interface EntitySummaryCard {
   overdueCount: number;
 }
 
-export interface UpcomingMeetingWithPrep {
-  id: string;
-  subject: string;
-  meetingDate: string;
-  entityName: string;
-  attendees: Array<{
-    id: string;
-    name: string;
-    openActionItems: Array<{ id: string; title: string; deadline: string }>;
-  }>;
-}
-
 interface EaViewClientProps {
   overdueQueue: QueueItem[];
   chaseUpQueue: QueueItem[];
   entitySummaries: EntitySummaryCard[];
-  upcomingMeetings?: UpcomingMeetingWithPrep[];
   entities: Array<{ id: string; name: string }>;
 }
 
@@ -158,7 +145,7 @@ export function EaViewClient({
           Executive Assistant View
         </h1>
         <p className="text-xs text-duston-muted mt-1">
-          Cross-entity oversight, overdue enforcement queues, meeting preparation, and executive briefings
+          Cross-entity oversight, overdue enforcement queues, and executive briefings
         </p>
       </div>
 

@@ -607,13 +607,10 @@ export function ActionItemDrawer({
               {item.sourceMeetingSubject && (
                 <>
                   <span className="text-duston-border">•</span>
-                  <span>Meeting:</span>
-                  <Link
-                    href={`/meetings/${item.sourceMeetingId}`}
-                    className="font-medium text-[#023542] hover:text-[#1BCECE] underline underline-offset-2"
-                  >
+                  <span>Source:</span>
+                  <span className="font-medium text-[#023542]">
                     {item.sourceMeetingSubject}
-                  </Link>
+                  </span>
                 </>
               )}
             </div>

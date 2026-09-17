@@ -54,16 +54,6 @@ export interface ActionItemSummary {
   tag?: string | null;
 }
 
-export interface MeetingSummary {
-  id: string;
-  subject: string;
-  entityName: string;
-  meetingDate: string;
-  attendeeCount: number;
-  venue?: string | null;
-  isVirtual?: boolean | null;
-}
-
 export interface ActivitySummary {
   id: string;
   actorName: string;
@@ -75,7 +65,6 @@ export interface ActivitySummary {
 interface DashboardClientProps {
   userName: string;
   initialItems: ActionItemSummary[];
-  upcomingMeetings?: MeetingSummary[];
   recentActivities: ActivitySummary[];
   defaultView?: "todo" | "kanban" | "planner";
   kanbanColumns?: string[];
@@ -91,7 +80,6 @@ interface DashboardClientProps {
 export function DashboardClient({
   userName,
   initialItems,
-  upcomingMeetings = [],
   recentActivities,
   defaultView = "todo",
   kanbanColumns = ["Not Started", "In-Progress", "Done"],

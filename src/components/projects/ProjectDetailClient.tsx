@@ -67,12 +67,6 @@ interface ProjectDetailProps {
     comments?: string | null;
     commentCount?: number;
   }>;
-  meetings: Array<{
-    id: string;
-    subject: string;
-    meetingDate: string;
-    attendeeCount: number;
-  }>;
   activityLogs: Array<{
     id: string;
     actorName: string;
@@ -89,7 +83,6 @@ interface ProjectDetailProps {
 export function ProjectDetailClient({
   project,
   actionItems,
-  meetings,
   activityLogs,
   users,
   currentUserId,
@@ -97,7 +90,7 @@ export function ProjectDetailClient({
 }: ProjectDetailProps) {
   const { openActionItem } = useAppShell();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"items" | "meetings" | "activity" | "details">("items");
+  const [activeTab, setActiveTab] = useState<"items" | "activity" | "details">("items");
   const [actionItemsView, setActionItemsView] = useState<"list" | "priority" | "kanban">("list");
   const [priorityFilter, setPriorityFilter] = useState<"all" | "critical" | "high" | "medium" | "low">("all");
   const [isNewItemModalOpen, setIsNewItemModalOpen] = useState(false);
@@ -424,17 +417,6 @@ export function ProjectDetailClient({
             )}
           >
             Action items ({itemsList.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("meetings")}
-            className={cn(
-              "pb-3 text-xs font-medium border-b-2 transition-colors",
-              activeTab === "meetings"
-                ? "border-[#023542] text-[#023542]"
-                : "border-transparent text-duston-muted hover:text-duston-dark"
-            )}
-          >
-            Meetings ({meetings.length})
           </button>
           <button
             onClick={() => setActiveTab("activity")}
@@ -1092,39 +1074,7 @@ export function ProjectDetailClient({
         </>
       )}
 
-      {/* Tab 2: Meetings */}
-      {activeTab === "meetings" && (
-        <div className="bg-white border border-duston-border rounded-xl shadow-subtle p-4">
-          {meetings.length === 0 ? (
-            <p className="text-xs text-duston-muted italic py-6 text-center">
-              No meetings currently tied to this project.
-            </p>
-          ) : (
-            <div className="divide-y divide-duston-border">
-              {meetings.map((m) => (
-                <Link
-                  key={m.id}
-                  href={`/meetings/${m.id}`}
-                  className="py-3 flex items-center justify-between hover:bg-duston-bg px-2 rounded-lg transition-colors"
-                >
-                  <div>
-                    <div className="text-xs font-medium text-duston-dark">{m.subject}</div>
-                    <div className="text-[11px] text-duston-muted mt-0.5">
-                      {m.attendeeCount} attendees recorded
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-duston-muted">
-                    <span>{formatDate(m.meetingDate)}</span>
-                    <ExternalLink size={14} strokeWidth={1.5} />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Tab 3: Activity Timeline */}
+      {/* Tab 2: Activity Timeline */}
       {activeTab === "activity" && (
         <div className="bg-white border border-duston-border rounded-xl shadow-subtle p-6 space-y-4">
           <h3 className="text-xs font-medium text-duston-dark">Project audit timeline</h3>
