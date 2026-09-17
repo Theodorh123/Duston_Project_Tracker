@@ -33,6 +33,7 @@ import { createProject } from "@/lib/actions/projects";
 import { ImportRegisterModal } from "@/components/action-items/ImportRegisterModal";
 import { SyncToTodoModal } from "@/components/todos/SyncToTodoModal";
 import { PriorityFlag } from "@/components/ui/PriorityFlag";
+import { DashboardPlannerView } from "./DashboardPlannerView";
 
 export interface ActionItemSummary {
   id: string;
@@ -366,19 +367,32 @@ export function DashboardClient({
     }
   };
 
-  const handleOpenQuickAdd = (targetStatus?: "not_started" | "in_progress" | "done") => {
+  const handleOpenQuickAdd = (
+    targetStatus?: "not_started" | "in_progress" | "done",
+    customDeadline?: string
+  ) => {
     const status = targetStatus || "not_started";
     setQuickAddStatus(status);
-    const today = new Date().toISOString().split("T")[0];
-    const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
-    const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
+    if (customDeadline) {
+      if (isTbaDeadline(customDeadline)) {
+        setIsQuickAddDeadlineTba(true);
+      } else {
+        setQuickAddDeadline(customDeadline);
+        setIsQuickAddDeadlineTba(false);
+      }
+    } else {
+      const today = new Date().toISOString().split("T")[0];
+      const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
+      const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0];
 
-    if (status === "not_started") {
-      setQuickAddDeadline(in7Days);
-    } else if (status === "in_progress") {
-      setQuickAddDeadline(in3Days);
-    } else if (status === "done") {
-      setQuickAddDeadline(today);
+      if (status === "not_started") {
+        setQuickAddDeadline(in7Days);
+      } else if (status === "in_progress") {
+        setQuickAddDeadline(in3Days);
+      } else if (status === "done") {
+        setQuickAddDeadline(today);
+      }
+      setIsQuickAddDeadlineTba(false);
     }
     setIsQuickAddOpen(true);
   };
@@ -1473,133 +1487,18 @@ export function DashboardClient({
             </div>
           )}
 
-          {/* Planner View (7-day calendar) with Drag & Drop */}
+          {/* Planner View (Calendar navigation, Multi-span views & Drag/Drop) */}
           {currentView === "planner" && (
-            <div className="bg-white border border-duston-border rounded-xl p-4 shadow-subtle space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                <div className="text-xs font-medium text-duston-dark">
-                  Upcoming 7 Days Planner
-                </div>
-                <span className="text-[11px] text-duston-muted">
-                  Drag tasks between dates to reschedule deadlines
-                </span>
-              </div>
-              <div className="overflow-x-auto pb-2 no-scrollbar">
-                <div className="min-w-[580px] md:min-w-0 grid grid-cols-7 gap-2 text-center text-xs">
-                  {Array.from({ length: 7 }).map((_, idx) => {
-                    const d = new Date();
-                    d.setDate(d.getDate() + idx);
-                    const dStr = d.toISOString().split("T")[0];
-                    const dayItems = displayedItems.filter((i) => i.deadline === dStr);
-                    const isCurToday = idx === 0;
-                    const isOverDay = dragOverPlannerDate === dStr;
-
-                    return (
-                      <div
-                        key={idx}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          e.dataTransfer.dropEffect = "move";
-                          if (dragOverPlannerDate !== dStr) setDragOverPlannerDate(dStr);
-                        }}
-                        onDragLeave={(e) => {
-                          if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-                          setDragOverPlannerDate(null);
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          const droppedId = e.dataTransfer.getData("text/plain");
-                          if (droppedId) {
-                            handleDropPlannerDate(droppedId, dStr);
-                          }
-                        }}
-                        className={cn(
-                          "p-2 rounded-xl border min-h-[160px] flex flex-col transition-all duration-150",
-                          isOverDay
-                            ? "border-2 border-dashed border-[#1BCECE] bg-[#1BCECE]/10 shadow-sm scale-[1.02]"
-                            : isCurToday
-                            ? "border-[#1BCECE] bg-[#1BCECE]/5"
-                            : "border-duston-border bg-duston-bg/40"
-                        )}
-                      >
-                        <div className="text-[10px] text-duston-muted uppercase font-medium">
-                          {d.toLocaleDateString("en-US", { weekday: "short" })}
-                        </div>
-                        <div className={cn(
-                          "text-xs font-semibold my-1",
-                          isCurToday ? "text-[#023542]" : "text-duston-dark"
-                        )}>
-                          {d.getDate()}
-                        </div>
-                        <div className="flex-1 space-y-1.5 mt-1">
-                          {dayItems.length === 0 ? (
-                            <div className="h-full min-h-[60px] border border-dashed border-duston-border/60 rounded flex items-center justify-center text-[9px] text-duston-muted">
-                              Drop here
-                            </div>
-                          ) : (
-                            dayItems.map((it) => {
-                              const isBeingDragged = draggingItemId === it.id;
-                              return (
-                                <div
-                                  key={it.id}
-                                  draggable={true}
-                                  onDragStart={(e) => {
-                                    e.dataTransfer.setData("text/plain", it.id);
-                                    e.dataTransfer.effectAllowed = "move";
-                                    setDraggingItemId(it.id);
-                                  }}
-                                  onDragEnd={() => {
-                                    setDraggingItemId(null);
-                                    setDragOverPlannerDate(null);
-                                  }}
-                                  onClick={() => openActionItem(it.id)}
-                                  className={cn(
-                                    "p-1.5 rounded bg-white border text-[10px] text-left cursor-grab active:cursor-grabbing transition-all select-none shadow-xs space-y-0.5",
-                                    isBeingDragged
-                                      ? "opacity-40 border-dashed border-[#1BCECE] scale-[0.98]"
-                                      : "border-duston-border hover:border-[#1BCECE] hover:shadow-subtle"
-                                  )}
-                                  title={`${it.title} (${it.entityName})`}
-                                >
-                                  <div className="flex items-start justify-between gap-1">
-                                    <div className="font-medium text-duston-dark line-clamp-2 leading-tight">
-                                      {it.title}
-                                    </div>
-                                    <PriorityFlag priority={it.priority} size={9} showLabel={false} />
-                                  </div>
-                                  <div className="flex items-center justify-between gap-1 text-[9px] text-duston-muted">
-                                    <span className="truncate">{it.entityName}</span>
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      {Boolean(it.secondaryAssigneeNames && it.secondaryAssigneeNames.length > 0) && (
-                                        <span
-                                          className="inline-flex items-center px-1 py-0.2 rounded text-[8px] font-semibold bg-duston-bg border border-duston-border text-duston-dark"
-                                          title={`Co-owners: ${it.secondaryAssigneeNames?.join(", ")}`}
-                                        >
-                                          +{it.secondaryAssigneeNames?.length}
-                                        </span>
-                                      )}
-                                      {Boolean(it.commentCount && it.commentCount > 0) && (
-                                        <span
-                                          className="inline-flex items-center gap-0.5 text-[8px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1 py-0.2 rounded border border-[#1BCECE]/30"
-                                          title={`${it.commentCount} update${it.commentCount === 1 ? "" : "s"}`}
-                                        >
-                                          <MessageSquare size={8} className="text-[#1BCECE]" />
-                                          <span>{it.commentCount}</span>
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+            <DashboardPlannerView
+              items={displayedItems}
+              onOpenItem={openActionItem}
+              onOpenQuickAddForDate={(dateStr) => handleOpenQuickAdd("not_started", dateStr)}
+              onDropDate={handleDropPlannerDate}
+              draggingItemId={draggingItemId}
+              setDraggingItemId={setDraggingItemId}
+              dragOverPlannerDate={dragOverPlannerDate}
+              setDragOverPlannerDate={setDragOverPlannerDate}
+            />
           )}
       </div>
 
