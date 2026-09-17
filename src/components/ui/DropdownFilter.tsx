@@ -23,6 +23,7 @@ interface DropdownFilterProps {
   menuClassName?: string;
   placeholder?: string;
   enableSearch?: boolean;
+  showSelectedValue?: boolean;
 }
 
 export function DropdownFilter({
@@ -35,6 +36,7 @@ export function DropdownFilter({
   className,
   menuClassName,
   enableSearch = false,
+  showSelectedValue = false,
 }: DropdownFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -79,9 +81,12 @@ export function DropdownFilter({
   const selectedOption = options.find((opt) => opt.value === value);
   const isFiltered = Boolean(value && value !== "all" && value !== "");
 
+  const displayText = showSelectedValue && selectedOption ? selectedOption.label : label;
+  const displayDotColor = showSelectedValue && selectedOption ? selectedOption.dotColor : undefined;
+
   return (
     <div className={cn("relative inline-block text-left", className)} ref={containerRef}>
-      {/* Trigger Button - Always displays clean, concise label */}
+      {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -95,10 +100,18 @@ export function DropdownFilter({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+        <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap min-w-0">
           {icon && <span className="shrink-0 text-[#023542]">{icon}</span>}
-          <span className="whitespace-nowrap">{label}</span>
-          {isFiltered && (
+          {displayDotColor && (
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ backgroundColor: displayDotColor }}
+            />
+          )}
+          <span className="whitespace-nowrap truncate max-w-[120px] sm:max-w-[180px]">
+            {displayText}
+          </span>
+          {isFiltered && !showSelectedValue && (
             <span
               className="w-1.5 h-1.5 rounded-full bg-[#1BCECE] shrink-0"
               title={`Filtered: ${selectedOption?.label || value}`}

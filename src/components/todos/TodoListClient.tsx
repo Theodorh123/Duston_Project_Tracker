@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckSquare,
@@ -14,7 +14,7 @@ import {
   X,
   FolderPlus,
 } from "lucide-react";
-import { cn, formatShortDate, isDeadlineOverdue, isTbaDeadline } from "@/lib/utils";
+import { cn, formatDate, formatShortDate, isDeadlineOverdue, isTbaDeadline } from "@/lib/utils";
 import {
   TodoItemData,
   createTodo,
@@ -94,6 +94,7 @@ export function TodoListClient({
   const [newProjectId, setNewProjectId] = useState<string>("");
   const [newDeadline, setNewDeadline] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const newDateInputRef = useRef<HTMLInputElement>(null);
 
   // Inline Editing State
   const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
@@ -102,6 +103,7 @@ export function TodoListClient({
   const [editProjectId, setEditProjectId] = useState<string>("");
   const [editDeadline, setEditDeadline] = useState<string>("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const editDateInputRef = useRef<HTMLInputElement>(null);
 
   // New Project Modal State
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
@@ -424,6 +426,7 @@ export function TodoListClient({
             }}
             icon={<Building2 size={11} />}
             enableSearch={entities.length > 5}
+            showSelectedValue={true}
           />
 
           {/* Optional Project Dropdown */}
@@ -446,23 +449,73 @@ export function TodoListClient({
               }
             }}
             enableSearch={availableProjectsForNew.length > 5}
+            showSelectedValue={true}
           />
 
           {/* Target Deadline */}
-          <div className="relative flex items-center bg-white border border-duston-border rounded-xl px-2.5 py-1.5 text-xs shadow-2xs">
-            <span className="text-[11px] font-semibold text-duston-dark shrink-0 mr-1.5 flex items-center gap-1">
-              <Calendar size={11} className="text-[#023542]" />
-              <span className="hidden sm:inline">Target Deadline:</span>
-              <span className="sm:hidden">Deadline:</span>
-            </span>
-            <input
-              type="date"
-              value={newDeadline}
-              onChange={(e) => setNewDeadline(e.target.value)}
-              className="text-xs bg-transparent text-duston-dark focus:outline-none cursor-pointer font-medium p-0"
-              title="Target Deadline"
-            />
-          </div>
+          {!newDeadline ? (
+            <div className="relative inline-flex items-center shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    newDateInputRef.current?.showPicker();
+                  } catch {
+                    newDateInputRef.current?.focus();
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold bg-white border border-duston-border text-duston-dark hover:border-[#1BCECE] transition-all shadow-2xs cursor-pointer select-none whitespace-nowrap"
+              >
+                <Calendar size={11} className="text-[#023542] shrink-0" />
+                <span>Target Deadline</span>
+              </button>
+              <input
+                ref={newDateInputRef}
+                type="date"
+                value={newDeadline}
+                onChange={(e) => setNewDeadline(e.target.value)}
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                title="Choose Target Deadline"
+              />
+            </div>
+          ) : (
+            <div className="relative inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold bg-white border border-[#023542] text-[#023542] ring-1 ring-[#023542]/15 shadow-2xs whitespace-nowrap select-none shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    newDateInputRef.current?.showPicker();
+                  } catch {
+                    newDateInputRef.current?.focus();
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 cursor-pointer"
+                title="Change Target Deadline"
+              >
+                <Calendar size={11} className="text-[#023542] shrink-0" />
+                <span>{formatDate(newDeadline)}</span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setNewDeadline("");
+                }}
+                className="p-0.5 hover:bg-duston-bg rounded text-duston-muted hover:text-duston-dark cursor-pointer ml-0.5"
+                title="Clear deadline (Set to: To Be Actioned)"
+              >
+                <X size={11} />
+              </button>
+              <input
+                ref={newDateInputRef}
+                type="date"
+                value={newDeadline}
+                onChange={(e) => setNewDeadline(e.target.value)}
+                className="sr-only"
+                title="Choose Target Deadline"
+              />
+            </div>
+          )}
 
           {/* Add Button */}
           <button
@@ -560,6 +613,7 @@ export function TodoListClient({
                         }}
                         icon={<Building2 size={11} />}
                         enableSearch={entities.length > 5}
+                        showSelectedValue={true}
                       />
 
                       {/* Edit Project (Optional or Add New) */}
@@ -582,18 +636,73 @@ export function TodoListClient({
                           }
                         }}
                         enableSearch={availableProjectsForEdit.length > 5}
+                        showSelectedValue={true}
                       />
 
                       {/* Edit Target Deadline */}
-                      <div className="relative flex items-center bg-white border border-duston-border rounded-lg px-2 py-1 text-xs">
-                        <span className="text-[10px] font-semibold text-duston-dark mr-1">Target Deadline:</span>
-                        <input
-                          type="date"
-                          value={editDeadline}
-                          onChange={(e) => setEditDeadline(e.target.value)}
-                          className="text-xs bg-transparent text-duston-dark focus:outline-none p-0"
-                        />
-                      </div>
+                      {!editDeadline ? (
+                        <div className="relative inline-flex items-center shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              try {
+                                editDateInputRef.current?.showPicker();
+                              } catch {
+                                editDateInputRef.current?.focus();
+                              }
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-duston-border text-duston-dark hover:border-[#1BCECE] transition-all shadow-2xs cursor-pointer select-none whitespace-nowrap"
+                          >
+                            <Calendar size={11} className="text-[#023542] shrink-0" />
+                            <span>Target Deadline</span>
+                          </button>
+                          <input
+                            ref={editDateInputRef}
+                            type="date"
+                            value={editDeadline}
+                            onChange={(e) => setEditDeadline(e.target.value)}
+                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                            title="Choose Target Deadline"
+                          />
+                        </div>
+                      ) : (
+                        <div className="relative inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold bg-white border border-[#023542] text-[#023542] ring-1 ring-[#023542]/15 shadow-2xs whitespace-nowrap select-none shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              try {
+                                editDateInputRef.current?.showPicker();
+                              } catch {
+                                editDateInputRef.current?.focus();
+                              }
+                            }}
+                            className="inline-flex items-center gap-1.5 cursor-pointer"
+                            title="Change Target Deadline"
+                          >
+                            <Calendar size={11} className="text-[#023542] shrink-0" />
+                            <span>{formatDate(editDeadline)}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditDeadline("");
+                            }}
+                            className="p-0.5 hover:bg-duston-bg rounded text-duston-muted hover:text-duston-dark cursor-pointer ml-0.5"
+                            title="Clear deadline (Set to: To Be Actioned)"
+                          >
+                            <X size={11} />
+                          </button>
+                          <input
+                            ref={editDateInputRef}
+                            type="date"
+                            value={editDeadline}
+                            onChange={(e) => setEditDeadline(e.target.value)}
+                            className="sr-only"
+                            title="Choose Target Deadline"
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-1.5">
                       <button
