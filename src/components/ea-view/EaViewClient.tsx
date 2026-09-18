@@ -227,76 +227,138 @@ export function EaViewClient({
             No {overduePriorityFilter} priority overdue items.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
-                  <th className="py-2.5 px-3">Action Item</th>
-                  <th className="py-2.5 px-3">Project</th>
-                  <th className="py-2.5 px-3">Subsidiary</th>
-                  <th className="py-2.5 px-3">Assignee</th>
-                  <th className="py-2.5 px-3">Days overdue</th>
-                  <th className="py-2.5 px-3">Priority</th>
-                  <th className="py-2.5 px-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-duston-border">
-                {displayedOverdueQueue.map((item) => (
-                  <tr
-                    key={item.id}
-                    onClick={() => openActionItem(item.id)}
-                    className="hover:bg-duston-bg group cursor-pointer transition-colors"
-                  >
-                    <td className="py-3 px-3 font-medium text-duston-dark max-w-xs truncate">
+          <>
+            {/* Mobile Cards (< md) */}
+            <div className="md:hidden space-y-2.5">
+              {displayedOverdueQueue.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => openActionItem(item.id)}
+                  className="p-3.5 rounded-xl border border-duston-border bg-duston-bg/30 hover:border-[#1BCECE] space-y-2.5 cursor-pointer transition-colors shadow-2xs"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="text-xs font-semibold text-duston-dark line-clamp-2">
                       {item.title}
-                    </td>
-                    <td className="py-3 px-3 text-duston-muted max-w-[160px] truncate">
-                      {item.projectName || <span className="text-duston-muted italic font-normal">—</span>}
-                    </td>
-                    <td className="py-3 px-3">
-                      <span
-                        className="px-2 py-0.5 rounded text-[10px] font-medium"
-                        style={{
-                          backgroundColor: `${item.entityBrandColor}15`,
-                          color: item.entityBrandColor,
-                        }}
-                      >
-                        {item.entityName}
+                    </h4>
+                    <span className="text-[11px] font-bold text-duston-orange shrink-0 bg-duston-orange/10 px-2 py-0.5 rounded-full">
+                      +{item.daysOverdue}d overdue
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                    <span
+                      className="px-2 py-0.5 rounded font-semibold truncate max-w-[130px]"
+                      style={{
+                        backgroundColor: `${item.entityBrandColor}15`,
+                        color: item.entityBrandColor,
+                      }}
+                    >
+                      {item.entityName}
+                    </span>
+                    {item.projectName && (
+                      <span className="text-duston-muted truncate max-w-[140px]">
+                        • {item.projectName}
                       </span>
-                    </td>
-                    <td className="py-3 px-3 text-duston-dark">
-                      {item.assigneeName}
-                    </td>
-                    <td className="py-3 px-3 font-medium text-duston-orange">
-                      +{item.daysOverdue} days
-                    </td>
-                    <td className="py-3 px-3">
-                      <PriorityFlag priority={item.priority} />
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => handleNudgeWhatsApp(e, item)}
-                          className="px-2 py-1 rounded bg-[#1BCECE]/10 hover:bg-[#1BCECE]/20 text-[#023542] text-[11px] font-medium flex items-center gap-1 transition-colors"
-                          title="Send WhatsApp Nudge"
-                        >
-                          <Send size={12} strokeWidth={1.5} />
-                          <span>{nudgeStatus[item.id] || "Nudge"}</span>
-                        </button>
-                        <button
-                          onClick={(e) => handlePostpone(e, item)}
-                          className="px-2 py-1 rounded bg-duston-bg hover:bg-duston-border text-duston-muted text-[11px] font-medium transition-colors"
-                          title="Postpone +7 days"
-                        >
-                          +7d
-                        </button>
-                      </div>
-                    </td>
+                    )}
+                    <span className="text-duston-dark font-medium">
+                      Assignee: {item.assigneeName}
+                    </span>
+                    <PriorityFlag priority={item.priority} showLabel />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-duston-border/50">
+                    <button
+                      onClick={(e) => handleNudgeWhatsApp(e, item)}
+                      className="px-3 py-1.5 rounded-lg bg-[#1BCECE]/10 hover:bg-[#1BCECE]/20 text-[#023542] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Send WhatsApp Nudge"
+                    >
+                      <Send size={12} strokeWidth={1.5} />
+                      <span>{nudgeStatus[item.id] || "Nudge"}</span>
+                    </button>
+                    <button
+                      onClick={(e) => handlePostpone(e, item)}
+                      className="px-3 py-1.5 rounded-lg bg-white border border-duston-border hover:bg-duston-bg text-duston-dark text-xs font-medium transition-colors cursor-pointer"
+                      title="Postpone +7 days"
+                    >
+                      +7d Postpone
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full min-w-[700px] text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
+                    <th className="py-2.5 px-3">Action Item</th>
+                    <th className="py-2.5 px-3">Project</th>
+                    <th className="py-2.5 px-3">Subsidiary</th>
+                    <th className="py-2.5 px-3">Assignee</th>
+                    <th className="py-2.5 px-3">Days overdue</th>
+                    <th className="py-2.5 px-3">Priority</th>
+                    <th className="py-2.5 px-3 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-duston-border">
+                  {displayedOverdueQueue.map((item) => (
+                    <tr
+                      key={item.id}
+                      onClick={() => openActionItem(item.id)}
+                      className="hover:bg-duston-bg group cursor-pointer transition-colors"
+                    >
+                      <td className="py-3 px-3 font-medium text-duston-dark max-w-xs truncate">
+                        {item.title}
+                      </td>
+                      <td className="py-3 px-3 text-duston-muted max-w-[160px] truncate">
+                        {item.projectName || <span className="text-duston-muted italic font-normal">—</span>}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span
+                          className="px-2 py-0.5 rounded text-[10px] font-medium"
+                          style={{
+                            backgroundColor: `${item.entityBrandColor}15`,
+                            color: item.entityBrandColor,
+                          }}
+                        >
+                          {item.entityName}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-duston-dark">
+                        {item.assigneeName}
+                      </td>
+                      <td className="py-3 px-3 font-medium text-duston-orange">
+                        +{item.daysOverdue} days
+                      </td>
+                      <td className="py-3 px-3">
+                        <PriorityFlag priority={item.priority} />
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={(e) => handleNudgeWhatsApp(e, item)}
+                            className="px-2 py-1 rounded bg-[#1BCECE]/10 hover:bg-[#1BCECE]/20 text-[#023542] text-[11px] font-medium flex items-center gap-1 transition-colors"
+                            title="Send WhatsApp Nudge"
+                          >
+                            <Send size={12} strokeWidth={1.5} />
+                            <span>{nudgeStatus[item.id] || "Nudge"}</span>
+                          </button>
+                          <button
+                            onClick={(e) => handlePostpone(e, item)}
+                            className="px-2 py-1 rounded bg-duston-bg hover:bg-duston-border text-duston-muted text-[11px] font-medium transition-colors"
+                            title="Postpone +7 days"
+                          >
+                            +7d
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -319,66 +381,138 @@ export function EaViewClient({
             All items due this week have been actively updated in the last 48 hours.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
-                  <th className="py-2.5 px-3">Action Item</th>
-                  <th className="py-2.5 px-3">Project</th>
-                  <th className="py-2.5 px-3">Subsidiary</th>
-                  <th className="py-2.5 px-3">Assignee</th>
-                  <th className="py-2.5 px-3">Deadline</th>
-                  <th className="py-2.5 px-3">Priority</th>
-                  <th className="py-2.5 px-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-duston-border">
-                {chaseUpQueue.map((item) => (
-                  <tr
-                    key={item.id}
-                    onClick={() => openActionItem(item.id)}
-                    className="hover:bg-duston-bg group cursor-pointer transition-colors"
-                  >
-                    <td className="py-3 px-3 font-medium text-duston-dark max-w-xs truncate">
+          <>
+            {/* Mobile Cards (< md) */}
+            <div className="md:hidden space-y-2.5">
+              {chaseUpQueue.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => openActionItem(item.id)}
+                  className="p-3.5 rounded-xl border border-duston-border bg-duston-bg/30 hover:border-[#1BCECE] space-y-2.5 cursor-pointer transition-colors shadow-2xs"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="text-xs font-semibold text-duston-dark line-clamp-2">
                       {item.title}
-                    </td>
-                    <td className="py-3 px-3 text-duston-muted max-w-[160px] truncate">
-                      {item.projectName || <span className="text-duston-muted italic font-normal">—</span>}
-                    </td>
-                    <td className="py-3 px-3">
-                      <span
-                        className="px-2 py-0.5 rounded text-[10px] font-medium"
-                        style={{
-                          backgroundColor: `${item.entityBrandColor}15`,
-                          color: item.entityBrandColor,
-                        }}
-                      >
-                        {item.entityName}
+                    </h4>
+                    <span className="text-[11px] font-medium text-duston-muted shrink-0">
+                      Due {formatDate(item.deadline)}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                    <span
+                      className="px-2 py-0.5 rounded font-semibold truncate max-w-[130px]"
+                      style={{
+                        backgroundColor: `${item.entityBrandColor}15`,
+                        color: item.entityBrandColor,
+                      }}
+                    >
+                      {item.entityName}
+                    </span>
+                    {item.projectName && (
+                      <span className="text-duston-muted truncate max-w-[140px]">
+                        • {item.projectName}
                       </span>
-                    </td>
-                    <td className="py-3 px-3 text-duston-dark">
-                      {item.assigneeName}
-                    </td>
-                    <td className="py-3 px-3 text-duston-amber font-medium">
-                      {formatShortDate(item.deadline)}
-                    </td>
-                    <td className="py-3 px-3">
-                      <PriorityFlag priority={item.priority} />
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      <button
-                        onClick={(e) => handleNudgeWhatsApp(e, item)}
-                        className="px-2 py-1 rounded bg-[#1BCECE]/10 hover:bg-[#1BCECE]/20 text-[#023542] text-[11px] font-medium inline-flex items-center gap-1 transition-colors"
-                      >
-                        <Send size={12} strokeWidth={1.5} />
-                        <span>{nudgeStatus[item.id] || "Nudge"}</span>
-                      </button>
-                    </td>
+                    )}
+                    <span className="text-duston-dark font-medium">
+                      Assignee: {item.assigneeName}
+                    </span>
+                    <PriorityFlag priority={item.priority} showLabel />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-duston-border/50">
+                    <button
+                      onClick={(e) => handleNudgeWhatsApp(e, item)}
+                      className="px-3 py-1.5 rounded-lg bg-[#1BCECE]/10 hover:bg-[#1BCECE]/20 text-[#023542] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Send WhatsApp Nudge"
+                    >
+                      <Send size={12} strokeWidth={1.5} />
+                      <span>{nudgeStatus[item.id] || "Nudge"}</span>
+                    </button>
+                    <button
+                      onClick={(e) => handlePostpone(e, item)}
+                      className="px-3 py-1.5 rounded-lg bg-white border border-duston-border hover:bg-duston-bg text-duston-dark text-xs font-medium transition-colors cursor-pointer"
+                      title="Postpone +7 days"
+                    >
+                      +7d Postpone
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full min-w-[700px] text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
+                    <th className="py-2.5 px-3">Action Item</th>
+                    <th className="py-2.5 px-3">Project</th>
+                    <th className="py-2.5 px-3">Subsidiary</th>
+                    <th className="py-2.5 px-3">Assignee</th>
+                    <th className="py-2.5 px-3">Deadline</th>
+                    <th className="py-2.5 px-3">Priority</th>
+                    <th className="py-2.5 px-3 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-duston-border">
+                  {chaseUpQueue.map((item) => (
+                    <tr
+                      key={item.id}
+                      onClick={() => openActionItem(item.id)}
+                      className="hover:bg-duston-bg group cursor-pointer transition-colors"
+                    >
+                      <td className="py-3 px-3 font-medium text-duston-dark max-w-xs truncate">
+                        {item.title}
+                      </td>
+                      <td className="py-3 px-3 text-duston-muted max-w-[160px] truncate">
+                        {item.projectName || <span className="text-duston-muted italic font-normal">—</span>}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span
+                          className="px-2 py-0.5 rounded text-[10px] font-medium"
+                          style={{
+                            backgroundColor: `${item.entityBrandColor}15`,
+                            color: item.entityBrandColor,
+                          }}
+                        >
+                          {item.entityName}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-duston-dark">
+                        {item.assigneeName}
+                      </td>
+                      <td className="py-3 px-3 text-duston-muted">
+                        {formatDate(item.deadline)}
+                      </td>
+                      <td className="py-3 px-3">
+                        <PriorityFlag priority={item.priority} />
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={(e) => handleNudgeWhatsApp(e, item)}
+                            className="px-2 py-1 rounded bg-[#1BCECE]/10 hover:bg-[#1BCECE]/20 text-[#023542] text-[11px] font-medium flex items-center gap-1 transition-colors"
+                            title="Send WhatsApp Nudge"
+                          >
+                            <Send size={12} strokeWidth={1.5} />
+                            <span>{nudgeStatus[item.id] || "Nudge"}</span>
+                          </button>
+                          <button
+                            onClick={(e) => handlePostpone(e, item)}
+                            className="px-2 py-1 rounded bg-duston-bg hover:bg-duston-border text-duston-muted text-[11px] font-medium transition-colors"
+                            title="Postpone +7 days"
+                          >
+                            +7d
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

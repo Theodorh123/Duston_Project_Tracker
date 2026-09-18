@@ -332,6 +332,104 @@ export function ProjectDetailClient({
     }
   };
 
+  const renderProjectActionItemMobileCard = (item: (typeof itemsList)[0]) => {
+    const isOverdue = isDeadlineOverdue(item.deadline, item.status);
+    return (
+      <div
+        key={item.id}
+        onClick={() => openActionItem(item.id)}
+        className="p-3.5 bg-white border border-duston-border rounded-xl space-y-2.5 transition-colors cursor-pointer active:bg-duston-bg shadow-2xs group"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <span className="text-xs font-semibold text-duston-dark group-hover:text-[#1BCECE] transition-colors line-clamp-2">
+              {item.title}
+            </span>
+          </div>
+          <PriorityFlag priority={item.priority} />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+          <span
+            className="px-2 py-0.5 rounded font-medium border"
+            style={{
+              backgroundColor: `${project.entityBrandColor}15`,
+              color: project.entityBrandColor,
+              borderColor: `${project.entityBrandColor}30`,
+            }}
+          >
+            {project.entityName}
+          </span>
+          <span className="text-duston-dark font-medium truncate max-w-[150px]">
+            {project.name}
+          </span>
+          {Boolean(item.commentCount && item.commentCount > 0) && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30">
+              <MessageSquare size={10} className="text-[#1BCECE]" />
+              <span>{item.commentCount}</span>
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-duston-border/50 text-[11px]">
+          <div className="flex items-center gap-1.5 truncate min-w-0">
+            <div className="w-5 h-5 rounded-full bg-[#023542] text-white text-[9px] font-bold flex items-center justify-center shrink-0">
+              {item.assigneeName.charAt(0).toUpperCase()}
+            </div>
+            <span className="text-duston-dark font-medium truncate max-w-[110px]">
+              {item.assigneeName}
+            </span>
+            {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+              <span
+                className="px-1 py-0.2 rounded text-[8px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0"
+                title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+              >
+                +{item.secondaryAssigneeNames?.length}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span
+              className={cn(
+                "px-2 py-0.5 rounded text-[10px] font-medium",
+                isOverdue
+                  ? "bg-duston-orange/10 text-duston-orange font-semibold"
+                  : isTbaDeadline(item.deadline)
+                  ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
+                  : "text-duston-muted bg-duston-bg"
+              )}
+            >
+              {formatDate(item.deadline)}
+            </span>
+
+            <span
+              className={cn(
+                "capitalize px-2 py-0.5 rounded text-[10px] border font-medium",
+                getActionItemStatusBadgeClasses(item.status, item.deadline)
+              )}
+            >
+              {getActionItemStatusLabel(item.status, item.deadline)}
+            </span>
+          </div>
+        </div>
+
+        {item.comments && (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingVarianceItem({ id: item.id, title: item.title, comments: item.comments || "" });
+              setVarianceText(item.comments || "");
+            }}
+            className="text-[11px] text-duston-text bg-duston-bg/60 p-2 rounded-lg border border-duston-border/60 line-clamp-2 italic cursor-pointer hover:border-[#1BCECE]"
+          >
+            {item.comments}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Block with Breadcrumbs */}
@@ -376,20 +474,21 @@ export function ProjectDetailClient({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {canImportRegister && (
               <button
                 onClick={() => setIsImportModalOpen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 border border-duston-border bg-white text-duston-dark hover:border-[#023542] rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-2 border border-duston-border bg-white text-duston-dark hover:border-[#023542] rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer"
                 title="Import action register from Excel (.xlsx, .csv) or PDF"
               >
                 <FileSpreadsheet size={15} className="text-[#1BCECE]" />
-                <span>Import action item register</span>
+                <span className="hidden sm:inline">Import action item register</span>
+                <span className="sm:hidden">Import register</span>
               </button>
             )}
             <button
               onClick={() => setActiveTab("details")}
-              className="px-3.5 py-2 border border-duston-border bg-white text-duston-dark hover:bg-duston-bg rounded-xl text-xs font-medium transition-colors"
+              className="px-3.5 py-2 border border-duston-border bg-white text-duston-dark hover:bg-duston-bg rounded-xl text-xs font-medium transition-colors cursor-pointer"
             >
               Edit project
             </button>
@@ -559,141 +658,149 @@ export function ProjectDetailClient({
               </button>
             </div>
           ) : actionItemsView === "list" ? (
-            <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-x-auto">
-              <table className="w-full min-w-[880px] text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
-                    <th className="py-3 px-4">Subsidiary</th>
-                    <th className="py-3 px-4">Project</th>
-                    <th className="py-3 px-4">Action Item</th>
-                    <th className="py-3 px-4">Assignee</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4">Deadline</th>
-                    <th className="py-3 px-4">Priority</th>
-                    <th className="py-3 px-4">Updates</th>
-                    <th className="py-3 px-3 text-right"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-duston-border">
-                  {displayedProjectItems.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="hover:bg-duston-bg/80 transition-colors group"
-                    >
-                      <td className="py-3 px-4">
-                        <span
-                          className="px-2 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap"
-                          style={{
-                            backgroundColor: `${project.entityBrandColor}15`,
-                            color: project.entityBrandColor,
-                            borderColor: `${project.entityBrandColor}30`,
-                          }}
-                        >
-                          {project.entityName}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 font-medium text-duston-dark whitespace-nowrap">
-                        {project.name}
-                      </td>
-                      <td
-                        onClick={() => openActionItem(item.id)}
-                        className="py-3 px-4 font-medium text-duston-dark hover:text-[#1BCECE] cursor-pointer"
+            <>
+              {/* Desktop Table View (>= md) */}
+              <div className="hidden md:block bg-white border border-duston-border rounded-xl shadow-subtle overflow-x-auto">
+                <table className="w-full min-w-[880px] text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
+                      <th className="py-3 px-4">Subsidiary</th>
+                      <th className="py-3 px-4">Project</th>
+                      <th className="py-3 px-4">Action Item</th>
+                      <th className="py-3 px-4">Assignee</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Deadline</th>
+                      <th className="py-3 px-4">Priority</th>
+                      <th className="py-3 px-4">Updates</th>
+                      <th className="py-3 px-3 text-right"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-duston-border">
+                    {displayedProjectItems.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="hover:bg-duston-bg/80 transition-colors group"
                       >
-                        <div className="flex items-center gap-2">
-                          <span>{item.title}</span>
-                          {Boolean(item.commentCount && item.commentCount > 0) && (
-                            <span
-                              className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30 shrink-0"
-                              title={`${item.commentCount} update${item.commentCount === 1 ? "" : "s"}`}
-                            >
-                              <MessageSquare size={10} className="text-[#1BCECE]" />
-                              <span>{item.commentCount}</span>
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-duston-dark whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <span>{item.assigneeName}</span>
-                          {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
-                            <span
-                              className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
-                              title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
-                            >
-                              +{item.secondaryAssigneeNames?.length}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span
-                          className={cn(
-                            "capitalize px-2 py-0.5 rounded text-[11px] border font-medium",
-                            getActionItemStatusBadgeClasses(item.status, item.deadline)
-                          )}
-                        >
-                          {getActionItemStatusLabel(item.status, item.deadline)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span
-                          className={cn(
-                            "px-2 py-0.5 rounded text-[11px] font-medium",
-                            isDeadlineOverdue(item.deadline, item.status)
-                              ? "bg-duston-orange/10 text-duston-orange"
-                              : isTbaDeadline(item.deadline)
-                              ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
-                              : "text-duston-muted"
-                          )}
-                        >
-                          {formatDate(item.deadline)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <PriorityFlag priority={item.priority} />
-                      </td>
-                      <td className="py-3 px-4 text-duston-muted max-w-xs">
-                        {item.comments ? (
-                          <div
-                            onClick={() => {
-                              setEditingVarianceItem({ id: item.id, title: item.title, comments: item.comments || "" });
-                              setVarianceText(item.comments || "");
+                        <td className="py-3 px-4">
+                          <span
+                            className="px-2 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap"
+                            style={{
+                              backgroundColor: `${project.entityBrandColor}15`,
+                              color: project.entityBrandColor,
+                              borderColor: `${project.entityBrandColor}30`,
                             }}
-                            className="flex items-center gap-1.5 cursor-pointer hover:text-duston-dark"
-                            title="Click to edit variance note"
                           >
-                            <span className="line-clamp-1 text-[11px] text-duston-dark/90 italic">{item.comments}</span>
-                            <span className="text-[10px] text-[#1BCECE] opacity-0 group-hover:opacity-100 font-medium">Edit</span>
+                            {project.entityName}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 font-medium text-duston-dark whitespace-nowrap">
+                          {project.name}
+                        </td>
+                        <td
+                          onClick={() => openActionItem(item.id)}
+                          className="py-3 px-4 font-medium text-duston-dark hover:text-[#1BCECE] cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span>{item.title}</span>
+                            {Boolean(item.commentCount && item.commentCount > 0) && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30 shrink-0"
+                                title={`${item.commentCount} update${item.commentCount === 1 ? "" : "s"}`}
+                              >
+                                <MessageSquare size={10} className="text-[#1BCECE]" />
+                                <span>{item.commentCount}</span>
+                              </span>
+                            )}
                           </div>
-                        ) : (
+                        </td>
+                        <td className="py-3 px-4 text-duston-dark whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <span>{item.assigneeName}</span>
+                            {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+                              <span
+                                className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
+                                title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+                              >
+                                +{item.secondaryAssigneeNames?.length}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <span
+                            className={cn(
+                              "capitalize px-2 py-0.5 rounded text-[11px] border font-medium",
+                              getActionItemStatusBadgeClasses(item.status, item.deadline)
+                            )}
+                          >
+                            {getActionItemStatusLabel(item.status, item.deadline)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 rounded text-[11px] font-medium",
+                              isDeadlineOverdue(item.deadline, item.status)
+                                ? "bg-duston-orange/10 text-duston-orange"
+                                : isTbaDeadline(item.deadline)
+                                ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
+                                : "text-duston-muted"
+                            )}
+                          >
+                            {formatDate(item.deadline)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <PriorityFlag priority={item.priority} />
+                        </td>
+                        <td className="py-3 px-4 text-duston-muted max-w-xs">
+                          {item.comments ? (
+                            <div
+                              onClick={() => {
+                                setEditingVarianceItem({ id: item.id, title: item.title, comments: item.comments || "" });
+                                setVarianceText(item.comments || "");
+                              }}
+                              className="flex items-center gap-1.5 cursor-pointer hover:text-duston-dark"
+                              title="Click to edit variance note"
+                            >
+                              <span className="line-clamp-1 text-[11px] text-duston-dark/90 italic">{item.comments}</span>
+                              <span className="text-[10px] text-[#1BCECE] opacity-0 group-hover:opacity-100 font-medium">Edit</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingVarianceItem({ id: item.id, title: item.title, comments: "" });
+                                setVarianceText("");
+                              }}
+                              className="text-[11px] text-duston-muted hover:text-[#023542] flex items-center gap-1 cursor-pointer transition-colors"
+                            >
+                              <span className="text-xs">+</span> Add comment
+                            </button>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-right whitespace-nowrap">
                           <button
                             type="button"
-                            onClick={() => {
-                              setEditingVarianceItem({ id: item.id, title: item.title, comments: "" });
-                              setVarianceText("");
-                            }}
-                            className="text-[11px] text-duston-muted hover:text-[#023542] flex items-center gap-1 cursor-pointer transition-colors"
+                            onClick={() => openActionItem(item.id)}
+                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#023542] hover:bg-[#1BCECE] text-white inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                            title="Edit action item"
                           >
-                            <span className="text-xs">+</span> Add comment
+                            <Edit2 size={11} />
+                            <span>Edit</span>
                           </button>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => openActionItem(item.id)}
-                          className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#023542] hover:bg-[#1BCECE] text-white inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
-                          title="Edit action item"
-                        >
-                          <Edit2 size={11} />
-                          <span>Edit</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card List (< md) */}
+              <div className="md:hidden space-y-2.5">
+                {displayedProjectItems.map(renderProjectActionItemMobileCard)}
+              </div>
+            </>
           ) : actionItemsView === "priority" ? (
             /* Grouped by Priority View */
             <div className="space-y-6">
@@ -755,141 +862,149 @@ export function ProjectDetailClient({
                       No {group.title.toLowerCase()} deliverables in this project.
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[880px] text-left border-collapse text-xs">
-                        <thead>
-                          <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
-                            <th className="py-3 px-4">Subsidiary</th>
-                            <th className="py-3 px-4">Project</th>
-                            <th className="py-3 px-4">Action Item</th>
-                            <th className="py-3 px-4">Assignee</th>
-                            <th className="py-3 px-4">Status</th>
-                            <th className="py-3 px-4">Deadline</th>
-                            <th className="py-3 px-4">Priority</th>
-                            <th className="py-3 px-4">Updates</th>
-                            <th className="py-3 px-3 text-right"></th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-duston-border">
-                          {group.items.map((item) => (
-                            <tr
-                              key={item.id}
-                              className="hover:bg-duston-bg/80 transition-colors group"
-                            >
-                              <td className="py-3 px-4">
-                                <span
-                                  className="px-2 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap"
-                                  style={{
-                                    backgroundColor: `${project.entityBrandColor}15`,
-                                    color: project.entityBrandColor,
-                                    borderColor: `${project.entityBrandColor}30`,
-                                  }}
-                                >
-                                  {project.entityName}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 font-medium text-duston-dark whitespace-nowrap">
-                                {project.name}
-                              </td>
-                              <td
-                                onClick={() => openActionItem(item.id)}
-                                className="py-3 px-4 font-medium text-duston-dark hover:text-[#1BCECE] cursor-pointer"
+                    <>
+                      {/* Desktop Table (>= md) */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full min-w-[880px] text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
+                              <th className="py-3 px-4">Subsidiary</th>
+                              <th className="py-3 px-4">Project</th>
+                              <th className="py-3 px-4">Action Item</th>
+                              <th className="py-3 px-4">Assignee</th>
+                              <th className="py-3 px-4">Status</th>
+                              <th className="py-3 px-4">Deadline</th>
+                              <th className="py-3 px-4">Priority</th>
+                              <th className="py-3 px-4">Updates</th>
+                              <th className="py-3 px-3 text-right"></th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-duston-border">
+                            {group.items.map((item) => (
+                              <tr
+                                key={item.id}
+                                className="hover:bg-duston-bg/80 transition-colors group"
                               >
-                                <div className="flex items-center gap-2">
-                                  <span>{item.title}</span>
-                                  {Boolean(item.commentCount && item.commentCount > 0) && (
-                                    <span
-                                      className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30 shrink-0"
-                                      title={`${item.commentCount} update${item.commentCount === 1 ? "" : "s"}`}
-                                    >
-                                      <MessageSquare size={10} className="text-[#1BCECE]" />
-                                      <span>{item.commentCount}</span>
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="py-3 px-4 text-duston-dark whitespace-nowrap">
-                                <div className="flex items-center gap-1.5">
-                                  <span>{item.assigneeName}</span>
-                                  {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
-                                    <span
-                                      className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
-                                      title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
-                                    >
-                                      +{item.secondaryAssigneeNames?.length}
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="py-3 px-4 whitespace-nowrap">
-                                <span
-                                  className={cn(
-                                    "capitalize px-2 py-0.5 rounded text-[11px] border font-medium",
-                                    getActionItemStatusBadgeClasses(item.status, item.deadline)
-                                  )}
-                                >
-                                  {getActionItemStatusLabel(item.status, item.deadline)}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 whitespace-nowrap">
-                                <span
-                                  className={cn(
-                                    "px-2 py-0.5 rounded text-[11px] font-medium",
-                                    isDeadlineOverdue(item.deadline, item.status)
-                                      ? "bg-duston-orange/10 text-duston-orange"
-                                      : isTbaDeadline(item.deadline)
-                                      ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
-                                      : "text-duston-muted"
-                                  )}
-                                >
-                                  {formatDate(item.deadline)}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 whitespace-nowrap">
-                                <PriorityFlag priority={item.priority} />
-                              </td>
-                              <td className="py-3 px-4 text-duston-muted max-w-xs">
-                                {item.comments ? (
-                                  <div
-                                    onClick={() => {
-                                      setEditingVarianceItem({ id: item.id, title: item.title, comments: item.comments || "" });
-                                      setVarianceText(item.comments || "");
+                                <td className="py-3 px-4">
+                                  <span
+                                    className="px-2 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap"
+                                    style={{
+                                      backgroundColor: `${project.entityBrandColor}15`,
+                                      color: project.entityBrandColor,
+                                      borderColor: `${project.entityBrandColor}30`,
                                     }}
-                                    className="flex items-center gap-1.5 cursor-pointer hover:text-duston-dark"
-                                    title="Click to edit variance note"
                                   >
-                                    <span className="line-clamp-1 text-[11px] text-duston-dark/90 italic">{item.comments}</span>
-                                    <span className="text-[10px] text-[#1BCECE] opacity-0 group-hover:opacity-100 font-medium">Edit</span>
+                                    {project.entityName}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 font-medium text-duston-dark whitespace-nowrap">
+                                  {project.name}
+                                </td>
+                                <td
+                                  onClick={() => openActionItem(item.id)}
+                                  className="py-3 px-4 font-medium text-duston-dark hover:text-[#1BCECE] cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span>{item.title}</span>
+                                    {Boolean(item.commentCount && item.commentCount > 0) && (
+                                      <span
+                                        className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30 shrink-0"
+                                        title={`${item.commentCount} update${item.commentCount === 1 ? "" : "s"}`}
+                                      >
+                                        <MessageSquare size={10} className="text-[#1BCECE]" />
+                                        <span>{item.commentCount}</span>
+                                      </span>
+                                    )}
                                   </div>
-                                ) : (
+                                </td>
+                                <td className="py-3 px-4 text-duston-dark whitespace-nowrap">
+                                  <div className="flex items-center gap-1.5">
+                                    <span>{item.assigneeName}</span>
+                                    {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+                                      <span
+                                        className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
+                                        title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+                                      >
+                                        +{item.secondaryAssigneeNames?.length}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4 whitespace-nowrap">
+                                  <span
+                                    className={cn(
+                                      "capitalize px-2 py-0.5 rounded text-[11px] border font-medium",
+                                      getActionItemStatusBadgeClasses(item.status, item.deadline)
+                                    )}
+                                  >
+                                    {getActionItemStatusLabel(item.status, item.deadline)}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 whitespace-nowrap">
+                                  <span
+                                    className={cn(
+                                      "px-2 py-0.5 rounded text-[11px] font-medium",
+                                      isDeadlineOverdue(item.deadline, item.status)
+                                        ? "bg-duston-orange/10 text-duston-orange"
+                                        : isTbaDeadline(item.deadline)
+                                        ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
+                                        : "text-duston-muted"
+                                    )}
+                                  >
+                                    {formatDate(item.deadline)}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 whitespace-nowrap">
+                                  <PriorityFlag priority={item.priority} />
+                                </td>
+                                <td className="py-3 px-4 text-duston-muted max-w-xs">
+                                  {item.comments ? (
+                                    <div
+                                      onClick={() => {
+                                        setEditingVarianceItem({ id: item.id, title: item.title, comments: item.comments || "" });
+                                        setVarianceText(item.comments || "");
+                                      }}
+                                      className="flex items-center gap-1.5 cursor-pointer hover:text-duston-dark"
+                                      title="Click to edit variance note"
+                                    >
+                                      <span className="line-clamp-1 text-[11px] text-duston-dark/90 italic">{item.comments}</span>
+                                      <span className="text-[10px] text-[#1BCECE] opacity-0 group-hover:opacity-100 font-medium">Edit</span>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingVarianceItem({ id: item.id, title: item.title, comments: "" });
+                                        setVarianceText("");
+                                      }}
+                                      className="text-[11px] text-duston-muted hover:text-[#023542] flex items-center gap-1 cursor-pointer transition-colors"
+                                    >
+                                      <span className="text-xs">+</span> Add comment
+                                    </button>
+                                  )}
+                                </td>
+                                <td className="py-3 px-3 text-right whitespace-nowrap">
                                   <button
                                     type="button"
-                                    onClick={() => {
-                                      setEditingVarianceItem({ id: item.id, title: item.title, comments: "" });
-                                      setVarianceText("");
-                                    }}
-                                    className="text-[11px] text-duston-muted hover:text-[#023542] flex items-center gap-1 cursor-pointer transition-colors"
+                                    onClick={() => openActionItem(item.id)}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#023542] hover:bg-[#1BCECE] text-white inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                                    title="Edit action item"
                                   >
-                                    <span className="text-xs">+</span> Add comment
+                                    <Edit2 size={11} />
+                                    <span>Edit</span>
                                   </button>
-                                )}
-                              </td>
-                              <td className="py-3 px-3 text-right whitespace-nowrap">
-                                <button
-                                  type="button"
-                                  onClick={() => openActionItem(item.id)}
-                                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#023542] hover:bg-[#1BCECE] text-white inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
-                                  title="Edit action item"
-                                >
-                                  <Edit2 size={11} />
-                                  <span>Edit</span>
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Mobile Card List (< md) */}
+                      <div className="md:hidden p-3 space-y-2.5">
+                        {group.items.map(renderProjectActionItemMobileCard)}
+                      </div>
+                    </>
                   )}
                 </div>
               ))}

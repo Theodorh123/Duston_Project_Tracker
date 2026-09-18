@@ -456,7 +456,7 @@ export function ActionRegisterClient({
                 <span className="inline-flex items-center gap-1 text-[10px] text-duston-muted font-medium bg-duston-bg px-2 py-0.5 rounded border border-duston-border/60">
                   <Calendar size={10} />
                   <span className="truncate max-w-[180px]">
-                    Minutes: {item.sourceMeetingSubject}
+                    Source: {item.sourceMeetingSubject}
                   </span>
                 </span>
               )}
@@ -722,7 +722,7 @@ export function ActionRegisterClient({
               <span className="inline-flex items-center gap-1 text-[10px] text-duston-muted font-medium bg-duston-bg px-2 py-0.5 rounded border border-duston-border/60">
                 <Calendar size={10} />
                 <span className="truncate max-w-[200px]">
-                  Minutes: {item.sourceMeetingSubject}
+                  Source: {item.sourceMeetingSubject}
                 </span>
               </span>
             </div>

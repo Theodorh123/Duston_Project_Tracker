@@ -216,56 +216,103 @@ export function CeoViewClient({
             No critical delayed workstreams currently active.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
-                  <th className="py-2.5 px-3">Item</th>
-                  <th className="py-2.5 px-3">Priority</th>
-                  <th className="py-2.5 px-3">Project</th>
-                  <th className="py-2.5 px-3">Entity</th>
-                  <th className="py-2.5 px-3">Attention notes</th>
-                  <th className="py-2.5 px-3 text-right">Days open / Age</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-duston-border">
-                {topRisks.map((risk) => (
-                  <tr
-                    key={risk.id}
-                    onClick={() => openActionItem(risk.id)}
-                    className="hover:bg-duston-bg cursor-pointer transition-colors"
-                  >
-                    <td className="py-3 px-3 font-medium text-duston-dark max-w-xs truncate">
+          <>
+            {/* Mobile Cards (< md) */}
+            <div className="md:hidden space-y-2.5">
+              {topRisks.map((risk) => (
+                <div
+                  key={risk.id}
+                  onClick={() => openActionItem(risk.id)}
+                  className="p-3.5 rounded-xl border border-duston-border bg-duston-bg/30 hover:border-[#1BCECE] space-y-2 cursor-pointer transition-colors shadow-2xs"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="text-xs font-semibold text-duston-dark line-clamp-2">
                       {risk.title}
-                    </td>
-                    <td className="py-3 px-3">
-                      <PriorityFlag priority={risk.priority} />
-                    </td>
-                    <td className="py-3 px-3 text-duston-muted max-w-[160px] truncate">
-                      {risk.projectName}
-                    </td>
-                    <td className="py-3 px-3">
-                      <span
-                        className="px-2 py-0.5 rounded text-[10px] font-medium"
-                        style={{
-                          backgroundColor: `${risk.entityBrandColor}15`,
-                          color: risk.entityBrandColor,
-                        }}
-                      >
-                        {risk.entityName}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-duston-orange font-medium max-w-sm truncate">
-                      {risk.blockerReason}
-                    </td>
-                    <td className="py-3 px-3 text-right font-semibold text-duston-orange">
+                    </h4>
+                    <span className="text-xs font-bold text-duston-orange shrink-0 bg-duston-orange/10 px-1.5 py-0.5 rounded">
                       {risk.daysBlocked}d
-                    </td>
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                    <span
+                      className="px-2 py-0.5 rounded font-semibold truncate max-w-[130px]"
+                      style={{
+                        backgroundColor: `${risk.entityBrandColor}15`,
+                        color: risk.entityBrandColor,
+                      }}
+                    >
+                      {risk.entityName}
+                    </span>
+                    {risk.projectName && (
+                      <span className="text-duston-muted truncate max-w-[150px]">
+                        • {risk.projectName}
+                      </span>
+                    )}
+                    <PriorityFlag priority={risk.priority} showLabel />
+                  </div>
+
+                  {risk.blockerReason && (
+                    <p className="text-[11px] text-duston-orange font-medium bg-white p-2 rounded-lg border border-duston-border/60">
+                      {risk.blockerReason}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full min-w-[640px] text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
+                    <th className="py-2.5 px-3">Item</th>
+                    <th className="py-2.5 px-3">Priority</th>
+                    <th className="py-2.5 px-3">Project</th>
+                    <th className="py-2.5 px-3">Entity</th>
+                    <th className="py-2.5 px-3">Attention notes</th>
+                    <th className="py-2.5 px-3 text-right">Days open / Age</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-duston-border">
+                  {topRisks.map((risk) => (
+                    <tr
+                      key={risk.id}
+                      onClick={() => openActionItem(risk.id)}
+                      className="hover:bg-duston-bg cursor-pointer transition-colors"
+                    >
+                      <td className="py-3 px-3 font-medium text-duston-dark max-w-xs truncate">
+                        {risk.title}
+                      </td>
+                      <td className="py-3 px-3">
+                        <PriorityFlag priority={risk.priority} />
+                      </td>
+                      <td className="py-3 px-3 text-duston-muted max-w-[160px] truncate">
+                        {risk.projectName}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span
+                          className="px-2 py-0.5 rounded text-[10px] font-medium"
+                          style={{
+                            backgroundColor: `${risk.entityBrandColor}15`,
+                            color: risk.entityBrandColor,
+                          }}
+                        >
+                          {risk.entityName}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-duston-orange font-medium max-w-sm truncate">
+                        {risk.blockerReason}
+                      </td>
+                      <td className="py-3 px-3 text-right font-semibold text-duston-orange">
+                        {risk.daysBlocked}d
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

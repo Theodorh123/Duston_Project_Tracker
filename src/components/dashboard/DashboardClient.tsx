@@ -783,26 +783,196 @@ export function DashboardClient({
     );
   };
 
+  const renderTaskMobileCard = (item: ActionItemSummary) => {
+    const isOverdue = isDeadlineOverdue(item.deadline, item.status);
+    const isToday = item.deadline === todayStr;
+
+    return (
+      <div
+        key={item.id}
+        onClick={() => openActionItem(item.id)}
+        className={cn(
+          "p-3.5 bg-white border border-duston-border rounded-xl space-y-2.5 transition-colors cursor-pointer active:bg-duston-bg shadow-2xs group",
+          item.status === "done" && "bg-duston-bg/30"
+        )}
+      >
+        {/* Top: Checkbox, Title & Priority */}
+        <div className="flex items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={item.status === "done"}
+            onChange={(e) => handleToggleDone(e, item.id, item.status)}
+            onClick={(e) => e.stopPropagation()}
+            className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer shrink-0 mt-0.5"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span
+                className={cn(
+                  "text-xs font-semibold text-duston-dark group-hover:text-[#1BCECE] transition-colors",
+                  item.status === "done" && "text-duston-muted line-through"
+                )}
+              >
+                {item.title}
+              </span>
+              <PriorityFlag priority={item.priority} />
+              {Boolean(item.commentCount && item.commentCount > 0) && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30">
+                  <MessageSquare size={10} className="text-[#1BCECE]" />
+                  <span>{item.commentCount}</span>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Subsidiary & Project Tags */}
+        <div className="flex flex-wrap items-center gap-1.5 text-[10px] pl-6">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-duston-bg text-duston-dark border border-duston-border shrink-0">
+            {item.entityBrandColor && (
+              <span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: item.entityBrandColor }}
+              />
+            )}
+            <span className="truncate max-w-[120px]">{item.entityName}</span>
+          </span>
+
+          {item.projectName && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-[#023542]/5 text-[#023542] border border-[#023542]/15 shrink-0">
+              <span className="truncate max-w-[140px]">• {item.projectName}</span>
+            </span>
+          )}
+        </div>
+
+        {/* Bottom Strip: Assignee, Deadline & Status Control */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-duston-border/50 text-[11px] pl-6">
+          <div className="flex items-center gap-1.5 truncate min-w-0">
+            <div className="w-5 h-5 rounded-full bg-[#023542] text-white text-[9px] font-bold flex items-center justify-center shrink-0">
+              {item.assigneeName
+                ? item.assigneeName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()
+                : "U"}
+            </div>
+            <span className="text-duston-dark font-medium truncate max-w-[110px]">
+              {item.assigneeName}
+            </span>
+            {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+              <span
+                className="px-1 py-0.2 rounded text-[8px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
+                title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+              >
+                +{item.secondaryAssigneeNames?.length}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <span
+              className={cn(
+                "text-[10px] font-medium px-2 py-0.5 rounded shrink-0",
+                isOverdue
+                  ? "text-duston-orange bg-duston-orange/10 font-semibold"
+                  : isTbaDeadline(item.deadline)
+                  ? "text-amber-800 bg-amber-50 border border-amber-200/80 font-semibold"
+                  : isToday
+                  ? "text-duston-dark bg-duston-bg border border-duston-border font-semibold"
+                  : "text-duston-muted"
+              )}
+            >
+              {isToday
+                ? "Today"
+                : isTbaDeadline(item.deadline)
+                ? "To Be Actioned"
+                : formatShortDate(item.deadline)}
+            </span>
+
+            <div className="relative inline-block">
+              <select
+                value={isOverdue ? "overdue" : item.status}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val !== "overdue") {
+                    handleStatusChange(item.id, val as any);
+                  }
+                }}
+                className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all border outline-none cursor-pointer appearance-none pr-4.5 shadow-2xs",
+                  isOverdue
+                    ? "bg-duston-orange/15 text-duston-orange border-duston-orange/30 font-semibold"
+                    : item.status === "done"
+                    ? "bg-[#39B54A]/15 text-[#39B54A] border-[#39B54A]/30"
+                    : item.status === "in_progress"
+                    ? "bg-[#1BCECE]/15 text-[#023542] border-[#1BCECE]/30"
+                    : "bg-duston-bg text-duston-dark border-duston-border"
+                )}
+              >
+                {isOverdue && <option value="overdue">Overdue</option>}
+                <option value="not_started">Not Started</option>
+                <option value="in_progress">In-Progress</option>
+                <option value="done">Done</option>
+              </select>
+              <ChevronDown
+                size={10}
+                className={cn(
+                  "absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none",
+                  isOverdue
+                    ? "text-duston-orange"
+                    : item.status === "done"
+                    ? "text-[#39B54A]"
+                    : item.status === "in_progress"
+                    ? "text-[#023542]"
+                    : "text-duston-muted"
+                )}
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleOpenSyncToTodo(item)}
+              className="p-1 text-duston-muted hover:text-[#023542] hover:bg-duston-bg rounded transition-colors cursor-pointer"
+              title="Sync to To-Do"
+            >
+              <CheckSquare size={13} className="text-[#1BCECE]" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderTaskTable = (taskList: ActionItemSummary[]) => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse min-w-[700px]">
-        <thead>
-          <tr className="border-b border-duston-border text-[10px] font-semibold text-duston-muted uppercase tracking-wider bg-duston-bg/40">
-            <th className="py-2 px-3 w-8"></th>
-            <th className="py-2 px-3">Action Item</th>
-            <th className="py-2 px-3">Subsidiary</th>
-            <th className="py-2 px-3">Project</th>
-            <th className="py-2 px-3">Assignee</th>
-            <th className="py-2 px-3">Deadline</th>
-            <th className="py-2 px-3">Status</th>
-            <th className="py-2 px-3 text-right"></th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-duston-border/60 text-xs">
-          {taskList.map(renderTaskItemTableRow)}
-        </tbody>
-      </table>
-    </div>
+    <>
+      {/* Desktop & Tablet Table View (>= md) */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[700px]">
+          <thead>
+            <tr className="border-b border-duston-border text-[10px] font-semibold text-duston-muted uppercase tracking-wider bg-duston-bg/40">
+              <th className="py-2 px-3 w-8"></th>
+              <th className="py-2 px-3">Action Item</th>
+              <th className="py-2 px-3">Subsidiary</th>
+              <th className="py-2 px-3">Project</th>
+              <th className="py-2 px-3">Assignee</th>
+              <th className="py-2 px-3">Deadline</th>
+              <th className="py-2 px-3">Status</th>
+              <th className="py-2 px-3 text-right"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-duston-border/60 text-xs">
+            {taskList.map(renderTaskItemTableRow)}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile Card List (< md) */}
+      <div className="md:hidden p-2.5 space-y-2.5">
+        {taskList.map(renderTaskMobileCard)}
+      </div>
+    </>
   );
 
   const firstName = userName.split(" ")[0] || "User";

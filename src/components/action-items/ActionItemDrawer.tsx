@@ -472,7 +472,7 @@ export function ActionItemDrawer({
                 title="Edit this action item (Admin, EA, CEO, Creator)"
               >
                 <Edit2 size={13} />
-                <span>Edit item</span>
+                <span className="hidden sm:inline">Edit item</span>
               </button>
             )}
 
@@ -487,15 +487,15 @@ export function ActionItemDrawer({
               </button>
             )}
             <button
-                type="button"
-                onClick={() => setIsSyncModalOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#023542]/5 text-[#023542] hover:bg-[#1BCECE]/20 hover:text-[#023542] border border-[#023542]/15 transition-colors cursor-pointer"
-                title="Sync to my personal To-Do list (customizable)"
-              >
-                <CheckSquare size={13} className="text-[#1BCECE]" />
-                <span>Sync to My To-Do</span>
-              </button>
-              <button
+              type="button"
+              onClick={() => setIsSyncModalOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#023542]/5 text-[#023542] hover:bg-[#1BCECE]/20 hover:text-[#023542] border border-[#023542]/15 transition-colors cursor-pointer"
+              title="Sync to my personal To-Do list (customizable)"
+            >
+              <CheckSquare size={13} className="text-[#1BCECE]" />
+              <span className="hidden sm:inline">Sync to My To-Do</span>
+            </button>
+            <button
               onClick={onClose}
               className="p-1.5 rounded-lg text-duston-muted hover:text-duston-dark hover:bg-white border border-transparent hover:border-duston-border transition-colors cursor-pointer"
               aria-label="Close drawer"

@@ -123,7 +123,7 @@ export function TargetDeadlinePicker({
       {isOpen && (
         <div
           className={cn(
-            "absolute z-50 mt-1.5 w-64 rounded-2xl bg-white border border-duston-border shadow-xl p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2.5",
+            "absolute z-50 mt-1.5 w-64 max-w-[calc(100vw-2rem)] rounded-2xl bg-white border border-duston-border shadow-xl p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2.5",
             align === "right" ? "right-0" : "left-0"
           )}
         >

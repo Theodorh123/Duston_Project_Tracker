@@ -259,7 +259,7 @@ export function DashboardPlannerView({
 
               {/* Mini Calendar Popover */}
               {isMiniCalendarOpen && (
-                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50 w-72 bg-white border border-duston-border rounded-2xl shadow-2xl p-3.5 space-y-3 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50 w-72 max-w-[calc(100vw-2rem)] bg-white border border-duston-border rounded-2xl shadow-2xl p-3.5 space-y-3 animate-in fade-in zoom-in-95 duration-100">
                   <div className="flex items-center justify-between border-b border-duston-border/60 pb-2">
                     <button
                       type="button"
@@ -596,13 +596,13 @@ export function DashboardPlannerView({
         <div className="space-y-2">
           {/* Weekday headers */}
           <div className="grid grid-cols-7 text-center text-xs font-semibold text-duston-muted border-b border-duston-border/60 pb-2">
-            <span>Monday</span>
-            <span>Tuesday</span>
-            <span>Wednesday</span>
-            <span>Thursday</span>
-            <span>Friday</span>
-            <span>Saturday</span>
-            <span>Sunday</span>
+            <span><span className="hidden sm:inline">Monday</span><span className="sm:hidden">Mo</span></span>
+            <span><span className="hidden sm:inline">Tuesday</span><span className="sm:hidden">Tu</span></span>
+            <span><span className="hidden sm:inline">Wednesday</span><span className="sm:hidden">We</span></span>
+            <span><span className="hidden sm:inline">Thursday</span><span className="sm:hidden">Th</span></span>
+            <span><span className="hidden sm:inline">Friday</span><span className="sm:hidden">Fr</span></span>
+            <span><span className="hidden sm:inline">Saturday</span><span className="sm:hidden">Sa</span></span>
+            <span><span className="hidden sm:inline">Sunday</span><span className="sm:hidden">Su</span></span>
           </div>
 
           <div className="grid grid-cols-7 gap-1.5 sm:gap-2">

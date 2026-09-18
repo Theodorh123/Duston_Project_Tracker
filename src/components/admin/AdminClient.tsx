@@ -443,12 +443,12 @@ export function AdminClient({
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-duston-border flex items-center justify-between">
-        <div className="flex items-center gap-6">
+      <div className="border-b border-duston-border flex items-center justify-between gap-3">
+        <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar pb-0.5">
           <button
             onClick={() => setActiveTab("users")}
             className={cn(
-              "pb-3 text-xs font-medium border-b-2 flex items-center gap-2 transition-colors",
+              "pb-3 text-xs font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap shrink-0",
               activeTab === "users"
                 ? "border-[#023542] text-[#023542]"
                 : "border-transparent text-duston-muted hover:text-duston-dark"
@@ -461,7 +461,7 @@ export function AdminClient({
           <button
             onClick={() => setActiveTab("entities")}
             className={cn(
-              "pb-3 text-xs font-medium border-b-2 flex items-center gap-2 transition-colors",
+              "pb-3 text-xs font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap shrink-0",
               activeTab === "entities"
                 ? "border-[#023542] text-[#023542]"
                 : "border-transparent text-duston-muted hover:text-duston-dark"
@@ -474,7 +474,7 @@ export function AdminClient({
           <button
             onClick={() => setActiveTab("action-items")}
             className={cn(
-              "pb-3 text-xs font-medium border-b-2 flex items-center gap-2 transition-colors",
+              "pb-3 text-xs font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap shrink-0",
               activeTab === "action-items"
                 ? "border-[#023542] text-[#023542]"
                 : "border-transparent text-duston-muted hover:text-duston-dark"
@@ -487,7 +487,7 @@ export function AdminClient({
           <button
             onClick={() => setActiveTab("activity")}
             className={cn(
-              "pb-3 text-xs font-medium border-b-2 flex items-center gap-2 transition-colors",
+              "pb-3 text-xs font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap shrink-0",
               activeTab === "activity"
                 ? "border-[#023542] text-[#023542]"
                 : "border-transparent text-duston-muted hover:text-duston-dark"
@@ -500,7 +500,7 @@ export function AdminClient({
           <button
             onClick={() => setActiveTab("maintenance")}
             className={cn(
-              "pb-3 text-xs font-medium border-b-2 flex items-center gap-2 transition-colors",
+              "pb-3 text-xs font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap shrink-0",
               activeTab === "maintenance"
                 ? "border-[#023542] text-[#023542]"
                 : "border-transparent text-duston-muted hover:text-duston-dark"
@@ -514,7 +514,7 @@ export function AdminClient({
         {activeTab === "users" && (
           <button
             onClick={() => setIsNewUserModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors mb-2"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors mb-2 shrink-0 cursor-pointer"
           >
             <Plus size={14} strokeWidth={1.5} />
             <span>New user</span>
@@ -524,7 +524,7 @@ export function AdminClient({
         {activeTab === "entities" && (
           <button
             onClick={() => setIsNewEntityModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors mb-2"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors mb-2 shrink-0 cursor-pointer"
           >
             <Plus size={14} strokeWidth={1.5} />
             <span>New entity</span>
@@ -765,145 +765,240 @@ export function AdminClient({
             </div>
           </div>
 
-          {/* Table */}
-          <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[920px] text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
-                    <th className="py-3 px-4">Subsidiary</th>
-                    <th className="py-3 px-4">Project</th>
-                    <th className="py-3 px-4">Action Item</th>
-                    <th className="py-3 px-4">Assignee</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4">Deadline</th>
-                    <th className="py-3 px-4">Priority</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-duston-border">
-                  {filteredActionItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="py-12 text-center text-xs text-duston-muted">
-                        No action items match the current filters.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredActionItems.map((item) => {
-                      const isOverdue = isDeadlineOverdue(item.deadline, item.status);
-                      return (
-                        <tr
-                          key={item.id}
-                          className="hover:bg-duston-bg/50 transition-colors group cursor-pointer"
-                          onClick={() => openActionItem(item.id)}
-                        >
-                          <td className="py-3 px-4">
-                            <span
-                              className="px-2 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap"
-                              style={{
-                                backgroundColor: `${item.entityBrandColor}15`,
-                                color: item.entityBrandColor,
-                                borderColor: `${item.entityBrandColor}30`,
-                              }}
-                            >
-                              {item.entityName}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 font-medium text-duston-dark whitespace-nowrap max-w-[160px] truncate">
-                            {item.projectName || <span className="text-duston-muted italic font-normal">—</span>}
-                          </td>
-                          <td className="py-3 px-4 font-medium text-duston-dark hover:text-[#1BCECE] transition-colors">
-                            <div className="flex items-center gap-2">
-                              <span className="line-clamp-1">{item.title}</span>
-                              {Boolean(item.commentCount && item.commentCount > 0) && (
-                                <span
-                                  className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30 shrink-0"
-                                  title={`${item.commentCount} update${item.commentCount === 1 ? "" : "s"}`}
-                                >
-                                  <MessageSquare size={10} className="text-[#1BCECE]" />
-                                  <span>{item.commentCount}</span>
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-duston-dark whitespace-nowrap">
-                            <div className="flex items-center gap-1.5">
-                              <span>{item.assigneeName}</span>
-                              {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
-                                <span
-                                  className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
-                                  title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
-                                >
-                                  +{item.secondaryAssigneeNames?.length}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 whitespace-nowrap">
-                            <span
-                              className={cn(
-                                "capitalize px-2.5 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center gap-1.5 border",
-                                isOverdue
-                                  ? "bg-duston-orange/15 text-duston-orange border-duston-orange/30 font-semibold"
-                                  : item.status === "done"
-                                  ? "bg-[#39B54A]/10 text-[#39B54A] border-[#39B54A]/20"
-                                  : item.status === "in_progress"
-                                  ? "bg-[#1BCECE]/10 text-[#023542] border-[#1BCECE]/30"
-                                  : "bg-duston-bg text-duston-muted border-duston-border"
-                              )}
-                            >
+          {/* Table / Mobile Cards */}
+          {filteredActionItems.length === 0 ? (
+            <div className="bg-white border border-duston-border rounded-xl p-12 text-center text-xs text-duston-muted shadow-subtle">
+              No action items match the current filters.
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table (>= md) */}
+              <div className="hidden md:block bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[920px] text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
+                        <th className="py-3 px-4">Subsidiary</th>
+                        <th className="py-3 px-4">Project</th>
+                        <th className="py-3 px-4">Action Item</th>
+                        <th className="py-3 px-4">Assignee</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4">Deadline</th>
+                        <th className="py-3 px-4">Priority</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-duston-border">
+                      {filteredActionItems.map((item) => {
+                        const isOverdue = isDeadlineOverdue(item.deadline, item.status);
+                        return (
+                          <tr
+                            key={item.id}
+                            className="hover:bg-duston-bg/50 transition-colors group cursor-pointer"
+                            onClick={() => openActionItem(item.id)}
+                          >
+                            <td className="py-3 px-4">
+                              <span
+                                className="px-2 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap"
+                                style={{
+                                  backgroundColor: `${item.entityBrandColor}15`,
+                                  color: item.entityBrandColor,
+                                  borderColor: `${item.entityBrandColor}30`,
+                                }}
+                              >
+                                {item.entityName}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-medium text-duston-dark whitespace-nowrap max-w-[160px] truncate">
+                              {item.projectName || <span className="text-duston-muted italic font-normal">—</span>}
+                            </td>
+                            <td className="py-3 px-4 font-medium text-duston-dark hover:text-[#1BCECE] transition-colors">
+                              <div className="flex items-center gap-2">
+                                <span className="line-clamp-1">{item.title}</span>
+                                {Boolean(item.commentCount && item.commentCount > 0) && (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30 shrink-0"
+                                    title={`${item.commentCount} update${item.commentCount === 1 ? "" : "s"}`}
+                                  >
+                                    <MessageSquare size={10} className="text-[#1BCECE]" />
+                                    <span>{item.commentCount}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-duston-dark whitespace-nowrap">
+                              <div className="flex items-center gap-1.5">
+                                <span>{item.assigneeName}</span>
+                                {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
+                                  <span
+                                    className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0 cursor-help"
+                                    title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
+                                  >
+                                    +{item.secondaryAssigneeNames?.length}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 whitespace-nowrap">
                               <span
                                 className={cn(
-                                  "w-1.5 h-1.5 rounded-full",
+                                  "capitalize px-2.5 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center gap-1.5 border",
                                   isOverdue
-                                    ? "bg-duston-orange"
+                                    ? "bg-duston-orange/15 text-duston-orange border-duston-orange/30 font-semibold"
                                     : item.status === "done"
-                                    ? "bg-[#39B54A]"
+                                    ? "bg-[#39B54A]/10 text-[#39B54A] border-[#39B54A]/20"
                                     : item.status === "in_progress"
-                                    ? "bg-[#1BCECE]"
-                                    : "bg-duston-muted"
+                                    ? "bg-[#1BCECE]/10 text-[#023542] border-[#1BCECE]/30"
+                                    : "bg-duston-bg text-duston-muted border-duston-border"
                                 )}
-                              />
-                              <span>{isOverdue ? "Overdue" : item.status.replace("_", " ")}</span>
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 whitespace-nowrap">
+                              >
+                                <span
+                                  className={cn(
+                                    "w-1.5 h-1.5 rounded-full",
+                                    isOverdue
+                                      ? "bg-duston-orange"
+                                      : item.status === "done"
+                                      ? "bg-[#39B54A]"
+                                      : item.status === "in_progress"
+                                      ? "bg-[#1BCECE]"
+                                      : "bg-duston-muted"
+                                  )}
+                                />
+                                <span>{isOverdue ? "Overdue" : item.status.replace("_", " ")}</span>
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <span
+                                className={cn(
+                                  "px-2 py-0.5 rounded text-[11px] font-medium inline-flex items-center gap-1",
+                                  isOverdue
+                                    ? "bg-duston-orange/10 text-duston-orange border border-duston-orange/20 font-semibold"
+                                    : isTbaDeadline(item.deadline)
+                                    ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
+                                    : "text-duston-muted"
+                                )}
+                              >
+                                <Clock size={11} />
+                                <span>{formatDate(item.deadline)}</span>
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <PriorityFlag priority={item.priority} />
+                            </td>
+                            <td className="py-3 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() => openActionItem(item.id)}
+                                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#023542] hover:bg-[#1BCECE] text-white inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                                title="Edit action item"
+                              >
+                                <Edit2 size={11} />
+                                <span>Edit</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Mobile Card List (< md) */}
+              <div className="md:hidden space-y-2.5">
+                {filteredActionItems.map((item) => {
+                  const isOverdue = isDeadlineOverdue(item.deadline, item.status);
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => openActionItem(item.id)}
+                      className="p-3.5 bg-white border border-duston-border rounded-xl space-y-2.5 transition-colors cursor-pointer active:bg-duston-bg shadow-2xs group"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-xs font-semibold text-duston-dark group-hover:text-[#1BCECE] transition-colors line-clamp-2">
+                          {item.title}
+                        </span>
+                        <PriorityFlag priority={item.priority} />
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                        <span
+                          className="px-2 py-0.5 rounded font-medium border"
+                          style={{
+                            backgroundColor: `${item.entityBrandColor}15`,
+                            color: item.entityBrandColor,
+                            borderColor: `${item.entityBrandColor}30`,
+                          }}
+                        >
+                          {item.entityName}
+                        </span>
+                        {item.projectName && (
+                          <span className="text-duston-dark font-medium truncate max-w-[150px]">
+                            • {item.projectName}
+                          </span>
+                        )}
+                        {Boolean(item.commentCount && item.commentCount > 0) && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-[#023542] font-semibold bg-[#1BCECE]/15 px-1.5 py-0.2 rounded border border-[#1BCECE]/30">
+                            <MessageSquare size={10} className="text-[#1BCECE]" />
+                            <span>{item.commentCount}</span>
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-duston-border/50 text-[11px]">
+                        <div className="flex items-center gap-1.5 truncate min-w-0">
+                          <div className="w-5 h-5 rounded-full bg-[#023542] text-white text-[9px] font-bold flex items-center justify-center shrink-0">
+                            {item.assigneeName.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-duston-dark font-medium truncate max-w-[110px]">
+                            {item.assigneeName}
+                          </span>
+                          {Boolean(item.secondaryAssigneeNames && item.secondaryAssigneeNames.length > 0) && (
                             <span
-                              className={cn(
-                                "px-2 py-0.5 rounded text-[11px] font-medium inline-flex items-center gap-1",
-                                isOverdue
-                                  ? "bg-duston-orange/10 text-duston-orange border border-duston-orange/20 font-semibold"
-                                  : isTbaDeadline(item.deadline)
-                                  ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
-                                  : "text-duston-muted"
-                              )}
+                              className="px-1 py-0.2 rounded text-[8px] font-semibold bg-duston-bg border border-duston-border text-duston-dark shrink-0"
+                              title={`Co-owners: ${item.secondaryAssigneeNames?.join(", ")}`}
                             >
-                              <Clock size={11} />
-                              <span>{formatDate(item.deadline)}</span>
+                              +{item.secondaryAssigneeNames?.length}
                             </span>
-                          </td>
-                          <td className="py-3 px-4 whitespace-nowrap">
-                            <PriorityFlag priority={item.priority} />
-                          </td>
-                          <td className="py-3 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                            <button
-                              type="button"
-                              onClick={() => openActionItem(item.id)}
-                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#023542] hover:bg-[#1BCECE] text-white inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
-                              title="Edit action item"
-                            >
-                              <Edit2 size={11} />
-                              <span>Edit</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 rounded text-[10px] font-medium",
+                              isOverdue
+                                ? "bg-duston-orange/10 text-duston-orange font-semibold"
+                                : isTbaDeadline(item.deadline)
+                                ? "bg-amber-50 text-amber-800 border border-amber-200/80 font-semibold"
+                                : "text-duston-muted bg-duston-bg"
+                            )}
+                          >
+                            {formatDate(item.deadline)}
+                          </span>
+
+                          <span
+                            className={cn(
+                              "capitalize px-2.5 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center gap-1 border",
+                              isOverdue
+                                ? "bg-duston-orange/15 text-duston-orange border-duston-orange/30 font-semibold"
+                                : item.status === "done"
+                                ? "bg-[#39B54A]/10 text-[#39B54A] border-[#39B54A]/20"
+                                : item.status === "in_progress"
+                                ? "bg-[#1BCECE]/10 text-[#023542] border-[#1BCECE]/30"
+                                : "bg-duston-bg text-duston-muted border-duston-border"
+                            )}
+                          >
+                            {isOverdue ? "Overdue" : item.status.replace("_", " ")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       )}
 

@@ -410,7 +410,7 @@ export function TodoListClient({
           />
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap w-full sm:w-auto pt-1 sm:pt-0 border-t border-duston-border/40 sm:border-0">
           {/* Required Subsidiary Dropdown */}
           <DropdownFilter
             label="Subsidiary"
@@ -474,7 +474,7 @@ export function TodoListClient({
           <button
             type="submit"
             disabled={isSubmitting || !newTitle.trim() || !newEntityId}
-            className="px-3.5 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white disabled:opacity-40 rounded-lg text-xs font-medium transition-colors shadow-2xs cursor-pointer flex items-center gap-1 shrink-0"
+            className="px-3.5 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white disabled:opacity-40 rounded-lg text-xs font-medium transition-colors shadow-2xs cursor-pointer flex items-center justify-center gap-1 shrink-0 w-full sm:w-auto"
           >
             <Plus size={13} strokeWidth={2} />
             <span>Add</span>
@@ -484,12 +484,12 @@ export function TodoListClient({
 
       {/* Tabs */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 bg-duston-bg/80 p-1 rounded-xl border border-duston-border text-xs">
+        <div className="flex items-center gap-1 bg-duston-bg/80 p-1 rounded-xl border border-duston-border text-xs w-full sm:w-auto justify-between sm:justify-start">
           <button
             type="button"
             onClick={() => setActiveTab("all")}
             className={cn(
-              "px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
+              "px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer flex-1 sm:flex-initial text-center",
               activeTab === "all"
                 ? "bg-[#023542] text-white shadow-2xs font-semibold"
                 : "text-duston-muted hover:text-duston-dark"
@@ -501,7 +501,7 @@ export function TodoListClient({
             type="button"
             onClick={() => setActiveTab("active")}
             className={cn(
-              "px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
+              "px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer flex-1 sm:flex-initial text-center",
               activeTab === "active"
                 ? "bg-[#023542] text-white shadow-2xs font-semibold"
                 : "text-duston-muted hover:text-duston-dark"
@@ -513,7 +513,7 @@ export function TodoListClient({
             type="button"
             onClick={() => setActiveTab("done")}
             className={cn(
-              "px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
+              "px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer flex-1 sm:flex-initial text-center",
               activeTab === "done"
                 ? "bg-[#023542] text-white shadow-2xs font-semibold"
                 : "text-duston-muted hover:text-duston-dark"
@@ -599,7 +599,7 @@ export function TodoListClient({
                         placeholder="Target Deadline"
                       />
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end pt-1 sm:pt-0">
                       <button
                         type="button"
                         onClick={() => handleSaveEdit(todo.id)}
@@ -626,17 +626,17 @@ export function TodoListClient({
               <div
                 key={todo.id}
                 className={cn(
-                  "px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-duston-bg/60 transition-colors group",
+                  "px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 hover:bg-duston-bg/60 transition-colors group",
                   todo.status === "done" && "bg-duston-bg/20"
                 )}
               >
                 {/* Left: Checkbox, Title, Subsidiary & Optional Project */}
-                <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                   <input
                     type="checkbox"
                     checked={todo.status === "done"}
                     onChange={() => handleToggleDone(todo)}
-                    className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer shrink-0"
+                    className="rounded border-duston-border text-[#023542] focus:ring-0 cursor-pointer shrink-0 mt-0.5 sm:mt-0"
                   />
                   <div className="min-w-0 flex items-center gap-2 flex-wrap">
                     <span
@@ -673,7 +673,7 @@ export function TodoListClient({
                 </div>
 
                 {/* Right: Deadline & Status Dropdown & Delete */}
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 w-full sm:w-auto pt-1 sm:pt-0 border-t border-duston-border/30 sm:border-0 pl-6 sm:pl-0">
                   {/* Deadline Badge */}
                   {todo.dueDate ? (
                     <span
