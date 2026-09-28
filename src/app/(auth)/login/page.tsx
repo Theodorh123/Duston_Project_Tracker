@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Clock } from "lucide-react";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isTimeout = searchParams.get("reason") === "timeout";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -41,93 +44,113 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-duston-bg flanelines-bg flex flex-col items-center justify-center p-4 relative">
-      <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl shadow-subtle p-8 z-10">
-        
-        {/* Duston Group Logo Header */}
-        <div className="text-center mb-6 flex flex-col items-center">
-          <Link href="/" className="inline-block hover:opacity-90 transition-opacity" title="Duston Project Tracker">
-            <Image
-              src="/logo-duston-group.png"
-              alt="Duston Group"
-              width={1024}
-              height={168}
-              priority
-              quality={100}
-              className="h-10 sm:h-12 w-auto max-w-[280px] sm:max-w-[320px] object-contain mx-auto mb-2"
-              style={{ aspectRatio: "1024 / 168" }}
-            />
-          </Link>
-          <h1 className="text-sm font-medium text-duston-dark mt-2">
-            Duston Project Tracker
-          </h1>
+    <div className="w-full max-w-md bg-white border border-duston-border rounded-2xl shadow-subtle p-8 z-10">
+      {/* Duston Group Logo Header */}
+      <div className="text-center mb-6 flex flex-col items-center">
+        <Link href="/" className="inline-block hover:opacity-90 transition-opacity" title="Duston Project Tracker">
+          <Image
+            src="/logo-duston-group.png"
+            alt="Duston Group"
+            width={1024}
+            height={168}
+            priority
+            quality={100}
+            className="h-10 sm:h-12 w-auto max-w-[280px] sm:max-w-[320px] object-contain mx-auto mb-2"
+            style={{ aspectRatio: "1024 / 168" }}
+          />
+        </Link>
+        <h1 className="text-sm font-medium text-duston-dark mt-2">
+          Duston Project Tracker
+        </h1>
+      </div>
+
+      {/* Inactivity Timeout Reassurance Notice */}
+      {isTimeout && !error && (
+        <div className="mb-5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5 text-left font-medium animate-in fade-in">
+          <Clock size={16} className="text-duston-amber shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <span className="font-semibold block text-amber-950">Session Timed Out</span>
+            <p className="text-[11px] text-amber-800 leading-snug">
+              You were signed out after 30 minutes of inactivity to protect sensitive deliverables. Please sign in to continue.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-5 p-3 rounded-xl bg-duston-orange/10 border border-duston-orange/20 text-duston-orange text-xs text-center font-medium animate-in fade-in">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-duston-text mb-1.5">
+            Email
+          </label>
+          <input
+            type="email"
+            required
+            placeholder="name@dustongroup.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full bg-white border border-duston-border rounded-xl px-3.5 py-2.5 text-xs text-duston-text outline-none focus:border-[#1BCECE] focus:ring-1 focus:ring-[#1BCECE] transition-all"
+          />
         </div>
 
-        {error && (
-          <div className="mb-5 p-3 rounded-xl bg-duston-orange/10 border border-duston-orange/20 text-duston-orange text-xs text-center font-medium">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-duston-text mb-1.5">
-              Email
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-medium text-duston-text">
+              Password
             </label>
+            <span className="text-[11px] text-duston-muted hover:underline cursor-pointer">
+              Forgot password
+            </span>
+          </div>
+          <div className="relative">
             <input
-              type="email"
+              type={showPassword ? "text" : "password"}
               required
-              placeholder="name@dustongroup.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-white border border-duston-border rounded-xl px-3.5 py-2.5 text-xs text-duston-text outline-none focus:border-[#1BCECE] focus:ring-1 focus:ring-[#1BCECE] transition-all"
+              placeholder="••••••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-white border border-duston-border rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-duston-text outline-none focus:border-[#1BCECE] focus:ring-1 focus:ring-[#1BCECE] transition-all"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-duston-muted hover:text-duston-dark p-1 rounded-md transition-colors cursor-pointer"
+              title={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? (
+                <EyeOff size={15} strokeWidth={1.5} />
+              ) : (
+                <Eye size={15} strokeWidth={1.5} />
+              )}
+            </button>
           </div>
+        </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-medium text-duston-text">
-                Password
-              </label>
-              <span className="text-[11px] text-duston-muted hover:underline cursor-pointer">
-                Forgot password
-              </span>
-            </div>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                placeholder="••••••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white border border-duston-border rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-duston-text outline-none focus:border-[#1BCECE] focus:ring-1 focus:ring-[#1BCECE] transition-all"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-duston-muted hover:text-duston-dark p-1 rounded-md transition-colors cursor-pointer"
-                title={showPassword ? "Hide password" : "Show password"}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? (
-                  <EyeOff size={15} strokeWidth={1.5} />
-                ) : (
-                  <Eye size={15} strokeWidth={1.5} />
-                )}
-              </button>
-            </div>
-          </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-2.5 px-4 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer shadow-subtle"
+        >
+          {loading ? "Signing in..." : "Sign in"}
+          <ArrowRight size={14} strokeWidth={1.5} />
+        </button>
+      </form>
+    </div>
+  );
+}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 px-4 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer shadow-subtle"
-          >
-            {loading ? "Signing in..." : "Sign in"}
-            <ArrowRight size={14} strokeWidth={1.5} />
-          </button>
-        </form>
-      </div>
+export default function LoginPage() {
+  return (
+    <div className="min-h-screen bg-duston-bg flanelines-bg flex flex-col items-center justify-center p-4 relative">
+      <Suspense fallback={<div className="w-full max-w-md bg-white border border-duston-border rounded-2xl p-8 h-96 animate-pulse" />}>
+        <LoginForm />
+      </Suspense>
     </div>
   );
 }

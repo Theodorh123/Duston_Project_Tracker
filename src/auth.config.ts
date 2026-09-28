@@ -64,7 +64,7 @@ export const authConfig = {
   providers: [], // Configured in auth.ts with Credentials
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 12 * 60 * 60, // 12 hours (standard full workday session)
   },
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "duston_super_secret_auth_key_2026_ghana_conglomerate_secure_token",
 } satisfies NextAuthConfig;
