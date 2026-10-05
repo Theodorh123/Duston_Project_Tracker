@@ -1245,32 +1245,21 @@ export function ActionRegisterClient({
           </div>
         </div>
 
-        {/* Active Filters Row / Quick Actions */}
+        {/* Active Filters Row / Status Summary */}
         <div className="flex items-center justify-between border-t border-duston-border/60 pt-2.5 text-xs flex-wrap gap-2">
           <span className="text-[11px] text-duston-muted">
             Showing {filteredItems.length} of {scopedAll.length} deliverables
           </span>
-          <div className="flex items-center gap-2">
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="text-[11px] text-[#023542] hover:underline font-semibold flex items-center gap-1 cursor-pointer mr-1"
-              >
-                <X size={12} />
-                <span>Reset all filters</span>
-              </button>
-            )}
+          {hasActiveFilters && (
             <button
               type="button"
-              onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
-              title="Add a new action item"
+              onClick={clearFilters}
+              className="text-[11px] text-[#023542] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
             >
-              <Plus size={13} strokeWidth={2.5} />
-              <span>Add Action Item</span>
+              <X size={12} />
+              <span>Reset all filters</span>
             </button>
-          </div>
+          )}
         </div>
       </div>
 
