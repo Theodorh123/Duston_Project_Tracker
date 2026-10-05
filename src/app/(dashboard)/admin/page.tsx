@@ -3,7 +3,14 @@ import { db } from "@/lib/db";
 import { users, entities, activityLog, actionItems, projects, notifications } from "@/lib/db/schema";
 import { eq, desc, count } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { AdminClient, AdminUser, AdminEntity, AdminActivityLog, AdminActionItem } from "@/components/admin/AdminClient";
+import {
+  AdminClient,
+  AdminUser,
+  AdminEntity,
+  AdminActivityLog,
+  AdminActionItem,
+  AdminProject,
+} from "@/components/admin/AdminClient";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -63,7 +70,38 @@ export default async function AdminPage() {
     isActive: e.isActive,
   }));
 
-  // 3. Activity Log (paginated 50)
+  // 3. Projects (all across group)
+  const allProjectsList = await db.query.projects.findMany({
+    with: {
+      entity: true,
+      owner: true,
+      actionItems: true,
+    },
+    orderBy: [desc(projects.createdAt)],
+  });
+
+  const mappedProjects: AdminProject[] = allProjectsList.map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description || null,
+    entityId: p.entityId,
+    entityName: p.entity?.name || "Subsidiary",
+    entityBrandColor: p.entity?.brandPrimaryColor || "#023542",
+    category: p.category,
+    status: p.status,
+    priority: p.priority,
+    ownerId: p.ownerId || null,
+    ownerName: p.owner?.name || null,
+    sponsorId: p.sponsorId || null,
+    startDate: p.startDate,
+    targetDate: p.targetDate,
+    budgetNotes: p.budgetNotes || null,
+    actionItemCount: p.actionItems?.length || 0,
+    openActionItemCount: p.actionItems?.filter((it) => it.status !== "done").length || 0,
+    createdAt: p.createdAt ? p.createdAt.toISOString() : new Date().toISOString(),
+  }));
+
+  // 4. Activity Log (paginated 50)
   const allActivities = await db.query.activityLog.findMany({
     with: {
       actor: true,
@@ -93,7 +131,7 @@ export default async function AdminPage() {
     createdAt: a.createdAt.toISOString(),
   }));
 
-  // 4. Action Items (all across group)
+  // 5. Action Items (all across group)
   const allActionItemsList = await db.query.actionItems.findMany({
     with: {
       project: {
@@ -141,7 +179,7 @@ export default async function AdminPage() {
     };
   });
 
-  // 5. System Counts for Data Maintenance
+  // 6. System Counts for Data Maintenance
   const [userCount] = await db.select({ val: count() }).from(users);
   const [entityCount] = await db.select({ val: count() }).from(entities);
   const [projectCount] = await db.select({ val: count() }).from(projects);
@@ -162,6 +200,7 @@ export default async function AdminPage() {
     <AdminClient
       initialUsers={mappedUsers}
       initialEntities={mappedEntities}
+      initialProjects={mappedProjects}
       initialActivities={mappedActivities}
       initialActionItems={mappedActionItems}
       initialStats={stats}

@@ -3,9 +3,19 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Filter, FolderKanban, Calendar, ArrowRight, MessageSquare, X } from "lucide-react";
+import {
+  Plus,
+  Search,
+  FolderKanban,
+  MessageSquare,
+  X,
+  Edit2,
+  Trash2,
+  ExternalLink,
+} from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { NewProjectDrawer } from "./NewProjectDrawer";
+import { EditProjectModal } from "./EditProjectModal";
 import { useAppShell } from "../layout/AppShell";
 import { updateProject } from "@/lib/actions/projects";
 import { DropdownFilter } from "@/components/ui/DropdownFilter";
@@ -13,15 +23,19 @@ import { DropdownFilter } from "@/components/ui/DropdownFilter";
 export interface ProjectListItem {
   id: string;
   name: string;
+  description?: string | null;
   entityId: string;
   entityName: string;
   entityBrandColor: string;
   category: string;
   ownerId?: string | null;
   ownerName?: string | null;
+  sponsorId?: string | null;
   status: string;
   priority: string;
+  startDate?: string;
   targetDate: string;
+  budgetNotes?: string | null;
   comments?: string | null;
   openItemsCount?: number;
 }
@@ -31,6 +45,8 @@ interface ProjectsClientProps {
   entities: Array<{ id: string; name: string }>;
   users: Array<{ id: string; name: string }>;
   currentUserId: string;
+  userRole?: string;
+  hasGlobalAccess?: boolean;
 }
 
 export function ProjectsClient({
@@ -38,6 +54,8 @@ export function ProjectsClient({
   entities,
   users,
   currentUserId,
+  userRole,
+  hasGlobalAccess,
 }: ProjectsClientProps) {
   const router = useRouter();
   const { selectedEntityId } = useAppShell();
@@ -45,6 +63,7 @@ export function ProjectsClient({
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
+  const [editModalProject, setEditModalProject] = useState<ProjectListItem | null>(null);
   const [projectsList, setProjectsList] = useState<ProjectListItem[]>(projects);
   const [commentModalProject, setCommentModalProject] = useState<ProjectListItem | null>(null);
   const [commentText, setCommentText] = useState("");
@@ -57,25 +76,40 @@ export function ProjectsClient({
 
   // Real-time synchronization
   useEffect(() => {
-    const handleProjectCreated = (e: Event) => {
-      const proj = (e as CustomEvent).detail;
-      if (!proj || !proj.id) return;
+    const handleProjectCreated = () => {
       router.refresh();
     };
 
-    const handleActionUpdated = () => {
+    const handleProjectUpdated = () => {
+      router.refresh();
+    };
+
+    const handleProjectDeleted = () => {
       router.refresh();
     };
 
     window.addEventListener("project-created", handleProjectCreated);
-    window.addEventListener("action-item-updated", handleActionUpdated);
-    window.addEventListener("action-item-deleted", handleActionUpdated);
+    window.addEventListener("project-updated", handleProjectUpdated);
+    window.addEventListener("project-deleted", handleProjectDeleted);
+    window.addEventListener("action-item-updated", handleProjectUpdated);
+    window.addEventListener("action-item-deleted", handleProjectUpdated);
+
     return () => {
       window.removeEventListener("project-created", handleProjectCreated);
-      window.removeEventListener("action-item-updated", handleActionUpdated);
-      window.removeEventListener("action-item-deleted", handleActionUpdated);
+      window.removeEventListener("project-updated", handleProjectUpdated);
+      window.removeEventListener("project-deleted", handleProjectDeleted);
+      window.removeEventListener("action-item-updated", handleProjectUpdated);
+      window.removeEventListener("action-item-deleted", handleProjectUpdated);
     };
   }, [router]);
+
+  const canManageProject = (p: ProjectListItem) =>
+    userRole === "admin" ||
+    userRole === "ceo" ||
+    userRole === "ea" ||
+    Boolean(hasGlobalAccess) ||
+    p.ownerId === currentUserId ||
+    p.sponsorId === currentUserId;
 
   const handleOpenCommentModal = (p: ProjectListItem) => {
     setCommentModalProject(p);
@@ -91,7 +125,7 @@ export function ProjectsClient({
       await updateProject(commentModalProject.id, { description: updatedVal });
       setProjectsList((prev) =>
         prev.map((pr) =>
-          pr.id === commentModalProject.id ? { ...pr, comments: updatedVal || null } : pr
+          pr.id === commentModalProject.id ? { ...pr, comments: updatedVal || null, description: updatedVal || null } : pr
         )
       );
       setCommentModalProject(null);
@@ -112,6 +146,8 @@ export function ProjectsClient({
         return <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#1BCECE]/15 text-[#023542]">In progress</span>;
       case "on_hold":
         return <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#FBB03B]/10 text-[#FBB03B]">On hold</span>;
+      case "blocked":
+        return <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-duston-orange/10 text-duston-orange font-semibold">Blocked</span>;
       default:
         return <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-duston-bg border border-duston-border text-duston-muted">Not started</span>;
     }
@@ -126,7 +162,8 @@ export function ProjectsClient({
         const q = searchQuery.toLowerCase();
         return (
           p.name.toLowerCase().includes(q) ||
-          p.entityName.toLowerCase().includes(q)
+          p.entityName.toLowerCase().includes(q) ||
+          (p.ownerName && p.ownerName.toLowerCase().includes(q))
         );
       }
       return true;
@@ -148,19 +185,19 @@ export function ProjectsClient({
             Projects
           </h1>
           <p className="text-xs text-duston-muted mt-1">
-            Browse and manage enterprise initiatives across group subsidiaries
+            Browse, manage, and deliver enterprise initiatives across group subsidiaries
           </p>
         </div>
         <button
           onClick={() => setIsNewDrawerOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors shadow-subtle self-start sm:self-auto"
+          className="flex items-center gap-2 px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors shadow-subtle self-start sm:self-auto cursor-pointer"
         >
           <Plus size={16} strokeWidth={1.5} />
           <span>New project</span>
         </button>
       </div>
 
-      {/* Filter Strip - only show if there are projects */}
+      {/* Filter Strip */}
       {projectsList.length > 0 && (
         <div className="bg-white border border-duston-border rounded-xl p-3.5 sm:p-4 shadow-subtle flex flex-wrap items-center gap-3 text-xs">
           {/* Category Filter */}
@@ -188,6 +225,7 @@ export function ProjectsClient({
               { value: "not_started", label: "Not started", dotColor: "#94a3b8" },
               { value: "in_progress", label: "In progress", dotColor: "#1BCECE" },
               { value: "on_hold", label: "On hold", dotColor: "#f59e0b" },
+              { value: "blocked", label: "Blocked", dotColor: "#F15A24" },
               { value: "done", label: "Done", dotColor: "#39B54A" },
             ]}
             onChange={(val) => setSelectedStatus(val)}
@@ -197,7 +235,7 @@ export function ProjectsClient({
           <div className="relative flex-1 min-w-[200px]">
             <input
               type="text"
-              placeholder="Search projects..."
+              placeholder="Search projects by name, subsidiary, or lead..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-duston-bg border border-duston-border rounded-xl pl-8 pr-3 py-1.5 text-xs text-duston-dark placeholder:text-duston-muted outline-none focus:border-[#1BCECE]"
@@ -212,11 +250,7 @@ export function ProjectsClient({
           {(selectedCategory !== "all" || selectedStatus !== "all" || searchQuery.trim()) && (
             <button
               type="button"
-              onClick={() => {
-                setSelectedCategory("all");
-                setSelectedStatus("all");
-                setSearchQuery("");
-              }}
+              onClick={clearFilters}
               className="text-xs text-[#023542] hover:underline font-medium flex items-center gap-1 cursor-pointer"
             >
               <X size={12} />
@@ -226,7 +260,7 @@ export function ProjectsClient({
         </div>
       )}
 
-      {/* Projects List: Desktop Table & Mobile Cards */}
+      {/* Projects List */}
       {projectsList.length === 0 ? (
         <div className="bg-white border border-duston-border rounded-2xl p-12 text-center shadow-subtle flanelines-bg space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-[#023542]/5 text-[#023542] flex items-center justify-center mx-auto mb-2">
@@ -274,130 +308,173 @@ export function ProjectsClient({
                   <th className="py-3 px-4">Project name</th>
                   <th className="py-3 px-4">Subsidiary</th>
                   <th className="py-3 px-4">Category</th>
+                  <th className="py-3 px-4">Lead Owner</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Target date</th>
-                  <th className="py-3 px-4">Comments</th>
+                  <th className="py-3 px-4">Remarks</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-duston-border">
-                {filteredProjects.map((project) => (
-                  <tr
-                    key={project.id}
-                    onClick={() => router.push(`/projects/${project.id}`)}
-                    className="hover:bg-duston-bg cursor-pointer transition-colors"
-                  >
-                    <td className="py-3 px-4 font-medium text-duston-dark">
-                      {project.name}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className="px-2 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center gap-1.5"
-                        style={{
-                          backgroundColor: `${project.entityBrandColor}15`,
-                          color: project.entityBrandColor,
-                        }}
-                      >
+                {filteredProjects.map((project) => {
+                  const allowed = canManageProject(project);
+                  return (
+                    <tr
+                      key={project.id}
+                      onClick={() => router.push(`/projects/${project.id}`)}
+                      className="hover:bg-duston-bg cursor-pointer transition-colors group"
+                    >
+                      <td className="py-3 px-4 font-medium text-duston-dark max-w-[200px] truncate">
+                        {project.name}
+                      </td>
+                      <td className="py-3 px-4">
                         <span
-                          className="w-1.5 h-1.5 rounded-full"
-                          style={{ backgroundColor: project.entityBrandColor }}
-                        />
-                        <span>{project.entityName}</span>
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-duston-muted uppercase tracking-wider text-[10px]">
-                      {project.category}
-                    </td>
-                    <td className="py-3 px-4">
-                      {getStatusBadge(project.status)}
-                    </td>
-                    <td className="py-3 px-4 text-duston-muted">
-                      {formatDate(project.targetDate)}
-                    </td>
-                    <td className="py-3 px-4 max-w-[220px]" onClick={(e) => e.stopPropagation()}>
-                      {project.comments ? (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenCommentModal(project)}
-                          className="flex items-center gap-1.5 text-left hover:bg-duston-bg/80 p-1.5 -m-1.5 rounded-lg cursor-pointer group transition-colors w-full"
-                          title="Comments"
+                          className="px-2 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center gap-1.5"
+                          style={{
+                            backgroundColor: `${project.entityBrandColor}15`,
+                            color: project.entityBrandColor,
+                          }}
                         >
-                          <MessageSquare size={13} className="text-[#1BCECE] shrink-0 group-hover:scale-110 transition-transform" />
-                          <span className="truncate text-xs text-duston-dark group-hover:text-[#023542]">{project.comments}</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenCommentModal(project)}
-                          className="text-[11px] text-duston-muted hover:text-[#023542] flex items-center gap-1 hover:underline cursor-pointer"
-                        >
-                          <MessageSquare size={12} />
-                          <span>+ Add comment</span>
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                          <span
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: project.entityBrandColor }}
+                          />
+                          <span>{project.entityName}</span>
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-duston-muted uppercase tracking-wider text-[10px]">
+                        {project.category}
+                      </td>
+                      <td className="py-3 px-4 text-duston-dark max-w-[140px] truncate">
+                        {project.ownerName || <span className="text-duston-muted italic font-normal">—</span>}
+                      </td>
+                      <td className="py-3 px-4">
+                        {getStatusBadge(project.status)}
+                      </td>
+                      <td className="py-3 px-4 text-duston-muted">
+                        {formatDate(project.targetDate)}
+                      </td>
+                      <td className="py-3 px-4 max-w-[180px]" onClick={(e) => e.stopPropagation()}>
+                        {project.comments ? (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCommentModal(project)}
+                            className="flex items-center gap-1.5 text-left hover:bg-duston-bg/80 p-1.5 -m-1.5 rounded-lg cursor-pointer group/cmt transition-colors w-full"
+                            title="Comments"
+                          >
+                            <MessageSquare size={13} className="text-[#1BCECE] shrink-0 group-hover/cmt:scale-110 transition-transform" />
+                            <span className="truncate text-xs text-duston-dark group-hover/cmt:text-[#023542]">{project.comments}</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCommentModal(project)}
+                            className="text-[11px] text-duston-muted hover:text-[#023542] flex items-center gap-1 hover:underline cursor-pointer"
+                          >
+                            <MessageSquare size={12} />
+                            <span>+ Remarks</span>
+                          </button>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {allowed && (
+                            <button
+                              type="button"
+                              onClick={() => setEditModalProject(project)}
+                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#023542] hover:bg-[#1BCECE] text-white inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                              title="Edit or delete project"
+                            >
+                              <Edit2 size={11} />
+                              <span>Edit</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/projects/${project.id}`)}
+                            className="p-1 rounded-lg text-duston-muted hover:text-duston-dark hover:bg-duston-bg transition-colors cursor-pointer"
+                            title="View project details"
+                          >
+                            <ExternalLink size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           {/* Mobile Card List (<768px) */}
           <div className="md:hidden space-y-3">
-            {filteredProjects.map((project) => (
-              <div
-                key={project.id}
-                onClick={() => router.push(`/projects/${project.id}`)}
-                className="p-4 bg-white border border-duston-border rounded-xl shadow-subtle active:bg-duston-bg transition-colors space-y-2.5 cursor-pointer"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="font-medium text-duston-dark text-xs">
-                    {project.name}
+            {filteredProjects.map((project) => {
+              const allowed = canManageProject(project);
+              return (
+                <div
+                  key={project.id}
+                  onClick={() => router.push(`/projects/${project.id}`)}
+                  className="p-4 bg-white border border-duston-border rounded-xl shadow-subtle active:bg-duston-bg transition-colors space-y-2.5 cursor-pointer"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-medium text-duston-dark text-xs">
+                      {project.name}
+                    </div>
+                    {getStatusBadge(project.status)}
                   </div>
-                  {getStatusBadge(project.status)}
-                </div>
 
-                <div className="flex items-center justify-between text-[11px] text-duston-muted">
-                  <span
-                    className="px-2 py-0.5 rounded text-[10px] font-medium"
-                    style={{
-                      backgroundColor: `${project.entityBrandColor}15`,
-                      color: project.entityBrandColor,
-                    }}
-                  >
-                    {project.entityName}
-                  </span>
-                  <span className="capitalize">{project.category}</span>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] border-t border-duston-border pt-2 text-duston-muted">
-                  <span>Target: {formatDate(project.targetDate)}</span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenCommentModal(project);
-                    }}
-                    className="flex items-center gap-1 text-[#023542] hover:text-[#1BCECE] font-medium cursor-pointer"
-                  >
-                    <MessageSquare size={12} className="text-[#1BCECE]" />
-                    <span>{project.comments ? "Edit comment" : "+ Comment"}</span>
-                  </button>
-                </div>
-
-                {project.comments && (
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenCommentModal(project);
-                    }}
-                    className="text-[11px] text-duston-text bg-duston-bg/60 p-2.5 rounded-xl border border-duston-border/60 line-clamp-2 cursor-pointer hover:border-[#1BCECE] transition-colors"
-                    title="Comments"
-                  >
-                    {project.comments}
+                  <div className="flex items-center justify-between text-[11px] text-duston-muted">
+                    <span
+                      className="px-2 py-0.5 rounded text-[10px] font-medium"
+                      style={{
+                        backgroundColor: `${project.entityBrandColor}15`,
+                        color: project.entityBrandColor,
+                      }}
+                    >
+                      {project.entityName}
+                    </span>
+                    <span className="capitalize">{project.category}</span>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  <div className="flex items-center justify-between text-[11px] border-t border-duston-border pt-2 text-duston-muted">
+                    <span>Target: {formatDate(project.targetDate)}</span>
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCommentModal(project)}
+                        className="flex items-center gap-1 text-[#023542] hover:text-[#1BCECE] font-medium cursor-pointer"
+                      >
+                        <MessageSquare size={12} className="text-[#1BCECE]" />
+                        <span>{project.comments ? "Remarks" : "+ Remarks"}</span>
+                      </button>
+                      {allowed && (
+                        <button
+                          type="button"
+                          onClick={() => setEditModalProject(project)}
+                          className="px-2 py-0.5 rounded bg-[#023542] text-white text-[10px] font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Edit2 size={10} />
+                          <span>Edit</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {project.comments && (
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenCommentModal(project);
+                      }}
+                      className="text-[11px] text-duston-text bg-duston-bg/60 p-2.5 rounded-xl border border-duston-border/60 line-clamp-2 cursor-pointer hover:border-[#1BCECE] transition-colors"
+                      title="Comments"
+                    >
+                      {project.comments}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </>
       )}
@@ -411,7 +488,36 @@ export function ProjectsClient({
         currentUserId={currentUserId}
       />
 
-      {/* Project Comment / Remarks Modal */}
+      {/* Edit Project Modal */}
+      {editModalProject && (
+        <EditProjectModal
+          isOpen={!!editModalProject}
+          onClose={() => setEditModalProject(null)}
+          project={{
+            id: editModalProject.id,
+            name: editModalProject.name,
+            description: editModalProject.description || editModalProject.comments || "",
+            category: editModalProject.category,
+            status: editModalProject.status,
+            priority: editModalProject.priority,
+            startDate: editModalProject.startDate || new Date().toISOString().split("T")[0],
+            targetDate: editModalProject.targetDate,
+            budgetNotes: editModalProject.budgetNotes || "",
+            entityId: editModalProject.entityId,
+            entityName: editModalProject.entityName,
+            ownerId: editModalProject.ownerId,
+            ownerName: editModalProject.ownerName,
+            sponsorId: editModalProject.sponsorId,
+          }}
+          entities={entities}
+          users={users}
+          canDelete={canManageProject(editModalProject)}
+          onProjectUpdated={() => router.refresh()}
+          onProjectDeleted={() => router.refresh()}
+        />
+      )}
+
+      {/* Project Remarks Modal */}
       {commentModalProject && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 animate-in fade-in duration-150 backdrop-blur-xs overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] shadow-2xl border border-duston-border overflow-hidden flex flex-col my-auto">
@@ -422,7 +528,7 @@ export function ProjectsClient({
                   <MessageSquare size={14} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-duston-dark">Project Remarks & Comments</h3>
+                  <h3 className="text-sm font-semibold text-duston-dark">Project Remarks</h3>
                   <p className="text-[11px] text-duston-muted truncate max-w-xs sm:max-w-sm">
                     {commentModalProject.name} • {commentModalProject.entityName}
                   </p>
@@ -438,36 +544,35 @@ export function ProjectsClient({
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSaveComment} className="flex flex-col flex-1 overflow-hidden min-h-0">
-              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs overscroll-contain">
-                <div>
-                  <label className="block text-duston-muted font-medium mb-1.5">
-                    Comment / Executive Note
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    placeholder="Add project status updates, operational remarks, or executive notes..."
-                    className="w-full bg-white border border-duston-border rounded-xl p-3 text-xs text-duston-dark outline-none focus:border-[#1BCECE] leading-relaxed resize-none font-sans"
-                  />
-                </div>
+            <form onSubmit={handleSaveComment} className="p-4 sm:p-5 space-y-4 text-xs">
+              <div>
+                <label className="block text-duston-dark font-semibold mb-1.5">
+                  Remarks & Strategic Scope
+                </label>
+                <textarea
+                  rows={4}
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Add high-level remarks, strategic updates, key milestones..."
+                  className="w-full bg-white border border-duston-border rounded-xl p-3 text-xs text-duston-text outline-none focus:border-[#1BCECE] resize-none"
+                  autoFocus
+                />
               </div>
 
-              <div className="flex items-center justify-end gap-2 p-3.5 sm:p-4 border-t border-duston-border bg-duston-bg/40 shrink-0">
+              <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setCommentModalProject(null)}
-                  className="px-3.5 py-2 text-xs font-medium text-duston-muted hover:text-duston-dark hover:bg-duston-bg rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 border border-duston-border rounded-xl text-duston-muted hover:text-duston-dark text-xs hover:bg-duston-bg cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingComment}
-                  className="px-4 py-2 text-xs font-medium bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl transition-colors shadow-subtle disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors shadow-subtle disabled:opacity-50 cursor-pointer"
                 >
-                  {isSavingComment ? "Saving..." : "Save comment"}
+                  {isSavingComment ? "Saving..." : "Save remarks"}
                 </button>
               </div>
             </form>

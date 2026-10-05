@@ -24,11 +24,16 @@ import {
   Search,
   Clock,
   MessageSquare,
+  FolderKanban,
+  ExternalLink,
 } from "lucide-react";
 import { cn, formatDate, isDeadlineOverdue, isTbaDeadline } from "@/lib/utils";
 import { PriorityFlag } from "@/components/ui/PriorityFlag";
 import { useAppShell } from "@/components/layout/AppShell";
 import { DropdownFilter } from "@/components/ui/DropdownFilter";
+import { EditProjectModal } from "../projects/EditProjectModal";
+import { NewProjectDrawer } from "../projects/NewProjectDrawer";
+import { useRouter } from "next/navigation";
 import {
   updateUserRole,
   resetUserPassword,
@@ -60,6 +65,27 @@ export interface AdminEntity {
   parentName?: string | null;
   brandPrimaryColor: string;
   isActive: boolean;
+}
+
+export interface AdminProject {
+  id: string;
+  name: string;
+  description?: string | null;
+  entityId: string;
+  entityName: string;
+  entityBrandColor: string;
+  category: string;
+  status: string;
+  priority: string;
+  ownerId?: string | null;
+  ownerName?: string | null;
+  sponsorId?: string | null;
+  startDate: string;
+  targetDate: string;
+  budgetNotes?: string | null;
+  actionItemCount: number;
+  openActionItemCount: number;
+  createdAt: string;
 }
 
 export interface AdminActivityLog {
@@ -104,6 +130,7 @@ export interface AdminStats {
 interface AdminClientProps {
   initialUsers: AdminUser[];
   initialEntities: AdminEntity[];
+  initialProjects?: AdminProject[];
   initialActivities: AdminActivityLog[];
   initialActionItems?: AdminActionItem[];
   initialStats?: AdminStats;
@@ -112,16 +139,30 @@ interface AdminClientProps {
 export function AdminClient({
   initialUsers,
   initialEntities,
+  initialProjects = [],
   initialActivities,
   initialActionItems = [],
   initialStats,
 }: AdminClientProps) {
   const { openActionItem } = useAppShell();
-  const [activeTab, setActiveTab] = useState<"users" | "entities" | "action-items" | "activity" | "maintenance">("users");
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"users" | "entities" | "projects" | "action-items" | "activity" | "maintenance">("users");
   const [usersList, setUsersList] = useState(initialUsers);
   const [entitiesList, setEntitiesList] = useState(initialEntities);
+  const [projectsList, setProjectsList] = useState<AdminProject[]>(initialProjects);
   const [activitiesList, setActivitiesList] = useState(initialActivities);
   const [actionItemsList, setActionItemsList] = useState<AdminActionItem[]>(initialActionItems);
+
+  const [adminEditProject, setAdminEditProject] = useState<AdminProject | null>(null);
+  const [isNewProjectDrawerOpen, setIsNewProjectDrawerOpen] = useState(false);
+  const [projectSearch, setProjectSearch] = useState("");
+  const [projectEntityFilter, setProjectEntityFilter] = useState<string>("all");
+  const [projectCategoryFilter, setProjectCategoryFilter] = useState<string>("all");
+  const [projectStatusFilter, setProjectStatusFilter] = useState<string>("all");
+
+  useEffect(() => {
+    setProjectsList(initialProjects);
+  }, [initialProjects]);
 
   useEffect(() => {
     setActionItemsList(initialActionItems);
@@ -161,13 +202,23 @@ export function AdminClient({
       setActionItemsList((prev) => prev.filter((it) => it.id !== deletedId));
     };
 
+    const handleProjectEvent = () => {
+      router.refresh();
+    };
+
     window.addEventListener("action-item-updated", handleItemUpdated);
     window.addEventListener("action-item-deleted", handleItemDeleted);
+    window.addEventListener("project-created", handleProjectEvent);
+    window.addEventListener("project-updated", handleProjectEvent);
+    window.addEventListener("project-deleted", handleProjectEvent);
     return () => {
       window.removeEventListener("action-item-updated", handleItemUpdated);
       window.removeEventListener("action-item-deleted", handleItemDeleted);
+      window.removeEventListener("project-created", handleProjectEvent);
+      window.removeEventListener("project-updated", handleProjectEvent);
+      window.removeEventListener("project-deleted", handleProjectEvent);
     };
-  }, []);
+  }, [router]);
 
   const [actionItemSearch, setActionItemSearch] = useState("");
   const [actionItemStatusFilter, setActionItemStatusFilter] = useState<string>("all");
@@ -425,6 +476,31 @@ export function AdminClient({
     return true;
   });
 
+  const filteredProjects = projectsList.filter((p) => {
+    if (projectSearch.trim()) {
+      const q = projectSearch.toLowerCase();
+      const matchName = p.name.toLowerCase().includes(q);
+      const matchEntity = p.entityName.toLowerCase().includes(q);
+      const matchOwner = p.ownerName ? p.ownerName.toLowerCase().includes(q) : false;
+      const matchCategory = p.category.toLowerCase().includes(q);
+      if (!matchName && !matchEntity && !matchOwner && !matchCategory) return false;
+    }
+
+    if (projectEntityFilter !== "all" && p.entityId !== projectEntityFilter) {
+      return false;
+    }
+
+    if (projectCategoryFilter !== "all" && p.category !== projectCategoryFilter) {
+      return false;
+    }
+
+    if (projectStatusFilter !== "all" && p.status !== projectStatusFilter) {
+      return false;
+    }
+
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -438,7 +514,7 @@ export function AdminClient({
           Admin Console
         </h1>
         <p className="text-xs text-duston-muted mt-1">
-          Manage user accounts, corporate subsidiaries, and system-wide audit activity
+          Manage user accounts, corporate subsidiaries, projects, and system-wide audit activity
         </p>
       </div>
 
@@ -469,6 +545,19 @@ export function AdminClient({
           >
             <Building2 size={14} strokeWidth={1.5} />
             <span>Subsidiaries ({entitiesList.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("projects")}
+            className={cn(
+              "pb-3 text-xs font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap shrink-0",
+              activeTab === "projects"
+                ? "border-[#023542] text-[#023542]"
+                : "border-transparent text-duston-muted hover:text-duston-dark"
+            )}
+          >
+            <FolderKanban size={14} strokeWidth={1.5} />
+            <span>Projects ({projectsList.length})</span>
           </button>
 
           <button
@@ -528,6 +617,16 @@ export function AdminClient({
           >
             <Plus size={14} strokeWidth={1.5} />
             <span>New entity</span>
+          </button>
+        )}
+
+        {activeTab === "projects" && (
+          <button
+            onClick={() => setIsNewProjectDrawerOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors mb-2 shrink-0 cursor-pointer"
+          >
+            <Plus size={14} strokeWidth={1.5} />
+            <span>New project</span>
           </button>
         )}
       </div>
@@ -702,7 +801,280 @@ export function AdminClient({
         </div>
       )}
 
-      {/* 3. Action Items Tab */}
+      {/* 3. Projects Tab */}
+      {activeTab === "projects" && (
+        <div className="space-y-4">
+          {/* Controls: Search, Entity, Category, Status */}
+          <div className="bg-white border border-duston-border rounded-xl p-3 sm:p-4 shadow-subtle flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-duston-muted"
+              />
+              <input
+                type="text"
+                value={projectSearch}
+                onChange={(e) => setProjectSearch(e.target.value)}
+                placeholder="Search projects by name, lead owner, subsidiary..."
+                className="w-full pl-9 pr-8 py-1.5 bg-duston-bg/50 border border-duston-border rounded-lg text-xs outline-none focus:border-[#1BCECE] focus:bg-white text-duston-dark placeholder:text-duston-muted"
+              />
+              {projectSearch && (
+                <button
+                  type="button"
+                  onClick={() => setProjectSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-duston-muted hover:text-duston-dark cursor-pointer"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <DropdownFilter
+                label="Subsidiary"
+                value={projectEntityFilter}
+                options={[
+                  { value: "all", label: "All Subsidiaries" },
+                  ...entitiesList.map((e) => ({
+                    value: e.id,
+                    label: e.name,
+                    dotColor: e.brandPrimaryColor,
+                  })),
+                ]}
+                onChange={(val) => setProjectEntityFilter(val)}
+              />
+
+              <DropdownFilter
+                label="Category"
+                value={projectCategoryFilter}
+                options={[
+                  { value: "all", label: "All categories" },
+                  { value: "operations", label: "Operations" },
+                  { value: "capex", label: "CAPEX" },
+                  { value: "financing", label: "Financing" },
+                  { value: "commercial", label: "Commercial" },
+                  { value: "regulatory", label: "Regulatory" },
+                  { value: "corporate", label: "Corporate" },
+                ]}
+                onChange={(val) => setProjectCategoryFilter(val)}
+              />
+
+              <DropdownFilter
+                label="Status"
+                value={projectStatusFilter}
+                options={[
+                  { value: "all", label: "All statuses" },
+                  { value: "not_started", label: "Not Started", dotColor: "#94a3b8" },
+                  { value: "in_progress", label: "In Progress", dotColor: "#1BCECE" },
+                  { value: "on_hold", label: "On Hold", dotColor: "#f59e0b" },
+                  { value: "blocked", label: "Blocked", dotColor: "#F15A24" },
+                  { value: "done", label: "Done", dotColor: "#39B54A" },
+                  { value: "cancelled", label: "Cancelled", dotColor: "#64748b" },
+                ]}
+                onChange={(val) => setProjectStatusFilter(val)}
+              />
+
+              {(projectSearch || projectEntityFilter !== "all" || projectCategoryFilter !== "all" || projectStatusFilter !== "all") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProjectSearch("");
+                    setProjectEntityFilter("all");
+                    setProjectCategoryFilter("all");
+                    setProjectStatusFilter("all");
+                  }}
+                  className="text-xs text-duston-muted hover:text-duston-dark underline px-1 cursor-pointer"
+                >
+                  Reset
+                </button>
+              )}
+
+              <span className="text-xs text-duston-muted bg-duston-bg px-2.5 py-1 rounded-lg border border-duston-border font-medium ml-auto md:ml-0">
+                {filteredProjects.length} {filteredProjects.length === 1 ? "project" : "projects"}
+              </span>
+            </div>
+          </div>
+
+          {filteredProjects.length === 0 ? (
+            <div className="bg-white border border-duston-border rounded-xl p-12 text-center shadow-subtle flanelines-bg">
+              <FolderKanban size={32} className="mx-auto text-duston-muted mb-2 opacity-50" />
+              <p className="text-sm font-medium text-duston-dark">No projects found</p>
+              <p className="text-xs text-duston-muted mt-0.5">
+                Try modifying your search or subsidiary filters.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white border border-duston-border rounded-xl shadow-subtle overflow-hidden">
+              {/* Desktop Table (>= md) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-duston-border bg-duston-bg/60 text-duston-muted font-medium">
+                      <th className="py-3 px-4">Project Name</th>
+                      <th className="py-3 px-4">Subsidiary</th>
+                      <th className="py-3 px-4">Category</th>
+                      <th className="py-3 px-4">Lead Owner</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Target Date</th>
+                      <th className="py-3 px-4 text-center">Deliverables</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-duston-border">
+                    {filteredProjects.map((project) => (
+                      <tr key={project.id} className="hover:bg-duston-bg/50 transition-colors group">
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-duston-dark">{project.name}</div>
+                          {project.description && (
+                            <div className="text-[11px] text-duston-muted line-clamp-1 max-w-xs mt-0.5">
+                              {project.description}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className="px-2 py-0.5 rounded text-[10px] font-medium"
+                            style={{
+                              backgroundColor: `${project.entityBrandColor}15`,
+                              color: project.entityBrandColor,
+                            }}
+                          >
+                            {project.entityName}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-duston-muted uppercase tracking-wider text-[10px]">
+                          {project.category}
+                        </td>
+                        <td className="py-3 px-4 text-duston-dark font-medium">
+                          {project.ownerName || <span className="text-duston-muted italic font-normal">—</span>}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 rounded text-[10px] font-medium capitalize",
+                              project.status === "done"
+                                ? "bg-[#39B54A]/10 text-[#39B54A]"
+                                : project.status === "in_progress"
+                                ? "bg-[#1BCECE]/15 text-[#023542]"
+                                : project.status === "blocked"
+                                ? "bg-duston-orange/10 text-duston-orange font-semibold"
+                                : project.status === "on_hold"
+                                ? "bg-[#FBB03B]/10 text-[#FBB03B]"
+                                : "bg-duston-bg border border-duston-border text-duston-muted"
+                            )}
+                          >
+                            {project.status.replace("_", " ")}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-duston-muted">
+                          {formatDate(project.targetDate)}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="font-semibold text-duston-dark">
+                            {project.openActionItemCount}
+                          </span>
+                          <span className="text-[10px] text-duston-muted">/{project.actionItemCount}</span>
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setAdminEditProject(project)}
+                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#023542] hover:bg-[#1BCECE] text-white inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                              title="Edit or delete project"
+                            >
+                              <Edit2 size={11} />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => router.push(`/projects/${project.id}`)}
+                              className="p-1 rounded-lg text-duston-muted hover:text-duston-dark hover:bg-duston-bg transition-colors cursor-pointer"
+                              title="View project details"
+                            >
+                              <ExternalLink size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View (< md) */}
+              <div className="md:hidden divide-y divide-duston-border">
+                {filteredProjects.map((project) => (
+                  <div key={project.id} className="p-3.5 space-y-2.5 hover:bg-duston-bg/30">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-semibold text-xs text-duston-dark">{project.name}</div>
+                        <div className="flex items-center gap-2 text-[10px] text-duston-muted mt-0.5">
+                          <span
+                            className="px-1.5 py-0.2 rounded font-medium"
+                            style={{
+                              backgroundColor: `${project.entityBrandColor}15`,
+                              color: project.entityBrandColor,
+                            }}
+                          >
+                            {project.entityName}
+                          </span>
+                          <span>•</span>
+                          <span className="uppercase">{project.category}</span>
+                        </div>
+                      </div>
+                      <span
+                        className={cn(
+                          "px-2 py-0.5 rounded text-[10px] font-medium capitalize shrink-0",
+                          project.status === "done"
+                            ? "bg-[#39B54A]/10 text-[#39B54A]"
+                            : project.status === "in_progress"
+                            ? "bg-[#1BCECE]/15 text-[#023542]"
+                            : project.status === "blocked"
+                            ? "bg-duston-orange/10 text-duston-orange font-semibold"
+                            : "bg-duston-bg text-duston-muted"
+                        )}
+                      >
+                        {project.status.replace("_", " ")}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-duston-muted pt-1 border-t border-duston-border/60">
+                      <span>Lead: <strong className="text-duston-dark font-medium">{project.ownerName || "Unassigned"}</strong></span>
+                      <span>Target: {formatDate(project.targetDate)}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[11px] text-duston-muted">
+                        Deliverables: <strong className="text-duston-dark">{project.openActionItemCount}</strong> open / {project.actionItemCount} total
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setAdminEditProject(project)}
+                          className="px-2.5 py-1 rounded bg-[#023542] text-white text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Edit2 size={11} />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/projects/${project.id}`)}
+                          className="p-1 rounded text-duston-muted hover:text-duston-dark"
+                        >
+                          <ExternalLink size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 4. Action Items Tab */}
       {activeTab === "action-items" && (
         <div className="space-y-4">
           {/* Controls: Search, Status, Entity, Count */}
@@ -1571,6 +1943,50 @@ export function AdminClient({
           </div>
         </div>
       )}
+
+      {/* Edit Project Modal */}
+      {adminEditProject && (
+        <EditProjectModal
+          isOpen={!!adminEditProject}
+          onClose={() => setAdminEditProject(null)}
+          project={{
+            id: adminEditProject.id,
+            name: adminEditProject.name,
+            description: adminEditProject.description,
+            category: adminEditProject.category,
+            status: adminEditProject.status,
+            priority: adminEditProject.priority,
+            startDate: adminEditProject.startDate,
+            targetDate: adminEditProject.targetDate,
+            budgetNotes: adminEditProject.budgetNotes,
+            entityId: adminEditProject.entityId,
+            entityName: adminEditProject.entityName,
+            ownerId: adminEditProject.ownerId,
+            ownerName: adminEditProject.ownerName,
+            sponsorId: adminEditProject.sponsorId,
+          }}
+          entities={entitiesList.map((e) => ({ id: e.id, name: e.name }))}
+          users={usersList.map((u) => ({ id: u.id, name: u.name }))}
+          canDelete={true}
+          onProjectUpdated={() => {
+            setAdminEditProject(null);
+            router.refresh();
+          }}
+          onProjectDeleted={() => {
+            setAdminEditProject(null);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {/* New Project Drawer */}
+      <NewProjectDrawer
+        isOpen={isNewProjectDrawerOpen}
+        onClose={() => setIsNewProjectDrawerOpen(false)}
+        entities={entitiesList.map((e) => ({ id: e.id, name: e.name }))}
+        users={usersList.map((u) => ({ id: u.id, name: u.name }))}
+        currentUserId={usersList[0]?.id || ""}
+      />
     </div>
   );
 }

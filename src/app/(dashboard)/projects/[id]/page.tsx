@@ -4,7 +4,7 @@ import { projects, actionItems, activityLog } from "@/lib/db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { ProjectDetailClient } from "@/components/projects/ProjectDetailClient";
-import { getUserScopeCached, getActiveUsersCached } from "@/lib/db/cache";
+import { getUserScopeCached, getActiveUsersCached, getActiveEntitiesCached } from "@/lib/db/cache";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -18,15 +18,17 @@ export default async function ProjectDetailPage({
   const userId = session?.user?.id!;
   const { id } = await params;
 
-  // Run user scope, active users, and project lookup in parallel
+  // Run user scope, active users, entities, and project lookup in parallel
   const [
     { allowedEntityIds },
     allUsers,
+    allEntities,
     project,
     items,
   ] = await Promise.all([
     getUserScopeCached(userId),
     getActiveUsersCached(),
+    getActiveEntitiesCached(),
     db.query.projects.findFirst({
       where: eq(projects.id, id),
       with: {
@@ -69,6 +71,9 @@ export default async function ProjectDetailPage({
     : [];
 
   const userMap = new Map(allUsers.map((u) => [u.id, u.name]));
+  const scopedEntities = allEntities
+    .filter((e) => allowedEntityIds.includes(e.id))
+    .map((e) => ({ id: e.id, name: e.name }));
 
   return (
     <ProjectDetailClient
@@ -87,6 +92,7 @@ export default async function ProjectDetailPage({
         entityBrandColor: project.entity.brandPrimaryColor,
         ownerId: project.ownerId,
         ownerName: project.owner?.name ?? null,
+        sponsorId: project.sponsorId,
       }}
       actionItems={items.map((it) => {
         const secIds = Array.isArray(it.secondaryAssigneeIds)
@@ -117,8 +123,10 @@ export default async function ProjectDetailPage({
         createdAt: a.createdAt.toISOString(),
       }))}
       users={allUsers.map((u) => ({ id: u.id, name: u.name }))}
+      entities={scopedEntities}
       currentUserId={userId}
       userRole={(session?.user as any)?.role}
+      hasGlobalAccess={(session?.user as any)?.hasGlobalAccess}
     />
   );
 }

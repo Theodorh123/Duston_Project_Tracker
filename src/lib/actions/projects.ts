@@ -1,10 +1,11 @@
 "use server";
 
 import { db } from "../db";
-import { projects } from "../db/schema";
+import { projects, actionItems } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { invalidateMetadataCache } from "../db/cache";
+import { invalidateMetadataCache, getUserScopeCached } from "../db/cache";
+import { auth } from "@/auth";
 
 export interface CreateProjectInput {
   entityId: string;
@@ -30,10 +31,15 @@ function revalidateAllProjectPaths(projectId?: string) {
   revalidatePath("/ceo-view");
   revalidatePath("/ea-view");
   revalidatePath("/analytics");
+  revalidatePath("/admin");
 }
 
 export async function createProject(data: CreateProjectInput) {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+    const effectiveOwnerId = data.ownerId || userId || undefined;
+
     const [project] = await db
       .insert(projects)
       .values({
@@ -43,7 +49,7 @@ export async function createProject(data: CreateProjectInput) {
         category: data.category,
         status: data.status,
         priority: data.priority,
-        ownerId: data.ownerId || undefined,
+        ownerId: effectiveOwnerId,
         sponsorId: data.sponsorId || undefined,
         startDate: data.startDate,
         targetDate: data.targetDate,
@@ -61,19 +67,97 @@ export async function createProject(data: CreateProjectInput) {
 
 export async function updateProject(id: string, data: Partial<CreateProjectInput>) {
   try {
-    await db
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Unauthorized. Please sign in." };
+    }
+
+    const userId = session.user.id;
+    const userRole = (session.user as any)?.role;
+    const hasGlobal = (session.user as any)?.hasGlobalAccess ?? false;
+
+    // Fetch existing project to verify permissions
+    const existingProject = await db.query.projects.findFirst({
+      where: eq(projects.id, id),
+    });
+
+    if (!existingProject) {
+      return { success: false, error: "Project not found" };
+    }
+
+    const isOwnerOrSponsor = existingProject.ownerId === userId || existingProject.sponsorId === userId;
+    const isAdminOrExec = userRole === "admin" || userRole === "ceo" || userRole === "ea" || hasGlobal;
+
+    if (!isAdminOrExec && !isOwnerOrSponsor) {
+      const { allowedEntityIds } = await getUserScopeCached(userId);
+      if (!allowedEntityIds.includes(existingProject.entityId)) {
+        return { success: false, error: "You do not have permission to edit this project." };
+      }
+    }
+
+    const [updated] = await db
       .update(projects)
       .set({
         ...data,
+        ownerId: data.ownerId === "" ? null : data.ownerId,
+        sponsorId: data.sponsorId === "" ? null : data.sponsorId,
         updatedAt: new Date(),
       })
-      .where(eq(projects.id, id));
+      .where(eq(projects.id, id))
+      .returning();
+
+    revalidateAllProjectPaths(id);
+    return { success: true, project: updated };
+  } catch (err: any) {
+    console.error("updateProject error:", err);
+    return { success: false, error: err.message || "Failed to update project" };
+  }
+}
+
+export async function deleteProject(id: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Unauthorized. Please sign in." };
+    }
+
+    const userId = session.user.id;
+    const userRole = (session.user as any)?.role;
+    const hasGlobal = (session.user as any)?.hasGlobalAccess ?? false;
+
+    // Look up project
+    const project = await db.query.projects.findFirst({
+      where: eq(projects.id, id),
+    });
+
+    if (!project) {
+      return { success: false, error: "Project not found" };
+    }
+
+    const isOwnerOrSponsor = project.ownerId === userId || project.sponsorId === userId;
+    const isAdminOrExec = userRole === "admin" || userRole === "ceo" || userRole === "ea" || hasGlobal;
+
+    if (!isAdminOrExec && !isOwnerOrSponsor) {
+      const { allowedEntityIds } = await getUserScopeCached(userId);
+      if (!allowedEntityIds.includes(project.entityId)) {
+        return { success: false, error: "You do not have permission to delete this project." };
+      }
+    }
+
+    // Unlink action items (preserves them in their respective entity action register)
+    await db
+      .update(actionItems)
+      .set({ projectId: null })
+      .where(eq(actionItems.projectId, id));
+
+    // Delete project
+    await db.delete(projects).where(eq(projects.id, id));
 
     revalidateAllProjectPaths(id);
     return { success: true };
   } catch (err: any) {
-    console.error("updateProject error:", err);
-    return { success: false, error: err.message };
+    console.error("deleteProject error:", err);
+    return { success: false, error: err.message || "Failed to delete project" };
   }
 }
 
@@ -82,6 +166,9 @@ export async function createQuickProject(data: { name: string; entityId: string;
     if (!data.name?.trim() || !data.entityId) {
       return { success: false, error: "Project name and subsidiary are required." };
     }
+    const session = await auth();
+    const userId = session?.user?.id;
+
     const today = new Date().toISOString().slice(0, 10);
     const target = data.targetDate || new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString().slice(0, 10);
     const [project] = await db
@@ -92,6 +179,7 @@ export async function createQuickProject(data: { name: string; entityId: string;
         category: "operations",
         status: "not_started",
         priority: "medium",
+        ownerId: userId || undefined,
         startDate: today,
         targetDate: target,
       })
@@ -111,4 +199,3 @@ export async function createQuickProject(data: { name: string; entityId: string;
     return { success: false, error: err.message };
   }
 }
-

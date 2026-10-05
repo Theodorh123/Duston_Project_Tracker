@@ -11,6 +11,8 @@ export const revalidate = 0;
 export default async function ProjectsPage() {
   const session = await auth();
   const userId = session?.user?.id!;
+  const userRole = (session?.user as any)?.role;
+  const hasGlobalAccess = (session?.user as any)?.hasGlobalAccess;
 
   const [
     { allowedEntityIds },
@@ -36,15 +38,19 @@ export default async function ProjectsPage() {
     .map((p) => ({
       id: p.id,
       name: p.name,
+      description: p.description || null,
       entityId: p.entityId,
       entityName: p.entity.name,
       entityBrandColor: p.entity.brandPrimaryColor,
       category: p.category,
       ownerId: p.ownerId,
       ownerName: p.owner?.name ?? null,
+      sponsorId: p.sponsorId,
       status: p.status,
       priority: p.priority,
+      startDate: p.startDate,
       targetDate: p.targetDate,
+      budgetNotes: p.budgetNotes || null,
       comments: p.description || null,
       openItemsCount: p.actionItems.filter((it) => it.status !== "done").length,
     }));
@@ -59,6 +65,8 @@ export default async function ProjectsPage() {
       entities={scopedEntities}
       users={allUsers.map((u) => ({ id: u.id, name: u.name }))}
       currentUserId={userId}
+      userRole={userRole}
+      hasGlobalAccess={hasGlobalAccess}
     />
   );
 }

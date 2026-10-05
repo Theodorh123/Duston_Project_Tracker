@@ -35,6 +35,8 @@ import { createActionItem } from "@/lib/actions/action-items";
 import { quickCreateUser } from "@/lib/actions/admin";
 import { ImportRegisterModal } from "../action-items/ImportRegisterModal";
 import { PriorityFlag } from "@/components/ui/PriorityFlag";
+import { EditProjectModal } from "./EditProjectModal";
+import { Trash2 } from "lucide-react";
 
 interface ProjectDetailProps {
   project: {
@@ -52,6 +54,7 @@ interface ProjectDetailProps {
     entityBrandColor: string;
     ownerId?: string | null;
     ownerName?: string | null;
+    sponsorId?: string | null;
   };
   actionItems: Array<{
     id: string;
@@ -76,8 +79,10 @@ interface ProjectDetailProps {
     createdAt: string;
   }>;
   users: Array<{ id: string; name: string }>;
+  entities?: Array<{ id: string; name: string }>;
   currentUserId: string;
   userRole?: string;
+  hasGlobalAccess?: boolean;
 }
 
 export function ProjectDetailClient({
@@ -85,11 +90,15 @@ export function ProjectDetailClient({
   actionItems,
   activityLogs,
   users,
+  entities = [],
   currentUserId,
   userRole,
+  hasGlobalAccess,
 }: ProjectDetailProps) {
   const { openActionItem } = useAppShell();
   const router = useRouter();
+  const [currentProject, setCurrentProject] = useState(project);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"items" | "activity" | "details">("items");
   const [actionItemsView, setActionItemsView] = useState<"list" | "priority" | "kanban">("list");
   const [priorityFilter, setPriorityFilter] = useState<"all" | "critical" | "high" | "medium" | "low">("all");
@@ -97,7 +106,19 @@ export function ProjectDetailClient({
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [itemsList, setItemsList] = useState(actionItems);
 
+  const canManageProject =
+    userRole === "admin" ||
+    userRole === "ceo" ||
+    userRole === "ea" ||
+    Boolean(hasGlobalAccess) ||
+    currentProject.ownerId === currentUserId ||
+    (currentProject as any).sponsorId === currentUserId;
+
   const canImportRegister = Boolean(userRole && ["admin", "ea"].includes(userRole));
+
+  useEffect(() => {
+    setCurrentProject(project);
+  }, [project]);
 
   useEffect(() => {
     setItemsList(actionItems);
@@ -439,15 +460,15 @@ export function ProjectDetailClient({
             Projects
           </Link>
           <ChevronRight size={12} strokeWidth={1.5} />
-          <span>{project.entityName}</span>
+          <span>{currentProject.entityName}</span>
           <ChevronRight size={12} strokeWidth={1.5} />
-          <span className="text-duston-dark font-medium">{project.name}</span>
+          <span className="text-duston-dark font-medium">{currentProject.name}</span>
         </nav>
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
           <div>
             <h1 className="text-2xl font-medium text-[#023542] tracking-tight">
-              {project.name}
+              {currentProject.name}
             </h1>
 
             {/* Meta Strip */}
@@ -455,21 +476,21 @@ export function ProjectDetailClient({
               <span
                 className="px-2 py-0.5 rounded-full text-[10px] font-medium inline-flex items-center gap-1.5"
                 style={{
-                  backgroundColor: `${project.entityBrandColor}15`,
-                  color: project.entityBrandColor,
+                  backgroundColor: `${currentProject.entityBrandColor}15`,
+                  color: currentProject.entityBrandColor,
                 }}
               >
                 <span
                   className="w-1.5 h-1.5 rounded-full"
-                  style={{ backgroundColor: project.entityBrandColor }}
+                  style={{ backgroundColor: currentProject.entityBrandColor }}
                 />
-                <span>{project.entityName}</span>
+                <span>{currentProject.entityName}</span>
               </span>
               <span>•</span>
-              <span>Target: {formatDate(project.targetDate)}</span>
+              <span>Target: {formatDate(currentProject.targetDate)}</span>
               <span>•</span>
               <span className="capitalize text-duston-dark font-medium px-2 py-0.5 rounded bg-duston-bg border border-duston-border text-[11px]">
-                {project.status.replace("_", " ")}
+                {currentProject.status.replace("_", " ")}
               </span>
             </div>
           </div>
@@ -486,12 +507,17 @@ export function ProjectDetailClient({
                 <span className="sm:hidden">Import register</span>
               </button>
             )}
-            <button
-              onClick={() => setActiveTab("details")}
-              className="px-3.5 py-2 border border-duston-border bg-white text-duston-dark hover:bg-duston-bg rounded-xl text-xs font-medium transition-colors cursor-pointer"
-            >
-              Edit project
-            </button>
+            {canManageProject && (
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 border border-duston-border bg-white text-duston-dark hover:bg-duston-bg rounded-xl text-xs font-medium transition-colors cursor-pointer shadow-2xs"
+                title="Edit project details"
+              >
+                <Edit2 size={13} />
+                <span>Edit project</span>
+              </button>
+            )}
             <button
               onClick={() => setIsNewItemModalOpen(true)}
               className="flex items-center gap-1.5 px-3.5 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors shadow-subtle cursor-pointer"
@@ -1217,59 +1243,123 @@ export function ProjectDetailClient({
         </div>
       )}
 
-      {/* Tab 4: Details (Inline editable) */}
+      {/* Tab 3: Details (Inline editable + Danger Zone) */}
       {activeTab === "details" && (
-        <div className="bg-white border border-duston-border rounded-xl shadow-subtle p-6 space-y-5 text-xs max-w-2xl">
-          <div>
-            <label className="block text-duston-muted mb-1 font-medium">Description</label>
-            <textarea
-              rows={4}
-              value={details.description}
-              onChange={(e) => setDetails({ ...details, description: e.target.value })}
-              onBlur={() => handleSaveDetailsField("description", details.description)}
-              placeholder="Detailed description of deliverables and scope..."
-              className="w-full bg-white border border-duston-border rounded-xl p-3 text-duston-text outline-none focus:border-[#1BCECE]"
-            />
-          </div>
+        <div className="space-y-6 max-w-2xl">
+          <div className="bg-white border border-duston-border rounded-xl shadow-subtle p-6 space-y-5 text-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-duston-border">
+              <div>
+                <h3 className="text-sm font-semibold text-duston-dark">Project Details</h3>
+                <p className="text-[11px] text-duston-muted">Strategic information, ownership, and scope</p>
+              </div>
+              {canManageProject && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="px-3 py-1.5 rounded-lg border border-duston-border hover:bg-duston-bg text-duston-dark font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Edit2 size={12} />
+                  <span>Edit Project</span>
+                </button>
+              )}
+            </div>
 
-          <div className="grid grid-cols-2 gap-4">
+            {/* Quick Meta Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3.5 bg-duston-bg/60 rounded-xl border border-duston-border/60">
+              <div>
+                <span className="text-[10px] text-duston-muted block uppercase tracking-wider font-semibold">Subsidiary</span>
+                <span className="font-medium text-duston-dark text-xs">{currentProject.entityName}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-duston-muted block uppercase tracking-wider font-semibold">Category</span>
+                <span className="font-medium text-duston-dark text-xs capitalize">{currentProject.category}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-duston-muted block uppercase tracking-wider font-semibold">Status</span>
+                <span className="font-medium text-duston-dark text-xs capitalize">{currentProject.status.replace("_", " ")}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-duston-muted block uppercase tracking-wider font-semibold">Project Lead</span>
+                <span className="font-medium text-duston-dark text-xs">{currentProject.ownerName || "Unassigned"}</span>
+              </div>
+            </div>
+
             <div>
-              <label className="block text-duston-muted mb-1 font-medium">Start date</label>
-              <input
-                type="date"
-                value={details.startDate}
-                onChange={(e) => {
-                  setDetails({ ...details, startDate: e.target.value });
-                  handleSaveDetailsField("startDate", e.target.value);
-                }}
-                className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+              <label className="block text-duston-muted mb-1 font-medium">Scope & Deliverables Description</label>
+              <textarea
+                rows={4}
+                value={details.description}
+                onChange={(e) => setDetails({ ...details, description: e.target.value })}
+                onBlur={() => handleSaveDetailsField("description", details.description)}
+                placeholder="Detailed description of deliverables and scope..."
+                className="w-full bg-white border border-duston-border rounded-xl p-3 text-duston-text outline-none focus:border-[#1BCECE]"
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-duston-muted mb-1 font-medium">Start date</label>
+                <input
+                  type="date"
+                  value={details.startDate?.split("T")[0] || ""}
+                  onChange={(e) => {
+                    setDetails({ ...details, startDate: e.target.value });
+                    handleSaveDetailsField("startDate", e.target.value);
+                  }}
+                  className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+                />
+              </div>
+              <div>
+                <label className="block text-duston-muted mb-1 font-medium">Target date</label>
+                <input
+                  type="date"
+                  value={details.targetDate?.split("T")[0] || ""}
+                  onChange={(e) => {
+                    setDetails({ ...details, targetDate: e.target.value });
+                    handleSaveDetailsField("targetDate", e.target.value);
+                  }}
+                  className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-duston-muted mb-1 font-medium">Target date</label>
-              <input
-                type="date"
-                value={details.targetDate}
-                onChange={(e) => {
-                  setDetails({ ...details, targetDate: e.target.value });
-                  handleSaveDetailsField("targetDate", e.target.value);
-                }}
-                className="w-full bg-white border border-duston-border rounded-lg px-3 py-2 text-duston-text outline-none focus:border-[#1BCECE]"
+              <label className="block text-duston-muted mb-1 font-medium">Budget & financing notes</label>
+              <textarea
+                rows={3}
+                value={details.budgetNotes}
+                onChange={(e) => setDetails({ ...details, budgetNotes: e.target.value })}
+                onBlur={() => handleSaveDetailsField("budgetNotes", details.budgetNotes)}
+                placeholder="Financing tranches, syndication terms, covenants..."
+                className="w-full bg-white border border-duston-border rounded-xl p-3 text-duston-text outline-none focus:border-[#1BCECE]"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-duston-muted mb-1 font-medium">Budget & financing notes</label>
-            <textarea
-              rows={3}
-              value={details.budgetNotes}
-              onChange={(e) => setDetails({ ...details, budgetNotes: e.target.value })}
-              onBlur={() => handleSaveDetailsField("budgetNotes", details.budgetNotes)}
-              placeholder="Financing tranches, syndication terms, covenants..."
-              className="w-full bg-white border border-duston-border rounded-xl p-3 text-duston-text outline-none focus:border-[#1BCECE]"
-            />
-          </div>
+          {/* Danger Zone */}
+          {canManageProject && (
+            <div className="bg-white border border-duston-orange/30 rounded-xl shadow-subtle p-5 space-y-3 text-xs">
+              <div className="flex items-center gap-2 text-duston-orange font-semibold">
+                <Trash2 size={15} />
+                <span>Danger Zone</span>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                <div>
+                  <p className="font-medium text-duston-dark">Delete this project</p>
+                  <p className="text-[11px] text-duston-muted mt-0.5">
+                    Action items will remain safely stored under their subsidiary, but will be detached from this project.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="px-3.5 py-2 bg-duston-orange/10 hover:bg-duston-orange hover:text-white text-duston-orange border border-duston-orange/20 rounded-xl font-medium transition-all cursor-pointer shrink-0 self-start sm:self-auto"
+                >
+                  Delete Project
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1572,6 +1662,33 @@ export function ProjectDetailClient({
           </div>
         </div>
       )}
+
+      {/* Edit Project Modal */}
+      <EditProjectModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        project={currentProject}
+        entities={entities.length > 0 ? entities : [{ id: currentProject.entityId, name: currentProject.entityName }]}
+        users={users}
+        canDelete={canManageProject}
+        onProjectUpdated={(updated) => {
+          setCurrentProject((prev) => ({
+            ...prev,
+            ...updated,
+            entityName: updated.entityName || prev.entityName,
+          }));
+          setDetails({
+            description: updated.description || "",
+            startDate: updated.startDate,
+            targetDate: updated.targetDate,
+            budgetNotes: updated.budgetNotes || "",
+          });
+          router.refresh();
+        }}
+        onProjectDeleted={() => {
+          router.push("/projects");
+        }}
+      />
 
       {/* Import Action Register Modal */}
       <ImportRegisterModal
