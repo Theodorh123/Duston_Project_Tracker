@@ -7,7 +7,6 @@ import {
   Plus,
   Search,
   FolderKanban,
-  MessageSquare,
   X,
   Edit2,
   Trash2,
@@ -36,7 +35,6 @@ export interface ProjectListItem {
   startDate?: string;
   targetDate: string;
   budgetNotes?: string | null;
-  comments?: string | null;
   openItemsCount?: number;
 }
 
@@ -65,9 +63,6 @@ export function ProjectsClient({
   const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
   const [editModalProject, setEditModalProject] = useState<ProjectListItem | null>(null);
   const [projectsList, setProjectsList] = useState<ProjectListItem[]>(projects);
-  const [commentModalProject, setCommentModalProject] = useState<ProjectListItem | null>(null);
-  const [commentText, setCommentText] = useState("");
-  const [isSavingComment, setIsSavingComment] = useState(false);
 
   // Sync projectsList when projects prop changes
   useEffect(() => {
@@ -110,32 +105,6 @@ export function ProjectsClient({
     Boolean(hasGlobalAccess) ||
     p.ownerId === currentUserId ||
     p.sponsorId === currentUserId;
-
-  const handleOpenCommentModal = (p: ProjectListItem) => {
-    setCommentModalProject(p);
-    setCommentText(p.comments || "");
-  };
-
-  const handleSaveComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!commentModalProject) return;
-    setIsSavingComment(true);
-    try {
-      const updatedVal = commentText.trim() || undefined;
-      await updateProject(commentModalProject.id, { description: updatedVal });
-      setProjectsList((prev) =>
-        prev.map((pr) =>
-          pr.id === commentModalProject.id ? { ...pr, comments: updatedVal || null, description: updatedVal || null } : pr
-        )
-      );
-      setCommentModalProject(null);
-      router.refresh();
-    } catch (err) {
-      console.error("Failed to update project comment:", err);
-    } finally {
-      setIsSavingComment(false);
-    }
-  };
 
   // Status badge styling using exact Duston palette
   const getStatusBadge = (status: string) => {
@@ -311,7 +280,6 @@ export function ProjectsClient({
                   <th className="py-3 px-4">Lead Owner</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Target date</th>
-                  <th className="py-3 px-4">Remarks</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -353,28 +321,6 @@ export function ProjectsClient({
                       </td>
                       <td className="py-3 px-4 text-duston-muted">
                         {formatDate(project.targetDate)}
-                      </td>
-                      <td className="py-3 px-4 max-w-[180px]" onClick={(e) => e.stopPropagation()}>
-                        {project.comments ? (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenCommentModal(project)}
-                            className="flex items-center gap-1.5 text-left hover:bg-duston-bg/80 p-1.5 -m-1.5 rounded-lg cursor-pointer group/cmt transition-colors w-full"
-                            title="Comments"
-                          >
-                            <MessageSquare size={13} className="text-[#1BCECE] shrink-0 group-hover/cmt:scale-110 transition-transform" />
-                            <span className="truncate text-xs text-duston-dark group-hover/cmt:text-[#023542]">{project.comments}</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenCommentModal(project)}
-                            className="text-[11px] text-duston-muted hover:text-[#023542] flex items-center gap-1 hover:underline cursor-pointer"
-                          >
-                            <MessageSquare size={12} />
-                            <span>+ Remarks</span>
-                          </button>
-                        )}
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1.5">
@@ -439,19 +385,11 @@ export function ProjectsClient({
                   <div className="flex items-center justify-between text-[11px] border-t border-duston-border pt-2 text-duston-muted">
                     <span>Target: {formatDate(project.targetDate)}</span>
                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenCommentModal(project)}
-                        className="flex items-center gap-1 text-[#023542] hover:text-[#1BCECE] font-medium cursor-pointer"
-                      >
-                        <MessageSquare size={12} className="text-[#1BCECE]" />
-                        <span>{project.comments ? "Remarks" : "+ Remarks"}</span>
-                      </button>
                       {allowed && (
                         <button
                           type="button"
                           onClick={() => setEditModalProject(project)}
-                          className="px-2 py-0.5 rounded bg-[#023542] text-white text-[10px] font-semibold flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1 rounded bg-[#023542] text-white text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
                         >
                           <Edit2 size={10} />
                           <span>Edit</span>
@@ -459,19 +397,6 @@ export function ProjectsClient({
                       )}
                     </div>
                   </div>
-
-                  {project.comments && (
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenCommentModal(project);
-                      }}
-                      className="text-[11px] text-duston-text bg-duston-bg/60 p-2.5 rounded-xl border border-duston-border/60 line-clamp-2 cursor-pointer hover:border-[#1BCECE] transition-colors"
-                      title="Comments"
-                    >
-                      {project.comments}
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -496,7 +421,7 @@ export function ProjectsClient({
           project={{
             id: editModalProject.id,
             name: editModalProject.name,
-            description: editModalProject.description || editModalProject.comments || "",
+            description: editModalProject.description || "",
             category: editModalProject.category,
             status: editModalProject.status,
             priority: editModalProject.priority,
@@ -515,69 +440,6 @@ export function ProjectsClient({
           onProjectUpdated={() => router.refresh()}
           onProjectDeleted={() => router.refresh()}
         />
-      )}
-
-      {/* Project Remarks Modal */}
-      {commentModalProject && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2.5 sm:p-4 animate-in fade-in duration-150 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] shadow-2xl border border-duston-border overflow-hidden flex flex-col my-auto">
-            {/* Header */}
-            <div className="p-4 sm:p-5 border-b border-duston-border bg-duston-bg/60 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#023542] text-white flex items-center justify-center">
-                  <MessageSquare size={14} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-duston-dark">Project Remarks</h3>
-                  <p className="text-[11px] text-duston-muted truncate max-w-xs sm:max-w-sm">
-                    {commentModalProject.name} • {commentModalProject.entityName}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCommentModalProject(null)}
-                className="p-1 rounded-lg text-duston-muted hover:text-duston-dark hover:bg-duston-bg transition-colors cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSaveComment} className="p-4 sm:p-5 space-y-4 text-xs">
-              <div>
-                <label className="block text-duston-dark font-semibold mb-1.5">
-                  Remarks & Strategic Scope
-                </label>
-                <textarea
-                  rows={4}
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Add high-level remarks, strategic updates, key milestones..."
-                  className="w-full bg-white border border-duston-border rounded-xl p-3 text-xs text-duston-text outline-none focus:border-[#1BCECE] resize-none"
-                  autoFocus
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setCommentModalProject(null)}
-                  className="px-4 py-2 border border-duston-border rounded-xl text-duston-muted hover:text-duston-dark text-xs hover:bg-duston-bg cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingComment}
-                  className="px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors shadow-subtle disabled:opacity-50 cursor-pointer"
-                >
-                  {isSavingComment ? "Saving..." : "Save remarks"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
       )}
     </div>
   );

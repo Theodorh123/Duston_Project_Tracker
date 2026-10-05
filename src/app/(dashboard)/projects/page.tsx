@@ -51,7 +51,6 @@ export default async function ProjectsPage() {
       startDate: p.startDate,
       targetDate: p.targetDate,
       budgetNotes: p.budgetNotes || null,
-      comments: p.description || null,
       openItemsCount: p.actionItems.filter((it) => it.status !== "done").length,
     }));
 
