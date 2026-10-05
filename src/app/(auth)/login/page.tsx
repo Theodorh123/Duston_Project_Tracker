@@ -2,15 +2,13 @@
 
 import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Eye, EyeOff, Clock } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const isTimeout = searchParams.get("reason") === "timeout";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -63,19 +61,6 @@ function LoginForm() {
           Duston Project Tracker
         </h1>
       </div>
-
-      {/* Inactivity Timeout Reassurance Notice */}
-      {isTimeout && !error && (
-        <div className="mb-5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5 text-left font-medium animate-in fade-in">
-          <Clock size={16} className="text-duston-amber shrink-0 mt-0.5" />
-          <div className="space-y-0.5">
-            <span className="font-semibold block text-amber-950">Session Timed Out</span>
-            <p className="text-[11px] text-amber-800 leading-snug">
-              You were signed out after 30 minutes of inactivity to protect sensitive deliverables. Please sign in to continue.
-            </p>
-          </div>
-        </div>
-      )}
 
       {error && (
         <div className="mb-5 p-3 rounded-xl bg-duston-orange/10 border border-duston-orange/20 text-duston-orange text-xs text-center font-medium animate-in fade-in">

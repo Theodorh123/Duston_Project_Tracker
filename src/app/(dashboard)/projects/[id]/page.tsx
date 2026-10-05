@@ -71,8 +71,10 @@ export default async function ProjectDetailPage({
     : [];
 
   const userMap = new Map(allUsers.map((u) => [u.id, u.name]));
-  const scopedEntities = allEntities
-    .filter((e) => allowedEntityIds.includes(e.id))
+  const userRole = (session?.user as any)?.role;
+  const hasGlobalAccess = (session?.user as any)?.hasGlobalAccess;
+  const isGlobalOrAdmin = userRole === "admin" || userRole === "ceo" || userRole === "ea" || Boolean(hasGlobalAccess) || project.ownerId === userId || project.sponsorId === userId;
+  const availableEntities = (isGlobalOrAdmin ? allEntities : allEntities.filter((e) => allowedEntityIds.includes(e.id) || e.id === project.entityId))
     .map((e) => ({ id: e.id, name: e.name }));
 
   return (
@@ -123,10 +125,10 @@ export default async function ProjectDetailPage({
         createdAt: a.createdAt.toISOString(),
       }))}
       users={allUsers.map((u) => ({ id: u.id, name: u.name }))}
-      entities={scopedEntities}
+      entities={availableEntities}
       currentUserId={userId}
-      userRole={(session?.user as any)?.role}
-      hasGlobalAccess={(session?.user as any)?.hasGlobalAccess}
+      userRole={userRole}
+      hasGlobalAccess={hasGlobalAccess}
     />
   );
 }

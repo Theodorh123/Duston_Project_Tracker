@@ -95,6 +95,14 @@ export async function updateProject(id: string, data: Partial<CreateProjectInput
       }
     }
 
+    // If subsidiary (entityId) changed, update all action items assigned to this project to match
+    if (data.entityId && data.entityId !== existingProject.entityId) {
+      await db
+        .update(actionItems)
+        .set({ entityId: data.entityId, updatedAt: new Date() })
+        .where(eq(actionItems.projectId, id));
+    }
+
     const [updated] = await db
       .update(projects)
       .set({

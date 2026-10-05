@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { X, Trash2, CheckCircle2, AlertTriangle, Building2, Calendar, User, Tag, ShieldAlert } from "lucide-react";
 import { updateProject, deleteProject, CreateProjectInput } from "@/lib/actions/projects";
@@ -44,6 +44,17 @@ export function EditProjectModal({
   onProjectDeleted,
 }: EditProjectModalProps) {
   const router = useRouter();
+
+  const entityOptions = useMemo(() => {
+    const list = [...entities];
+    if (project.entityId && !list.some((e) => e.id === project.entityId)) {
+      list.unshift({
+        id: project.entityId,
+        name: project.entityName || "Current Subsidiary",
+      });
+    }
+    return list;
+  }, [entities, project.entityId, project.entityName]);
 
   const [formData, setFormData] = useState<CreateProjectInput>({
     entityId: project.entityId,
@@ -109,14 +120,22 @@ export function EditProjectModal({
     });
 
     if (res.success) {
+      const selectedEntity = entityOptions.find((e) => e.id === formData.entityId);
       if (typeof window !== "undefined") {
         window.dispatchEvent(
-          new CustomEvent("project-updated", { detail: { id: project.id, ...formData } })
+          new CustomEvent("project-updated", {
+            detail: {
+              id: project.id,
+              ...formData,
+              entityName: selectedEntity?.name || project.entityName,
+            },
+          })
         );
       }
       onProjectUpdated?.({
         ...project,
         ...formData,
+        entityName: selectedEntity?.name || project.entityName,
         description: formData.description || null,
         budgetNotes: formData.budgetNotes || null,
         ownerId: formData.ownerId || null,
@@ -253,7 +272,7 @@ export function EditProjectModal({
                     className="w-full bg-white border border-duston-border rounded-xl px-3 py-2 text-xs text-duston-text outline-none focus:border-[#1BCECE] font-medium"
                     required
                   >
-                    {entities.map((ent) => (
+                    {entityOptions.map((ent) => (
                       <option key={ent.id} value={ent.id}>
                         {ent.name}
                       </option>

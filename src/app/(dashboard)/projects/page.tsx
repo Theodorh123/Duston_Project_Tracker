@@ -55,14 +55,14 @@ export default async function ProjectsPage() {
       openItemsCount: p.actionItems.filter((it) => it.status !== "done").length,
     }));
 
-  const scopedEntities = allEntities
-    .filter((e) => allowedEntityIds.includes(e.id))
+  const isGlobalOrAdmin = userRole === "admin" || userRole === "ceo" || userRole === "ea" || Boolean(hasGlobalAccess);
+  const availableEntities = (isGlobalOrAdmin ? allEntities : allEntities.filter((e) => allowedEntityIds.includes(e.id)))
     .map((e) => ({ id: e.id, name: e.name }));
 
   return (
     <ProjectsClient
       projects={scopedProjects}
-      entities={scopedEntities}
+      entities={availableEntities}
       users={allUsers.map((u) => ({ id: u.id, name: u.name }))}
       currentUserId={userId}
       userRole={userRole}
