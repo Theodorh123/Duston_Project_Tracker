@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { actionItems, projects } from "@/lib/db/schema";
-import { desc } from "drizzle-orm";
+import { actionItems, projects, comments } from "@/lib/db/schema";
+import { desc, sql } from "drizzle-orm";
 import { Suspense } from "react";
 import { ActionRegisterClient, RegisterItem } from "@/components/action-items/ActionRegisterClient";
 import { getUserScopeCached, getActiveEntitiesCached, getActiveUsersCached } from "@/lib/db/cache";
@@ -17,7 +17,7 @@ export default async function ActionRegisterPage() {
     { user: currentUser, allowedEntityIds },
     allEnt,
     allUsers,
-    [allItems, allProj],
+    [allItems, allProj, commentCounts],
   ] = await Promise.all([
     getUserScopeCached(userId),
     getActiveEntitiesCached(),
@@ -25,25 +25,33 @@ export default async function ActionRegisterPage() {
     Promise.all([
       db.query.actionItems.findMany({
         with: {
-          project: {
-            with: {
-              entity: true,
+          sourceMeeting: {
+            columns: {
+              id: true,
+              subject: true,
             },
           },
-          entity: true,
-          assignee: true,
-          sourceMeeting: true,
-          comments: true,
         },
         orderBy: [actionItems.deadline],
       }),
       db.query.projects.findMany({
         orderBy: [desc(projects.targetDate)],
       }),
+      db
+        .select({
+          actionItemId: comments.actionItemId,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(comments)
+        .groupBy(comments.actionItemId),
     ]),
   ]);
 
   const userNameMap = new Map(allUsers.map((u) => [u.id, u.name]));
+  const projectMap = new Map(allProj.map((p) => [p.id, p]));
+  const commentCountMap = new Map(
+    commentCounts.map((c) => [c.actionItemId, Number(c.count) || 0])
+  );
 
   const scopedEntities = allEnt
     .filter((e) => allowedEntityIds.includes(e.id))
@@ -65,7 +73,8 @@ export default async function ActionRegisterPage() {
 
   const mappedItems: RegisterItem[] = allItems
     .filter((it) => {
-      const itemEntityId = it.entityId || it.project?.entityId;
+      const proj = it.projectId ? projectMap.get(it.projectId) : undefined;
+      const itemEntityId = it.entityId || proj?.entityId;
       return itemEntityId && allowedEntityIds.includes(itemEntityId);
     })
     .map((it) => {
@@ -74,9 +83,11 @@ export default async function ActionRegisterPage() {
         : [];
       const secNames = secIds.map((id) => userNameMap.get(id)).filter(Boolean) as string[];
 
-      const itemEntityId = it.entityId || it.project?.entityId || "";
-      const itemEntityName = it.entity?.name || it.project?.entity?.name || entityNameMap.get(itemEntityId) || "Subsidiary";
-      const itemBrandColor = it.entity?.brandPrimaryColor || it.project?.entity?.brandPrimaryColor || entityColorMap.get(itemEntityId) || "#023542";
+      const proj = it.projectId ? projectMap.get(it.projectId) : undefined;
+      const itemEntityId = it.entityId || proj?.entityId || "";
+      const itemEntityName = entityNameMap.get(itemEntityId) || "Subsidiary";
+      const itemBrandColor = entityColorMap.get(itemEntityId) || "#023542";
+      const assigneeName = userNameMap.get(it.assigneeId) || "Unassigned";
 
       return {
         id: it.id,
@@ -87,12 +98,12 @@ export default async function ActionRegisterPage() {
         priority: it.priority as any,
         tag: it.tag,
         assigneeId: it.assigneeId,
-        assigneeName: it.assignee?.name || "Unassigned",
+        assigneeName,
         secondaryAssigneeIds: secIds,
         secondaryAssigneeNames: secNames,
-        commentCount: it.comments?.length || 0,
+        commentCount: commentCountMap.get(it.id) || 0,
         projectId: it.projectId || null,
-        projectName: it.project?.name || null,
+        projectName: proj?.name || null,
         entityId: itemEntityId,
         entityName: itemEntityName,
         entityBrandColor: itemBrandColor,

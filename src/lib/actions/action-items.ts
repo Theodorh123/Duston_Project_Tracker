@@ -422,6 +422,7 @@ export async function createActionItem(data: {
 export interface BulkActionItemInput {
   title: string;
   assigneeId: string;
+  secondaryAssigneeIds?: string[];
   deadline: string;
   priority?: "low" | "medium" | "high" | "critical";
   status?: "not_started" | "in_progress" | "blocked" | "done";
@@ -495,6 +496,7 @@ export async function bulkCreateActionItems(data: {
           title: item.title.trim(),
           description: item.notes || null,
           assigneeId: item.assigneeId,
+          secondaryAssigneeIds: item.secondaryAssigneeIds || [],
           deadline: resolvedDeadline,
           status: item.status || "not_started",
           priority: item.priority || "medium",

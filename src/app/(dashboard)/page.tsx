@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { actionItems, activityLog, userPreferences, users, projects, entities, userEntityAccess } from "@/lib/db/schema";
-import { eq, desc, or, sql } from "drizzle-orm";
+import { actionItems, activityLog, userPreferences, users, projects, entities, comments } from "@/lib/db/schema";
+import { eq, desc, sql } from "drizzle-orm";
 import { DashboardClient, ActionItemSummary, ActivitySummary } from "@/components/dashboard/DashboardClient";
 
 import { getUserScopeCached, getActiveEntitiesCached, getActiveUsersCached } from "@/lib/db/cache";
@@ -24,7 +24,7 @@ export default async function DashboardPage({
     { user, allowedEntityIds },
     allEnt,
     allUsers,
-    [preferences, items, recentLogs, allProjects],
+    [preferences, items, recentLogs, allProjects, commentCounts],
   ] = await Promise.all([
     getUserScopeCached(userId),
     getActiveEntitiesCached(),
@@ -34,43 +34,40 @@ export default async function DashboardPage({
         where: eq(userPreferences.userId, userId),
       }),
       db.query.actionItems.findMany({
-        with: {
-          project: {
-            with: {
-              entity: true,
-            },
-          },
-          entity: true,
-          assignee: true,
-          comments: true,
-        },
         orderBy: [actionItems.deadline],
       }),
       db.query.activityLog.findMany({
         with: {
-          actor: true,
+          actor: {
+            columns: { name: true },
+          },
           actionItem: {
-            with: {
-              project: true,
-              entity: true,
-            },
+            columns: { id: true, title: true, entityId: true, projectId: true },
           },
         },
         orderBy: [desc(activityLog.createdAt)],
         limit: 20,
       }),
       db.query.projects.findMany({
-        with: {
-          entity: true,
-        },
         orderBy: [desc(projects.createdAt)],
       }),
+      db
+        .select({
+          actionItemId: comments.actionItemId,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(comments)
+        .groupBy(comments.actionItemId),
     ]),
   ]);
 
   const userNameMap = new Map(allUsers.map((u) => [u.id, u.name]));
   const entityNameMap = new Map(allEnt.map((e) => [e.id, e.name]));
   const entityColorMap = new Map(allEnt.map((e) => [e.id, e.brandPrimaryColor]));
+  const projectMap = new Map(allProjects.map((p) => [p.id, p]));
+  const commentCountMap = new Map(
+    commentCounts.map((c) => [c.actionItemId, Number(c.count) || 0])
+  );
 
   // Map action items for client
   const mappedItems: ActionItemSummary[] = items.map((item) => {
@@ -79,14 +76,16 @@ export default async function DashboardPage({
       : [];
     const secNames = secIds.map((id) => userNameMap.get(id)).filter(Boolean) as string[];
 
-    const itemEntityId = item.entityId || item.project?.entityId || "";
-    const itemEntityName = item.entity?.name || item.project?.entity?.name || entityNameMap.get(itemEntityId) || "Subsidiary";
-    const itemBrandColor = item.entity?.brandPrimaryColor || item.project?.entity?.brandPrimaryColor || entityColorMap.get(itemEntityId) || "#023542";
+    const proj = item.projectId ? projectMap.get(item.projectId) : undefined;
+    const itemEntityId = item.entityId || proj?.entityId || "";
+    const itemEntityName = entityNameMap.get(itemEntityId) || "Subsidiary";
+    const itemBrandColor = entityColorMap.get(itemEntityId) || "#023542";
+    const assigneeName = userNameMap.get(item.assigneeId) || "Unassigned";
 
     return {
       id: item.id,
       projectId: item.projectId || null,
-      projectName: item.project?.name || null,
+      projectName: proj?.name || null,
       entityId: itemEntityId,
       entityName: itemEntityName,
       entityBrandColor: itemBrandColor,
@@ -95,10 +94,10 @@ export default async function DashboardPage({
       status: item.status as any,
       priority: item.priority as any,
       assigneeId: item.assigneeId,
-      assigneeName: item.assignee?.name || "Unassigned",
+      assigneeName,
       secondaryAssigneeIds: secIds,
       secondaryAssigneeNames: secNames,
-      commentCount: item.comments?.length || 0,
+      commentCount: commentCountMap.get(item.id) || 0,
       tag: item.tag,
     };
   });
@@ -111,7 +110,8 @@ export default async function DashboardPage({
   const mappedActivities: ActivitySummary[] = recentLogs
     .filter((l) => {
       if (user?.hasGlobalAccess) return true;
-      const actEntityId = l.actionItem?.entityId || l.actionItem?.project?.entityId;
+      const actProj = l.actionItem?.projectId ? projectMap.get(l.actionItem.projectId) : undefined;
+      const actEntityId = l.actionItem?.entityId || actProj?.entityId;
       if (!actEntityId) return true;
       return allowedEntityIds.includes(actEntityId);
     })
@@ -130,8 +130,8 @@ export default async function DashboardPage({
       id: p.id,
       name: p.name,
       entityId: p.entityId,
-      entityName: p.entity.name,
-      entityBrandColor: p.entity.brandPrimaryColor,
+      entityName: entityNameMap.get(p.entityId) || "Subsidiary",
+      entityBrandColor: entityColorMap.get(p.entityId) || "#023542",
     }));
 
   const mappedUsers = allUsers.map((u) => ({ id: u.id, name: u.name }));

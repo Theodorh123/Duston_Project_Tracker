@@ -30,6 +30,8 @@ export interface StagingActionItem {
   sourceDocument?: string;
   title: string;
   rawResponsible: string;
+  matchedUserId: string | null;
+  matchedUserName: string | null;
   assigneeId: string;
   coAssignees?: Array<{ id: string; name: string }>;
   isExternal: boolean;
@@ -37,6 +39,7 @@ export interface StagingActionItem {
   rawDeadline: string;
   deadline: string; // YYYY-MM-DD
   isDeadlineTBA: boolean;
+  assumedTwoWeeks?: boolean;
   priority: "low" | "medium" | "high" | "critical";
   status: "not_started" | "in_progress" | "done";
   notes?: string;
@@ -68,8 +71,6 @@ export function ImportRegisterModal({
 
   // Flow step: "upload" -> "review"
   const [step, setStep] = useState<"upload" | "review">("upload");
-  const [inputMode, setInputMode] = useState<"file" | "paste">("file");
-  const [pasteText, setPasteText] = useState("");
 
   // Target assignment
   const [selectedEntityId, setSelectedEntityId] = useState<string>(
@@ -93,6 +94,14 @@ export function ImportRegisterModal({
   const [isImporting, setIsImporting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+
+  // Pop-up Modal for Assigning Owners Not in System
+  const [showUnmatchedModal, setShowUnmatchedModal] = useState(false);
+  const [unmatchedAssignments, setUnmatchedAssignments] = useState<
+    Record<string, { assigneeId: string; coAssigneeIds: string[] }>
+  >({});
+  const [batchLeadOwner, setBatchLeadOwner] = useState<string>(currentUserId);
+  const [batchSupportingOwner, setBatchSupportingOwner] = useState<string>("");
 
   useEffect(() => {
     if (isOpen) {
@@ -188,6 +197,19 @@ export function ImportRegisterModal({
     const files = Array.from(fileList);
     if (files.length === 0) return;
 
+    // Excel files only (.xlsx, .xls)
+    const nonExcel = files.filter((f) => {
+      const ext = f.name.split(".").pop()?.toLowerCase();
+      return ext !== "xlsx" && ext !== "xls";
+    });
+
+    if (nonExcel.length > 0) {
+      setExtractError(
+        `Only Excel files (.xlsx, .xls) are allowed. Invalid: ${nonExcel.map((f) => f.name).join(", ")}`
+      );
+      return;
+    }
+
     setIsExtracting(true);
     setExtractError(null);
     setWarnings([]);
@@ -210,19 +232,14 @@ export function ImportRegisterModal({
       setMeetingSubject(
         data.documentTitle ||
           (files.length > 1
-            ? `${files.length} Minutes Documents`
+            ? `${files.length} Excel Registers`
             : files[0].name.replace(/\.[^/.]+$/, ""))
       );
       setUploadedDocs(data.documents || []);
       setWarnings(data.warnings || []);
 
       const stagingList: StagingActionItem[] = (data.items || []).map((it: any) => {
-        const isTba = Boolean(
-          it.isDeadlineTBA ||
-          !it.parsedDeadline ||
-          isTbaDeadline(it.parsedDeadline) ||
-          isTbaDeadline(it.rawDeadline)
-        );
+        const isAssumed = Boolean(it.assumedTwoWeeks || it.isDeadlineTBA);
         return {
           id: it.id || Math.random().toString(),
           selected: true,
@@ -230,13 +247,16 @@ export function ImportRegisterModal({
           sourceDocument: it.sourceDocument,
           title: it.title,
           rawResponsible: it.rawResponsible || "",
+          matchedUserId: it.matchedUserId || null,
+          matchedUserName: it.matchedUserName || null,
           assigneeId: it.matchedUserId || currentUserId,
           coAssignees: it.coAssignees || [],
           isExternal: it.isExternal || false,
-          needsInternalLead: it.needsInternalLead || (!it.matchedUserId && !it.isExternal),
+          needsInternalLead: !it.matchedUserId,
           rawDeadline: it.rawDeadline || "",
-          deadline: isTba ? TBA_DEADLINE : (it.parsedDeadline || TBA_DEADLINE),
-          isDeadlineTBA: isTba,
+          deadline: it.parsedDeadline || formatShortDate(new Date()),
+          isDeadlineTBA: isAssumed,
+          assumedTwoWeeks: isAssumed,
           priority: it.priority || "medium",
           status: "not_started",
           notes: it.notes,
@@ -244,71 +264,65 @@ export function ImportRegisterModal({
       });
 
       setItems(stagingList);
+
+      // Check if any extracted items have owners not in the system
+      const unmatched = stagingList.filter((it) => !it.matchedUserId);
+      if (unmatched.length > 0) {
+        const initialMap: Record<string, { assigneeId: string; coAssigneeIds: string[] }> = {};
+        unmatched.forEach((it) => {
+          initialMap[it.id] = {
+            assigneeId: currentUserId,
+            coAssigneeIds: (it.coAssignees || []).map((c) => c.id),
+          };
+        });
+        setUnmatchedAssignments(initialMap);
+        setShowUnmatchedModal(true);
+      }
+
       setStep("review");
     } catch (err: any) {
-      setExtractError(err.message || "Could not read files. Please verify file format.");
+      setExtractError(err.message || "Could not read Excel file. Please ensure it is a valid .xlsx or .xls file.");
     } finally {
       setIsExtracting(false);
     }
   };
 
-  const handlePasteExtract = async () => {
-    if (!pasteText.trim()) return;
-    setIsExtracting(true);
-    setExtractError(null);
-    setWarnings([]);
+  const unmatchedItems = useMemo(() => {
+    return items.filter((it) => !it.matchedUserId || it.needsInternalLead);
+  }, [items]);
 
-    try {
-      const formData = new FormData();
-      formData.append("text", pasteText.trim());
+  const handleConfirmUnmatchedOwners = () => {
+    const updated = items.map((it) => {
+      const assignment = unmatchedAssignments[it.id];
+      if (assignment) {
+        const coUsers = assignment.coAssigneeIds
+          .map((id) => users.find((u) => u.id === id))
+          .filter(Boolean) as Array<{ id: string; name: string }>;
 
-      const res = await fetch("/api/action-items/extract", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to parse pasted text");
-      }
-
-      const data = await res.json();
-      setUploadedDocs([]);
-      setWarnings(data.warnings || []);
-
-      const stagingList: StagingActionItem[] = (data.items || []).map((it: any) => {
-        const isTba = Boolean(
-          it.isDeadlineTBA ||
-          !it.parsedDeadline ||
-          isTbaDeadline(it.parsedDeadline) ||
-          isTbaDeadline(it.rawDeadline)
-        );
         return {
-          id: it.id || Math.random().toString(),
-          selected: true,
-          itemNumber: it.itemNumber,
-          title: it.title,
-          rawResponsible: it.rawResponsible || "",
-          assigneeId: it.matchedUserId || currentUserId,
-          coAssignees: it.coAssignees || [],
-          isExternal: it.isExternal || false,
-          needsInternalLead: it.needsInternalLead || (!it.matchedUserId && !it.isExternal),
-          rawDeadline: it.rawDeadline || "",
-          deadline: isTba ? TBA_DEADLINE : (it.parsedDeadline || TBA_DEADLINE),
-          isDeadlineTBA: isTba,
-          priority: it.priority || "medium",
-          status: "not_started",
-          notes: it.notes,
+          ...it,
+          assigneeId: assignment.assigneeId,
+          coAssignees: coUsers,
+          needsInternalLead: false,
+        };
+      }
+      return it;
+    });
+    setItems(updated);
+    setShowUnmatchedModal(false);
+  };
+
+  const handleBatchApplyLeadToUnmatched = () => {
+    setUnmatchedAssignments((prev) => {
+      const next = { ...prev };
+      unmatchedItems.forEach((it) => {
+        next[it.id] = {
+          assigneeId: batchLeadOwner,
+          coAssigneeIds: next[it.id]?.coAssigneeIds || [],
         };
       });
-
-      setItems(stagingList);
-      setStep("review");
-    } catch (err: any) {
-      setExtractError(err.message || "Failed to extract table text.");
-    } finally {
-      setIsExtracting(false);
-    }
+      return next;
+    });
   };
 
   const handleConfirmImport = async () => {
@@ -335,6 +349,7 @@ export function ImportRegisterModal({
         items: selectedItems.map((it) => ({
           title: it.title.trim(),
           assigneeId: it.assigneeId,
+          secondaryAssigneeIds: (it.coAssignees || []).map((c) => c.id),
           deadline: it.deadline,
           priority: it.priority,
           status: it.status,
@@ -345,10 +360,10 @@ export function ImportRegisterModal({
               parts.push(`Counterparty: ${it.rawResponsible}. In-house follow-up lead assigned.`);
             }
             if (it.coAssignees && it.coAssignees.length > 0) {
-              parts.push(`Co-assigned: ${it.coAssignees.map((c) => c.name).join(", ")}`);
+              parts.push(`Supporting owners: ${it.coAssignees.map((c) => c.name).join(", ")}`);
             }
             if (it.rawDeadline && it.rawDeadline !== it.deadline) {
-              parts.push(`Original deadline: ${it.rawDeadline}`);
+              parts.push(`Original timeline in Excel: ${it.rawDeadline}`);
             }
             return parts.length > 0 ? parts.join(" | ") : undefined;
           })(),
@@ -389,7 +404,7 @@ export function ImportRegisterModal({
                 Import Action Item Register
               </h2>
               <p className="text-[11px] text-duston-muted">
-                Extract deliverables from Excel (.xlsx, .csv), PDF minutes, or tabular text
+                Extract deliverables directly from Excel spreadsheets (.xlsx, .xls)
               </p>
             </div>
           </div>
@@ -425,7 +440,7 @@ export function ImportRegisterModal({
             </div>
           )}
 
-          {/* STEP 1: UPLOAD / PASTE */}
+          {/* STEP 1: UPLOAD EXCEL ONLY */}
           {step === "upload" && (
             <div className="space-y-5">
               {/* Target Subsidiary Picker */}
@@ -446,118 +461,78 @@ export function ImportRegisterModal({
                   ))}
                 </select>
                 <p className="text-[11px] text-duston-muted mt-1.5">
-                  All extracted deliverables from the minutes will be registered directly under this subsidiary.
+                  All extracted deliverables from the register will be registered directly under this subsidiary.
                 </p>
               </div>
 
-              {/* Mode Switcher Tabs */}
-              <div className="flex border-b border-duston-border text-xs">
-                <button
-                  type="button"
-                  onClick={() => setInputMode("file")}
+              {/* Excel File Dropzone */}
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files && files.length > 0) handleFilesUpload(files);
+                  }}
+                />
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const files = e.dataTransfer.files;
+                    if (files && files.length > 0) handleFilesUpload(files);
+                  }}
                   className={cn(
-                    "px-4 py-2 font-medium border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer",
-                    inputMode === "file"
-                      ? "border-[#023542] text-[#023542]"
-                      : "border-transparent text-duston-muted hover:text-duston-dark"
+                    "border-2 border-dashed border-duston-border rounded-2xl p-8 sm:p-10 text-center hover:border-[#1BCECE] hover:bg-duston-bg/40 transition-all cursor-pointer space-y-3.5",
+                    isExtracting && "opacity-50 pointer-events-none"
                   )}
                 >
-                  <FileUp size={14} />
-                  <span>Upload Document (.xlsx, .pdf, .csv)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setInputMode("paste")}
-                  className={cn(
-                    "px-4 py-2 font-medium border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer",
-                    inputMode === "paste"
-                      ? "border-[#023542] text-[#023542]"
-                      : "border-transparent text-duston-muted hover:text-duston-dark"
-                  )}
-                >
-                  <FileText size={14} />
-                  <span>Paste Action Register Text</span>
-                </button>
+                  <div className="w-14 h-14 rounded-2xl bg-[#023542]/5 text-[#023542] flex items-center justify-center mx-auto">
+                    <FileSpreadsheet size={28} strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-duston-dark text-sm block">
+                      {isExtracting
+                        ? "Extracting action items from Excel..."
+                        : "Upload Excel Register (.xlsx, .xls)"}
+                    </span>
+                    <p className="text-[11px] text-duston-muted mt-1">
+                      Drag & drop your Excel workbook or click to browse.
+                    </p>
+                  </div>
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white border border-duston-border rounded-xl text-xs text-duston-dark font-medium shadow-2xs">
+                    <Upload size={14} />
+                    <span>Browse Excel files</span>
+                  </div>
+                </div>
               </div>
 
-              {/* File Dropzone */}
-              {inputMode === "file" && (
-                <div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept=".xlsx,.xls,.csv,.pdf"
-                    className="hidden"
-                    onChange={(e) => {
-                      const files = e.target.files;
-                      if (files && files.length > 0) handleFilesUpload(files);
-                    }}
-                  />
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const files = e.dataTransfer.files;
-                      if (files && files.length > 0) handleFilesUpload(files);
-                    }}
-                    className={cn(
-                      "border-2 border-dashed border-duston-border rounded-2xl p-8 sm:p-10 text-center hover:border-[#1BCECE] hover:bg-duston-bg/40 transition-all cursor-pointer space-y-3",
-                      isExtracting && "opacity-50 pointer-events-none"
-                    )}
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-[#023542]/5 text-[#023542] flex items-center justify-center mx-auto">
-                      <Upload size={24} strokeWidth={1.5} />
-                    </div>
-                    <div>
-                      <span className="font-semibold text-duston-dark text-sm block">
-                        {isExtracting
-                          ? `Extracting action register...`
-                          : "Upload minutes or register files"}
-                      </span>
-                      <p className="text-[11px] text-duston-muted mt-1">
-                        Supported formats: PDF (.pdf), Excel (.xlsx), CSV (.csv)
-                      </p>
-                    </div>
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-duston-border rounded-xl text-[11px] text-duston-dark font-medium shadow-2xs">
-                      <span>Browse files</span>
-                    </div>
+              {/* Informational Guidance Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-amber-900 space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5 text-[11px]">
+                    <Calendar size={13} className="text-amber-700" />
+                    <span>2-Week Assumed Timeline</span>
                   </div>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    Any action items with non-explicit deadlines (e.g. <strong>TBA</strong>, <strong>TBC</strong>, or blank) automatically assume a <strong>2-week (14 days)</strong> deadline.
+                  </p>
                 </div>
-              )}
 
-              {/* Text Paste Area */}
-              {inputMode === "paste" && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-duston-muted text-[11px]">
-                      Paste table rows:
-                    </label>
-                    <span className="text-[10px] text-duston-muted font-mono">
-                      Format: Item | Responsible | Deadline
-                    </span>
+                <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200/80 text-blue-900 space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5 text-[11px]">
+                    <Users size={13} className="text-blue-700" />
+                    <span>Owner Assignment Pop-up</span>
                   </div>
-                  <textarea
-                    rows={8}
-                    value={pasteText}
-                    onChange={(e) => setPasteText(e.target.value)}
-                    placeholder={`Contact Standard Bank to progress escrow | Desmond | After the meeting\nReconfirm TOTSA credit limit | TOTSA | TBA\nShare historical SAR cargo volumes with TOTSA | Eugene | TBA`}
-                    className="w-full bg-white border border-duston-border rounded-xl p-3 text-duston-text outline-none focus:border-[#1BCECE] font-mono text-[11px] leading-relaxed resize-none"
-                  />
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      disabled={isExtracting || !pasteText.trim()}
-                      onClick={handlePasteExtract}
-                      className="px-4 py-2 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl text-xs font-medium transition-colors shadow-subtle disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Sparkles size={13} />
-                      <span>{isExtracting ? "Extracting..." : "Parse & Review Register"}</span>
-                    </button>
-                  </div>
+                  <p className="text-[11px] text-blue-800 leading-relaxed">
+                    If any action owner in Excel is not found in the system, an assignment pop-up will prompt you to designate the <strong>lead owner</strong> and <strong>supporting owners</strong>.
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -768,7 +743,7 @@ export function ImportRegisterModal({
               </div>
 
               {/* Table Action Controls */}
-              <div className="flex items-center justify-between text-xs px-1">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs px-1">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-duston-dark">
                     Extracted Action Items ({items.length})
@@ -776,6 +751,26 @@ export function ImportRegisterModal({
                   <span className="text-[11px] text-duston-muted">
                     • {selectedCount} selected for import
                   </span>
+                  {unmatchedItems.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const initialMap: Record<string, { assigneeId: string; coAssigneeIds: string[] }> = {};
+                        unmatchedItems.forEach((it) => {
+                          initialMap[it.id] = {
+                            assigneeId: it.assigneeId || currentUserId,
+                            coAssigneeIds: (it.coAssignees || []).map((c) => c.id),
+                          };
+                        });
+                        setUnmatchedAssignments(initialMap);
+                        setShowUnmatchedModal(true);
+                      }}
+                      className="ml-2 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 hover:bg-amber-100 text-[11px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                    >
+                      <Users size={12} className="text-amber-700" />
+                      <span>Assign Owners ({unmatchedItems.length})</span>
+                    </button>
+                  )}
                 </div>
 
                 <button
@@ -944,64 +939,34 @@ export function ImportRegisterModal({
                         </td>
 
                         {/* Deadline Date Input */}
-                        <td className="py-2 px-3">
-                          {item.isDeadlineTBA || isTbaDeadline(item.deadline) ? (
-                            <div className="space-y-1">
-                              <span className="inline-flex items-center text-[10px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
-                                To Be Actioned
+                        <td className="py-2 px-3 min-w-[155px]">
+                          <div className="space-y-1">
+                            <input
+                              type="date"
+                              value={item.deadline}
+                              onChange={(e) => {
+                                const updated = [...items];
+                                updated[idx].deadline = e.target.value;
+                                updated[idx].assumedTwoWeeks = false;
+                                updated[idx].isDeadlineTBA = false;
+                                setItems(updated);
+                              }}
+                              className="w-full bg-white border border-duston-border rounded-lg px-2 py-1.5 text-xs text-duston-text outline-none focus:border-[#1BCECE]"
+                            />
+                            {item.assumedTwoWeeks && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                                ⏱️ 2 weeks assumed
                               </span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = [...items];
-                                  updated[idx].isDeadlineTBA = false;
-                                  updated[idx].deadline = new Date().toISOString().split("T")[0];
-                                  setItems(updated);
-                                }}
-                                className="text-[10px] text-amber-700 underline block hover:text-amber-900 cursor-pointer"
+                            )}
+                            {item.rawDeadline && item.rawDeadline !== item.deadline && (
+                              <span
+                                className="block text-[10px] text-duston-muted truncate max-w-[140px]"
+                                title={item.rawDeadline}
                               >
-                                Set specific date
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="space-y-1">
-                              <input
-                                type="date"
-                                value={item.deadline}
-                                onChange={(e) => {
-                                  const updated = [...items];
-                                  updated[idx].deadline = e.target.value;
-                                  setItems(updated);
-                                }}
-                                className="w-full bg-white border border-duston-border rounded-lg px-2 py-1.5 text-xs text-duston-text outline-none focus:border-[#1BCECE]"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = [...items];
-                                  updated[idx].isDeadlineTBA = true;
-                                  updated[idx].deadline = TBA_DEADLINE;
-                                  setItems(updated);
-                                }}
-                                className="text-[10px] text-slate-500 hover:text-amber-800 underline block cursor-pointer"
-                              >
-                                Mark To Be Actioned
-                              </button>
-                            </div>
-                          )}
-                          {item.rawDeadline && item.rawDeadline !== item.deadline && (
-                            <span
-                              className={cn(
-                                "inline-block text-[10px] px-1.5 py-0.5 rounded mt-0.5 truncate max-w-[130px] font-medium",
-                                item.isDeadlineTBA
-                                  ? "bg-amber-50 text-amber-800 border border-amber-200"
-                                  : "bg-blue-50 text-blue-700 border border-blue-200"
-                              )}
-                              title={item.rawDeadline}
-                            >
-                              Raw: {item.rawDeadline}
-                            </span>
-                          )}
+                                Excel: {item.rawDeadline}
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Priority */}
@@ -1087,6 +1052,198 @@ export function ImportRegisterModal({
           </div>
         </div>
       </div>
+
+      {/* Pop-up Modal for Assigning Owners Not in System */}
+      {showUnmatchedModal && (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-3 sm:p-6 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-duston-border overflow-hidden my-auto animate-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="p-4 sm:p-5 border-b border-duston-border bg-duston-bg/60 flex items-start justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-800 flex items-center justify-center shrink-0 border border-amber-300">
+                  <Users size={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-duston-dark">
+                    Assign Action Item Owners
+                  </h3>
+                  <p className="text-[11px] text-duston-muted mt-0.5">
+                    {unmatchedItems.length} {unmatchedItems.length === 1 ? "deliverable has an owner" : "deliverables have owners"} not currently in the system. Please designate the lead owner and any supporting owners.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowUnmatchedModal(false)}
+                className="p-1.5 rounded-lg text-duston-muted hover:text-duston-dark hover:bg-duston-bg transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs">
+              {/* Batch Assignment Helper */}
+              {unmatchedItems.length > 1 && (
+                <div className="p-3 bg-amber-50/50 border border-amber-200 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-amber-900 flex items-center gap-1.5">
+                      <Sparkles size={13} className="text-amber-700" />
+                      <span>Quick Batch Assign to All ({unmatchedItems.length} items)</span>
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <select
+                      value={batchLeadOwner}
+                      onChange={(e) => setBatchLeadOwner(e.target.value)}
+                      className="w-full sm:w-auto flex-1 bg-white border border-amber-300 rounded-lg px-2.5 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] font-medium"
+                    >
+                      {users.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          Set Lead: {u.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={handleBatchApplyLeadToUnmatched}
+                      className="w-full sm:w-auto px-3.5 py-1.5 bg-[#023542] hover:bg-[#1BCECE] text-white rounded-lg text-xs font-medium transition-colors shadow-2xs shrink-0 cursor-pointer"
+                    >
+                      Apply Lead to All
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Items List */}
+              <div className="space-y-3">
+                {unmatchedItems.map((item, idx) => {
+                  const assignment = unmatchedAssignments[item.id] || {
+                    assigneeId: currentUserId,
+                    coAssigneeIds: [],
+                  };
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-3.5 bg-white border border-duston-border rounded-xl space-y-3 shadow-2xs hover:border-duston-border/80 transition-all"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-duston-bg text-duston-dark font-semibold">
+                            #{item.itemNumber || idx + 1}
+                          </span>
+                          <span className="font-medium text-duston-dark leading-snug">
+                            {item.title}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-amber-800 font-medium flex items-center gap-1.5">
+                          <span>Owner from Excel:</span>
+                          <strong className="underline bg-amber-100/70 px-1.5 py-0.2 rounded text-amber-900">
+                            {item.rawResponsible || "(Unassigned / Blank)"}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-duston-border/60">
+                        {/* Lead Owner Select */}
+                        <div>
+                          <label className="block text-[11px] font-semibold text-duston-dark mb-1">
+                            Primary Lead Owner *
+                          </label>
+                          <select
+                            value={assignment.assigneeId}
+                            onChange={(e) => {
+                              const newAssigneeId = e.target.value;
+                              setUnmatchedAssignments((prev) => ({
+                                ...prev,
+                                [item.id]: {
+                                  assigneeId: newAssigneeId,
+                                  coAssigneeIds: (prev[item.id]?.coAssigneeIds || []).filter(
+                                    (id) => id !== newAssigneeId
+                                  ),
+                                },
+                              }));
+                            }}
+                            className="w-full bg-white border border-duston-border rounded-lg px-2.5 py-1.5 text-xs text-duston-dark outline-none focus:border-[#1BCECE] font-medium"
+                          >
+                            {users.map((u) => (
+                              <option key={u.id} value={u.id}>
+                                {u.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Supporting Owners Multi-select Checkboxes */}
+                        <div>
+                          <label className="block text-[11px] font-semibold text-duston-dark mb-1">
+                            Supporting Owner(s)
+                            <span className="text-[10px] text-duston-muted font-normal ml-1">
+                              ({assignment.coAssigneeIds.length} selected)
+                            </span>
+                          </label>
+                          <div className="max-h-28 overflow-y-auto border border-duston-border rounded-lg p-1.5 space-y-1 bg-duston-bg/20">
+                            {users
+                              .filter((u) => u.id !== assignment.assigneeId)
+                              .map((u) => {
+                                const isChecked = assignment.coAssigneeIds.includes(u.id);
+                                return (
+                                  <label
+                                    key={u.id}
+                                    className="flex items-center gap-2 px-1.5 py-0.5 rounded hover:bg-white cursor-pointer select-none text-[11px] text-duston-text"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={(e) => {
+                                        const newCoIds = e.target.checked
+                                          ? [...assignment.coAssigneeIds, u.id]
+                                          : assignment.coAssigneeIds.filter((id) => id !== u.id);
+                                        setUnmatchedAssignments((prev) => ({
+                                          ...prev,
+                                          [item.id]: {
+                                            ...prev[item.id],
+                                            coAssigneeIds: newCoIds,
+                                          },
+                                        }));
+                                      }}
+                                      className="rounded border-duston-border text-[#023542] focus:ring-0"
+                                    />
+                                    <span className="truncate">{u.name}</span>
+                                  </label>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 sm:p-5 border-t border-duston-border bg-duston-bg/40 flex items-center justify-between shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowUnmatchedModal(false)}
+                className="px-4 py-2 text-xs font-medium text-duston-muted hover:text-duston-dark hover:bg-duston-bg rounded-xl transition-colors cursor-pointer"
+              >
+                Skip / Adjust in table
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmUnmatchedOwners}
+                className="px-5 py-2 text-xs font-semibold bg-[#023542] hover:bg-[#1BCECE] text-white rounded-xl transition-colors shadow-subtle flex items-center gap-2 cursor-pointer"
+              >
+                <span>Save Owners & Continue</span>
+                <CheckCircle2 size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

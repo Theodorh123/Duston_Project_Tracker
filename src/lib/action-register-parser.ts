@@ -15,6 +15,7 @@ export interface ParsedActionItem {
   rawDeadline: string;
   parsedDeadline: string; // YYYY-MM-DD
   isDeadlineTBA: boolean;
+  assumedTwoWeeks?: boolean;
   priority: "low" | "medium" | "high" | "critical";
   status: "not_started" | "in_progress" | "done";
   notes?: string;
@@ -36,31 +37,39 @@ export interface UserSummary {
 
 /**
  * Intelligent Resolver for textual deadlines (e.g. "After the meeting", "TBA", "Immediate", "15 Sept 2026")
+ * Implicit or TBA/TBC deadlines assume 2 weeks (14 days) from base date.
  */
 export function resolveDeadline(rawDeadline: string, baseDate?: Date): {
   parsedDate: string;
   rawText: string;
   isTBA: boolean;
+  assumedTwoWeeks: boolean;
 } {
   const clean = (rawDeadline || "").trim();
   const base = baseDate || new Date();
   const lower = clean.toLowerCase();
 
-  // If blank or TBA
-  if (
+  // If blank or non-explicit (TBA, TBC, TBD, etc.): assume 2 weeks (14 days)
+  const isImplicit =
     !clean ||
     lower === "tba" ||
+    lower === "tbc" ||
     lower === "tbd" ||
     lower === "to be actioned" ||
     lower === "to_be_actioned" ||
     lower.includes("to be actioned") ||
     lower.includes("pending") ||
-    lower.includes("to be agreed")
-  ) {
+    lower.includes("to be agreed") ||
+    lower.includes("tba") ||
+    lower.includes("tbc") ||
+    lower.includes("tbd");
+
+  if (isImplicit) {
     return {
-      parsedDate: "2099-12-31",
-      rawText: clean || "To Be Actioned",
+      parsedDate: format(addDays(base, 14), "yyyy-MM-dd"),
+      rawText: clean || "TBA (2 weeks assumed)",
       isTBA: true,
+      assumedTwoWeeks: true,
     };
   }
 
@@ -70,6 +79,7 @@ export function resolveDeadline(rawDeadline: string, baseDate?: Date): {
       parsedDate: format(addDays(base, 3), "yyyy-MM-dd"),
       rawText: clean,
       isTBA: false,
+      assumedTwoWeeks: false,
     };
   }
 
@@ -79,6 +89,7 @@ export function resolveDeadline(rawDeadline: string, baseDate?: Date): {
       parsedDate: format(addDays(base, 1), "yyyy-MM-dd"),
       rawText: clean,
       isTBA: false,
+      assumedTwoWeeks: false,
     };
   }
 
@@ -88,6 +99,7 @@ export function resolveDeadline(rawDeadline: string, baseDate?: Date): {
       parsedDate: format(addDays(base, 7), "yyyy-MM-dd"),
       rawText: clean,
       isTBA: false,
+      assumedTwoWeeks: false,
     };
   }
 
@@ -96,6 +108,7 @@ export function resolveDeadline(rawDeadline: string, baseDate?: Date): {
       parsedDate: format(addDays(base, 4), "yyyy-MM-dd"),
       rawText: clean,
       isTBA: false,
+      assumedTwoWeeks: false,
     };
   }
 
@@ -109,6 +122,7 @@ export function resolveDeadline(rawDeadline: string, baseDate?: Date): {
           parsedDate: format(parsedExcelDate, "yyyy-MM-dd"),
           rawText: clean,
           isTBA: false,
+          assumedTwoWeeks: false,
         };
       }
     } catch {}
@@ -140,6 +154,7 @@ export function resolveDeadline(rawDeadline: string, baseDate?: Date): {
           parsedDate: format(parsed, "yyyy-MM-dd"),
           rawText: clean,
           isTBA: false,
+          assumedTwoWeeks: false,
         };
       }
     } catch {}
@@ -152,14 +167,16 @@ export function resolveDeadline(rawDeadline: string, baseDate?: Date): {
       parsedDate: format(nativeDate, "yyyy-MM-dd"),
       rawText: clean,
       isTBA: false,
+      assumedTwoWeeks: false,
     };
   }
 
-  // Fallback: 7 days out
+  // Fallback for non-explicit dates: assume 2 weeks (14 days)
   return {
-    parsedDate: format(addDays(base, 7), "yyyy-MM-dd"),
+    parsedDate: format(addDays(base, 14), "yyyy-MM-dd"),
     rawText: clean,
     isTBA: true,
+    assumedTwoWeeks: true,
   };
 }
 
@@ -241,7 +258,7 @@ export function matchAssignee(
 }
 
 /**
- * Main parser: takes a file buffer (Excel or PDF or text), extracts metadata and action items table
+ * Main parser: takes a file buffer (Excel spreadsheets only: .xlsx, .xls), extracts metadata and action items table
  */
 export async function parseActionRegister(
   buffer: Buffer,
@@ -249,23 +266,15 @@ export async function parseActionRegister(
   users: UserSummary[],
   options?: { defaultDate?: string }
 ): Promise<ParsedRegisterResult> {
-  const warnings: string[] = [];
-  const baseDate = options?.defaultDate ? new Date(options.defaultDate) : new Date();
   const ext = fileName.split(".").pop()?.toLowerCase() || "";
 
-  // 1. PDF Parsing
-  if (ext === "pdf") {
-    return parsePdfBuffer(buffer, fileName, users, baseDate);
-  }
-
-  // 2. Excel & CSV Parsing
-  if (["xlsx", "xls", "csv"].includes(ext)) {
+  // Strictly allow ONLY Excel Spreadsheets (.xlsx, .xls)
+  if (["xlsx", "xls"].includes(ext)) {
+    const baseDate = options?.defaultDate ? new Date(options.defaultDate) : new Date();
     return parseExcelBuffer(buffer, fileName, users, baseDate);
   }
 
-  // 3. Fallback: plain text
-  const textContent = buffer.toString("utf8");
-  return parseTextContent(textContent, fileName, users, baseDate);
+  throw new Error("Only Excel files (.xlsx, .xls) are allowed for importing action items.");
 }
 
 /**
@@ -368,7 +377,7 @@ function parseExcelBuffer(
 
     // Resolve Assignee & Deadline
     const { matchedUser, coAssignees, isExternal, needsInternalLead } = matchAssignee(rawResponsible, users);
-    const { parsedDate, rawText, isTBA } = resolveDeadline(rawDeadline, baseDate);
+    const { parsedDate, rawText, isTBA, assumedTwoWeeks } = resolveDeadline(rawDeadline, baseDate);
 
     items.push({
       id: `item-${Date.now()}-${r}`,
@@ -383,6 +392,7 @@ function parseExcelBuffer(
       rawDeadline: rawText,
       parsedDeadline: parsedDate,
       isDeadlineTBA: isTBA,
+      assumedTwoWeeks,
       priority: "medium",
       status: "not_started",
       notes: isExternal ? `Counterparty: ${rawResponsible}` : undefined,
