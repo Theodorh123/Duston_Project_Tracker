@@ -55,9 +55,16 @@ export function resolveDeadline(rawDeadline: string, baseDate?: Date): {
     lower === "tba" ||
     lower === "tbc" ||
     lower === "tbd" ||
+    lower === "n/a" ||
+    lower === "na" ||
+    lower === "-" ||
+    lower === "--" ||
+    lower === "none" ||
     lower === "to be actioned" ||
     lower === "to_be_actioned" ||
     lower.includes("to be actioned") ||
+    lower.includes("to be confirmed") ||
+    lower.includes("to be determined") ||
     lower.includes("pending") ||
     lower.includes("to be agreed") ||
     lower.includes("tba") ||
@@ -70,6 +77,16 @@ export function resolveDeadline(rawDeadline: string, baseDate?: Date): {
       rawText: clean || "TBA (2 weeks assumed)",
       isTBA: true,
       assumedTwoWeeks: true,
+    };
+  }
+
+  // If already standard ISO YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+    return {
+      parsedDate: clean,
+      rawText: clean,
+      isTBA: false,
+      assumedTwoWeeks: false,
     };
   }
 
@@ -280,6 +297,10 @@ export async function parseActionRegister(
 /**
  * Parse Excel Spreadsheets (.xlsx, .xls, .csv)
  */
+/**
+ * Parse Excel Spreadsheets (.xlsx, .xls)
+ * Resilient multi-sheet workbook scanner with adaptive column inference
+ */
 function parseExcelBuffer(
   buffer: Buffer,
   fileName: string,
@@ -287,11 +308,9 @@ function parseExcelBuffer(
   baseDate: Date
 ): ParsedRegisterResult {
   const warnings: string[] = [];
-  const wb = XLSX.read(buffer, { type: "buffer" });
-  const sheetName = wb.SheetNames[0];
-  const ws = wb.Sheets[sheetName];
+  const wb = XLSX.read(buffer, { type: "buffer", cellDates: true });
 
-  if (!ws) {
+  if (!wb.SheetNames || wb.SheetNames.length === 0) {
     return {
       documentTitle: cleanFileName(fileName),
       items: [],
@@ -299,45 +318,219 @@ function parseExcelBuffer(
     };
   }
 
-  // Convert to 2D array
+  // Rank sheets: prioritize sheets named "action", "register", "deliverable", "tracker", "minute", "task"
+  const candidateSheets = [...wb.SheetNames].sort((a, b) => {
+    const aLower = a.toLowerCase();
+    const bLower = b.toLowerCase();
+    const aScore = /action|register|deliverable|tracker|minute|task/.test(aLower) ? 1 : 0;
+    const bScore = /action|register|deliverable|tracker|minute|task/.test(bLower) ? 1 : 0;
+    return bScore - aScore;
+  });
+
+  let bestResult: {
+    sheetName: string;
+    documentTitle: string;
+    items: ParsedActionItem[];
+    warnings: string[];
+  } | null = null;
+
+  for (const sName of candidateSheets) {
+    const ws = wb.Sheets[sName];
+    if (!ws) continue;
+    const result = parseSingleWorksheet(ws, sName, fileName, users, baseDate);
+    if (result.items.length > 0) {
+      if (!bestResult || result.items.length > bestResult.items.length) {
+        bestResult = { ...result, sheetName: sName };
+      }
+      // If a sheet with a healthy number of items was found, prefer it
+      if (result.items.length >= 3) break;
+    } else if (!bestResult) {
+      bestResult = { ...result, sheetName: sName };
+    }
+  }
+
+  if (!bestResult || bestResult.items.length === 0) {
+    const firstSheet = wb.Sheets[wb.SheetNames[0]];
+    const fallback = parseSingleWorksheet(firstSheet, wb.SheetNames[0], fileName, users, baseDate);
+    return {
+      documentTitle: fallback.documentTitle || cleanFileName(fileName),
+      items: fallback.items,
+      warnings: fallback.warnings.length > 0 ? fallback.warnings : ["No action items found in worksheet. Please check sheet headers."],
+    };
+  }
+
+  return {
+    documentTitle: bestResult.documentTitle,
+    items: bestResult.items,
+    warnings: bestResult.warnings,
+  };
+}
+
+/**
+ * Parse an individual Excel worksheet
+ */
+function parseSingleWorksheet(
+  ws: XLSX.WorkSheet,
+  sheetName: string,
+  fileName: string,
+  users: UserSummary[],
+  baseDate: Date
+): {
+  documentTitle: string;
+  items: ParsedActionItem[];
+  warnings: string[];
+} {
+  const warnings: string[] = [];
   const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
 
   if (!rows || rows.length === 0) {
     return {
       documentTitle: cleanFileName(fileName),
       items: [],
-      warnings: ["Worksheet is empty."],
+      warnings: [`Sheet "${sheetName}" is empty.`],
     };
   }
 
-  // Look for title in the first 5 rows
   let documentTitle = "";
   let headerRowIndex = -1;
 
-  // Header column index mappings
   let colIndexNo = -1;
   let colIndexItem = -1;
   let colIndexResponsible = -1;
   let colIndexDeadline = -1;
+  let colIndexPriority = -1;
+  let colIndexStatus = -1;
+  let colIndexRemarks = -1;
 
-  for (let r = 0; r < Math.min(rows.length, 25); r++) {
+  // Scan up to 50 rows for the header row
+  for (let r = 0; r < Math.min(rows.length, 50); r++) {
     const row = rows[r];
-    const rowStr = row.map((cell) => String(cell).trim().toLowerCase()).join(" ");
+    if (!Array.isArray(row) || row.length === 0) continue;
 
-    // Check if this row is the header row
-    const hasItem = rowStr.includes("action item") || rowStr.includes("action") || rowStr.includes("task") || rowStr.includes("deliverable") || rowStr.includes("description");
-    const hasResponsible = rowStr.includes("responsible") || rowStr.includes("assignee") || rowStr.includes("action by") || rowStr.includes("owner") || rowStr.includes("pic");
-    const hasDeadline = rowStr.includes("deadline") || rowStr.includes("due date") || rowStr.includes("target date") || rowStr.includes("timeline");
+    const rowStr = row.map((cell) => String(cell || "").trim().toLowerCase()).join(" ");
 
-    if (hasItem && (hasResponsible || hasDeadline)) {
+    const hasItem =
+      rowStr.includes("action") ||
+      rowStr.includes("task") ||
+      rowStr.includes("deliverable") ||
+      rowStr.includes("description") ||
+      rowStr.includes("activity") ||
+      rowStr.includes("activities") ||
+      rowStr.includes("matter") ||
+      rowStr.includes("point") ||
+      rowStr.includes("details");
+
+    const hasResponsible =
+      rowStr.includes("responsible") ||
+      rowStr.includes("assign") ||
+      rowStr.includes("owner") ||
+      rowStr.includes("lead") ||
+      rowStr.includes("action by") ||
+      rowStr.includes("who") ||
+      rowStr.includes("person") ||
+      rowStr.includes("pic") ||
+      rowStr.includes("focal") ||
+      rowStr.includes("accountable");
+
+    const hasDeadline =
+      rowStr.includes("deadline") ||
+      rowStr.includes("due") ||
+      rowStr.includes("target") ||
+      rowStr.includes("timeline") ||
+      rowStr.includes("completion") ||
+      rowStr.includes("delivery") ||
+      rowStr.includes("by when") ||
+      rowStr.includes("when") ||
+      rowStr.includes("date");
+
+    const isHeaderCandidate =
+      (hasItem && (hasResponsible || hasDeadline)) ||
+      (hasResponsible && hasDeadline) ||
+      (hasItem && (rowStr.includes("no") || rowStr.includes("s/n") || rowStr.includes("#")));
+
+    if (isHeaderCandidate) {
       headerRowIndex = r;
-      // Map columns
       row.forEach((cell: any, c: number) => {
-        const h = String(cell).trim().toLowerCase();
-        if (h === "no." || h === "no" || h === "#" || h.includes("item no")) colIndexNo = c;
-        else if (h.includes("action item") || h.includes("task") || h.includes("deliverable") || h.includes("description") || h === "action") colIndexItem = c;
-        else if (h.includes("responsible") || h.includes("assignee") || h.includes("owner") || h.includes("action by")) colIndexResponsible = c;
-        else if (h.includes("deadline") || h.includes("due") || h.includes("target date") || h.includes("timeline")) colIndexDeadline = c;
+        const h = String(cell || "").trim().toLowerCase();
+        if (!h) return;
+
+        // Numbering column
+        if (
+          h === "no." ||
+          h === "no" ||
+          h === "#" ||
+          h === "s/n" ||
+          h === "sn" ||
+          h === "s.n." ||
+          h === "id" ||
+          h === "ref" ||
+          h === "item" ||
+          h.includes("item no") ||
+          h.includes("item #") ||
+          h.includes("s/n")
+        ) {
+          if (colIndexNo === -1) colIndexNo = c;
+        }
+        // Action item / deliverable column
+        else if (
+          h.includes("action") ||
+          h.includes("task") ||
+          h.includes("deliverable") ||
+          h.includes("description") ||
+          h.includes("activity") ||
+          h.includes("activities") ||
+          h.includes("matter") ||
+          h.includes("resolution") ||
+          h.includes("decision") ||
+          h.includes("point") ||
+          h.includes("details")
+        ) {
+          if (colIndexItem === -1) colIndexItem = c;
+        }
+        // Responsible / Owner column
+        else if (
+          h.includes("responsible") ||
+          h.includes("assign") ||
+          h.includes("owner") ||
+          h.includes("lead") ||
+          h.includes("action by") ||
+          h.includes("who") ||
+          h.includes("person") ||
+          h.includes("pic") ||
+          h.includes("focal") ||
+          h.includes("party") ||
+          h.includes("accountable")
+        ) {
+          if (colIndexResponsible === -1) colIndexResponsible = c;
+        }
+        // Deadline / Timeline column
+        else if (
+          h.includes("deadline") ||
+          h.includes("due") ||
+          h.includes("target") ||
+          h.includes("timeline") ||
+          h.includes("completion") ||
+          h.includes("delivery") ||
+          h.includes("by when") ||
+          h.includes("when") ||
+          h.includes("timeframe") ||
+          h.includes("schedule") ||
+          h.includes("date")
+        ) {
+          if (colIndexDeadline === -1) colIndexDeadline = c;
+        }
+        // Priority column
+        else if (h.includes("priority") || h.includes("urgency")) {
+          if (colIndexPriority === -1) colIndexPriority = c;
+        }
+        // Status column
+        else if (h.includes("status") || h.includes("progress") || h.includes("state")) {
+          if (colIndexStatus === -1) colIndexStatus = c;
+        }
+        // Remarks / Notes column
+        else if (h.includes("remark") || h.includes("comment") || h.includes("note") || h.includes("observation")) {
+          if (colIndexRemarks === -1) colIndexRemarks = c;
+        }
       });
       break;
     } else if (r < 4 && row[0] && String(row[0]).trim().length > 5 && !documentTitle) {
@@ -345,18 +538,43 @@ function parseExcelBuffer(
     }
   }
 
+  // Heuristic fallback for column inference if header wasn't matched explicitly
   if (headerRowIndex === -1) {
-    // Fallback heuristic: assume col 1 is action item, col 2 is responsible, col 3 is deadline
     headerRowIndex = 0;
-    colIndexItem = 1;
-    colIndexResponsible = 2;
-    colIndexDeadline = 3;
     warnings.push("Could not find standard table headers; inferred columns automatically.");
   }
 
+  // If action item column wasn't identified, find the column with the longest average text
   if (colIndexItem === -1) {
-    colIndexItem = colIndexNo === 0 ? 1 : 0;
+    let maxAvgLen = 0;
+    let candidateCol = -1;
+    const maxCols = Math.min(20, rows[headerRowIndex]?.length || 10);
+
+    for (let c = 0; c < maxCols; c++) {
+      if (c === colIndexNo || c === colIndexResponsible || c === colIndexDeadline) continue;
+      let totalLen = 0;
+      let rowCount = 0;
+      for (let r = headerRowIndex + 1; r < Math.min(rows.length, headerRowIndex + 15); r++) {
+        const val = String(rows[r]?.[c] || "").trim();
+        if (val) {
+          totalLen += val.length;
+          rowCount++;
+        }
+      }
+      const avg = rowCount > 0 ? totalLen / rowCount : 0;
+      if (avg > maxAvgLen) {
+        maxAvgLen = avg;
+        candidateCol = c;
+      }
+    }
+
+    if (candidateCol >= 0 && maxAvgLen >= 4) {
+      colIndexItem = candidateCol;
+    } else {
+      colIndexItem = colIndexNo === 0 ? 1 : 0;
+    }
   }
+
   if (colIndexResponsible === -1) {
     colIndexResponsible = colIndexItem + 1;
   }
@@ -368,16 +586,66 @@ function parseExcelBuffer(
 
   for (let r = headerRowIndex + 1; r < rows.length; r++) {
     const row = rows[r];
-    const rawItem = String(row[colIndexItem] || "").trim();
-    const rawResponsible = colIndexResponsible >= 0 ? String(row[colIndexResponsible] || "").trim() : "";
-    const rawDeadline = colIndexDeadline >= 0 ? String(row[colIndexDeadline] || "").trim() : "";
-    const rawNo = colIndexNo >= 0 ? String(row[colIndexNo] || "").trim() : String(items.length + 1);
+    if (!Array.isArray(row) || row.length === 0) continue;
 
-    if (!rawItem || rawItem.length < 3) continue;
+    const rawItem = String(row[colIndexItem] || "").trim();
+    if (!rawItem || rawItem.length < 2) continue;
+
+    // Skip repeated header rows
+    const lowerItem = rawItem.toLowerCase();
+    if (
+      lowerItem === "action" ||
+      lowerItem === "actions" ||
+      lowerItem === "action item" ||
+      lowerItem === "action items" ||
+      lowerItem === "task" ||
+      lowerItem === "deliverable" ||
+      lowerItem === "description"
+    ) {
+      continue;
+    }
+
+    const rawResponsible = colIndexResponsible >= 0 ? String(row[colIndexResponsible] || "").trim() : "";
+
+    let rawDeadline = "";
+    if (colIndexDeadline >= 0 && row[colIndexDeadline] !== undefined && row[colIndexDeadline] !== null) {
+      const cellVal = row[colIndexDeadline];
+      if (cellVal instanceof Date && isValid(cellVal)) {
+        rawDeadline = format(cellVal, "yyyy-MM-dd");
+      } else {
+        rawDeadline = String(cellVal || "").trim();
+      }
+    }
+
+    const rawNo = colIndexNo >= 0 && row[colIndexNo] !== undefined ? String(row[colIndexNo] || "").trim() : String(items.length + 1);
+
+    // Parse status if column exists
+    let status: "not_started" | "in_progress" | "done" = "not_started";
+    if (colIndexStatus >= 0 && row[colIndexStatus]) {
+      const s = String(row[colIndexStatus]).toLowerCase().trim();
+      if (s.includes("done") || s.includes("complet")) status = "done";
+      else if (s.includes("progress") || s.includes("ongoing")) status = "in_progress";
+    }
+
+    // Parse priority if column exists
+    let priority: "low" | "medium" | "high" | "critical" = "medium";
+    if (colIndexPriority >= 0 && row[colIndexPriority]) {
+      const p = String(row[colIndexPriority]).toLowerCase().trim();
+      if (p.includes("crit")) priority = "critical";
+      else if (p.includes("high")) priority = "high";
+      else if (p.includes("low")) priority = "low";
+    }
+
+    // Remarks
+    const rawRemarks = colIndexRemarks >= 0 && row[colIndexRemarks] ? String(row[colIndexRemarks]).trim() : "";
 
     // Resolve Assignee & Deadline
     const { matchedUser, coAssignees, isExternal, needsInternalLead } = matchAssignee(rawResponsible, users);
     const { parsedDate, rawText, isTBA, assumedTwoWeeks } = resolveDeadline(rawDeadline, baseDate);
+
+    const noteParts: string[] = [];
+    if (rawRemarks) noteParts.push(rawRemarks);
+    if (isExternal) noteParts.push(`Counterparty: ${rawResponsible}`);
 
     items.push({
       id: `item-${Date.now()}-${r}`,
@@ -393,9 +661,9 @@ function parseExcelBuffer(
       parsedDeadline: parsedDate,
       isDeadlineTBA: isTBA,
       assumedTwoWeeks,
-      priority: "medium",
-      status: "not_started",
-      notes: isExternal ? `Counterparty: ${rawResponsible}` : undefined,
+      priority,
+      status,
+      notes: noteParts.length > 0 ? noteParts.join(" | ") : undefined,
     });
   }
 

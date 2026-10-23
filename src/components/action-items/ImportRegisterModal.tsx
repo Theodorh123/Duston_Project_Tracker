@@ -22,6 +22,9 @@ import {
 import { cn, formatShortDate, isTbaDeadline, TBA_DEADLINE } from "@/lib/utils";
 import { bulkCreateActionItems } from "@/lib/actions/action-items";
 import { useRouter } from "next/navigation";
+import { format, addDays } from "date-fns";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface StagingActionItem {
   id: string;
@@ -183,11 +186,13 @@ export function ImportRegisterModal({
   }, [projects, selectedEntityId]);
 
   // Set default project if current project is invalid
-  useMemo(() => {
+  useEffect(() => {
     if (availableProjects.length > 0) {
       if (!selectedProjectId || !availableProjects.some((p) => p.id === selectedProjectId)) {
         setSelectedProjectId(availableProjects[0].id);
       }
+    } else {
+      setSelectedProjectId("");
     }
   }, [availableProjects, selectedProjectId]);
 
@@ -238,8 +243,18 @@ export function ImportRegisterModal({
       setUploadedDocs(data.documents || []);
       setWarnings(data.warnings || []);
 
+      const safeDefaultUserId =
+        currentUserId && UUID_REGEX.test(currentUserId)
+          ? currentUserId
+          : users[0]?.id || "";
+
       const stagingList: StagingActionItem[] = (data.items || []).map((it: any) => {
         const isAssumed = Boolean(it.assumedTwoWeeks || it.isDeadlineTBA);
+        const resolvedAssigneeId =
+          it.matchedUserId && UUID_REGEX.test(it.matchedUserId)
+            ? it.matchedUserId
+            : safeDefaultUserId;
+
         return {
           id: it.id || Math.random().toString(),
           selected: true,
@@ -249,12 +264,12 @@ export function ImportRegisterModal({
           rawResponsible: it.rawResponsible || "",
           matchedUserId: it.matchedUserId || null,
           matchedUserName: it.matchedUserName || null,
-          assigneeId: it.matchedUserId || currentUserId,
+          assigneeId: resolvedAssigneeId,
           coAssignees: it.coAssignees || [],
           isExternal: it.isExternal || false,
           needsInternalLead: !it.matchedUserId,
           rawDeadline: it.rawDeadline || "",
-          deadline: it.parsedDeadline || formatShortDate(new Date()),
+          deadline: it.parsedDeadline || format(addDays(new Date(), 14), "yyyy-MM-dd"),
           isDeadlineTBA: isAssumed,
           assumedTwoWeeks: isAssumed,
           priority: it.priority || "medium",
@@ -271,8 +286,10 @@ export function ImportRegisterModal({
         const initialMap: Record<string, { assigneeId: string; coAssigneeIds: string[] }> = {};
         unmatched.forEach((it) => {
           initialMap[it.id] = {
-            assigneeId: currentUserId,
-            coAssigneeIds: (it.coAssignees || []).map((c) => c.id),
+            assigneeId: safeDefaultUserId,
+            coAssigneeIds: (it.coAssignees || [])
+              .map((c: any) => c.id)
+              .filter((id: string) => UUID_REGEX.test(id)),
           };
         });
         setUnmatchedAssignments(initialMap);
@@ -336,20 +353,33 @@ export function ImportRegisterModal({
       return;
     }
 
+    const safeDefaultUserId =
+      currentUserId && UUID_REGEX.test(currentUserId)
+        ? currentUserId
+        : users[0]?.id || "";
+
     setIsImporting(true);
     setExtractError(null);
 
     try {
       const res = await bulkCreateActionItems({
         entityId: selectedEntityId,
-        projectId: selectedProjectId || undefined,
-        createdBy: currentUserId,
+        projectId:
+          selectedProjectId && UUID_REGEX.test(selectedProjectId)
+            ? selectedProjectId
+            : undefined,
+        createdBy: safeDefaultUserId,
         meetingSubject: meetingSubject.trim() || undefined,
         createMeetingRecord: recordMeeting,
         items: selectedItems.map((it) => ({
           title: it.title.trim(),
-          assigneeId: it.assigneeId,
-          secondaryAssigneeIds: (it.coAssignees || []).map((c) => c.id),
+          assigneeId:
+            it.assigneeId && UUID_REGEX.test(it.assigneeId)
+              ? it.assigneeId
+              : safeDefaultUserId,
+          secondaryAssigneeIds: (it.coAssignees || [])
+            .map((c) => c.id)
+            .filter((id) => UUID_REGEX.test(id)),
           deadline: it.deadline,
           priority: it.priority,
           status: it.status,

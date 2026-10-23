@@ -1442,6 +1442,8 @@ export function ActionRegisterClient({
         projects={projects}
         users={users}
         currentUserId={currentUserId}
+        defaultEntityId={selectedEntityId || (selectedEntity !== "all" ? selectedEntity : null)}
+        defaultProjectId={selectedProject !== "all" ? selectedProject : null}
       />
 
       {/* Add Action Item Modal */}

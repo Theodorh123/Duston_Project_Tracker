@@ -124,12 +124,26 @@ export interface UpdateActionItemInput {
 
 import { invalidateMetadataCache } from "../db/cache";
 import { TBA_DEADLINE, isTbaDeadline } from "@/lib/utils";
+import { format, addDays } from "date-fns";
 
 function normalizeDeadline(deadline?: string | null): string {
-  if (!deadline || deadline.trim() === "" || isTbaDeadline(deadline)) {
-    return TBA_DEADLINE;
+  if (!deadline || deadline.trim() === "") {
+    return format(addDays(new Date(), 14), "yyyy-MM-dd");
   }
-  return deadline.trim();
+  const clean = deadline.trim();
+  if (isTbaDeadline(clean)) {
+    return format(addDays(new Date(), 14), "yyyy-MM-dd");
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+    return clean;
+  }
+  const parsed = new Date(clean);
+  if (!isNaN(parsed.getTime())) {
+    try {
+      return format(parsed, "yyyy-MM-dd");
+    } catch {}
+  }
+  return format(addDays(new Date(), 14), "yyyy-MM-dd");
 }
 
 function revalidateAllActionItemPaths(projectId?: string) {
@@ -445,8 +459,15 @@ export async function bulkCreateActionItems(data: {
       return { success: false, error: "No action items provided to import." };
     }
 
-    const targetProjectId = data.projectId && data.projectId.trim() !== "" ? data.projectId : null;
-    let targetEntityId = data.entityId;
+    const targetProjectId =
+      data.projectId && UUID_REGEX.test(data.projectId.trim())
+        ? data.projectId.trim()
+        : null;
+
+    let targetEntityId =
+      data.entityId && UUID_REGEX.test(data.entityId.trim())
+        ? data.entityId.trim()
+        : undefined;
 
     if (targetProjectId && !targetEntityId) {
       const proj = await db.query.projects.findFirst({
@@ -466,28 +487,73 @@ export async function bulkCreateActionItems(data: {
       return { success: false, error: "No subsidiary found to assign items to." };
     }
 
+    // Ensure safe valid createdBy UUID
+    let safeCreatedBy =
+      data.createdBy && UUID_REGEX.test(data.createdBy.trim())
+        ? data.createdBy.trim()
+        : null;
+
+    if (!safeCreatedBy) {
+      const firstActiveUser = await db.query.users.findFirst({
+        where: eq(users.isActive, true),
+      });
+      safeCreatedBy = firstActiveUser?.id || null;
+    }
+
+    if (!safeCreatedBy) {
+      return { success: false, error: "No valid user found to attribute creation to." };
+    }
+
     let sourceMeetingId: string | undefined;
 
     if (data.createMeetingRecord && data.meetingSubject && targetEntityId) {
-      const meetingDateStr = data.meetingDate || new Date().toISOString().split("T")[0];
+      let meetingDateStr = data.meetingDate ? normalizeDeadline(data.meetingDate) : new Date().toISOString().split("T")[0];
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(meetingDateStr)) {
+        meetingDateStr = new Date().toISOString().split("T")[0];
+      }
+
       const [newMeeting] = await db
         .insert(meetings)
         .values({
           entityId: targetEntityId,
-          subject: data.meetingSubject,
+          subject: data.meetingSubject.trim(),
           meetingDate: meetingDateStr,
           venue: data.venue || "Virtual",
           isVirtual: true,
-          createdBy: data.createdBy,
+          createdBy: safeCreatedBy,
         })
         .returning();
       sourceMeetingId = newMeeting.id;
     }
 
     const insertedItems = [];
+    const validStatuses = ["not_started", "in_progress", "blocked", "done", "postponed"] as const;
+    const validPriorities = ["low", "medium", "high", "critical"] as const;
 
     for (const item of data.items) {
+      if (!item.title || item.title.trim() === "") continue;
+
       const resolvedDeadline = normalizeDeadline(item.deadline);
+
+      // Safe valid assignee UUID
+      const resolvedAssigneeId =
+        item.assigneeId && UUID_REGEX.test(item.assigneeId.trim())
+          ? item.assigneeId.trim()
+          : safeCreatedBy;
+
+      // Safe secondary assignees
+      const resolvedSecondaryAssignees = Array.isArray(item.secondaryAssigneeIds)
+        ? item.secondaryAssigneeIds.filter(
+            (id): id is string =>
+              typeof id === "string" &&
+              UUID_REGEX.test(id.trim()) &&
+              id.trim() !== resolvedAssigneeId
+          )
+        : [];
+
+      const status = validStatuses.includes(item.status as any) ? item.status : "not_started";
+      const priority = validPriorities.includes(item.priority as any) ? item.priority : "medium";
+
       const [created] = await db
         .insert(actionItems)
         .values({
@@ -495,14 +561,14 @@ export async function bulkCreateActionItems(data: {
           projectId: targetProjectId,
           title: item.title.trim(),
           description: item.notes || null,
-          assigneeId: item.assigneeId,
-          secondaryAssigneeIds: item.secondaryAssigneeIds || [],
+          assigneeId: resolvedAssigneeId,
+          secondaryAssigneeIds: resolvedSecondaryAssignees,
           deadline: resolvedDeadline,
-          status: item.status || "not_started",
-          priority: item.priority || "medium",
+          status,
+          priority,
           tag: item.tag || (item.notes?.includes("Counterparty") ? "Counterparty" : undefined),
           sourceMeetingId,
-          createdBy: data.createdBy,
+          createdBy: safeCreatedBy,
         })
         .returning();
 
@@ -510,20 +576,24 @@ export async function bulkCreateActionItems(data: {
 
       await db.insert(activityLog).values({
         actionItemId: created.id,
-        actorId: data.createdBy,
+        actorId: safeCreatedBy,
         eventType: "created",
         note: data.meetingSubject
           ? `Imported from "${data.meetingSubject}"`
           : "Imported from action register",
       });
 
-      // Optional WhatsApp notification
-      const deadlineLabel = isTbaDeadline(resolvedDeadline) ? "To Be Actioned" : resolvedDeadline;
-      await sendWhatsApp(
-        item.assigneeId,
-        `New action item assigned from register: "${item.title}" (Deadline: ${deadlineLabel}).`,
-        created.id
-      );
+      // Optional WhatsApp notification (wrapped defensively)
+      try {
+        const deadlineLabel = isTbaDeadline(resolvedDeadline) ? "To Be Actioned" : resolvedDeadline;
+        await sendWhatsApp(
+          resolvedAssigneeId,
+          `New action item assigned from register: "${item.title}" (Deadline: ${deadlineLabel}).`,
+          created.id
+        );
+      } catch (waErr) {
+        console.warn("Failed to send WhatsApp notification for imported item:", waErr);
+      }
     }
 
     revalidateAllActionItemPaths(targetProjectId || undefined);
